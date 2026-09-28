@@ -36,29 +36,29 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
       <div
         id="product-details-modal"
-        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#151c2c] rounded-2xl border border-[#1e293b] p-5 sm:p-7 shadow-2xl"
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-xl border border-slate-200 p-5 sm:p-7 shadow-xl"
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl bg-[#0b0f19] text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#1e293b] border border-[#1e293b] transition-colors z-20"
+          className="absolute top-4 right-4 p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 border border-slate-200 transition-colors z-20 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           {/* Product Image */}
-          <div className="relative rounded-xl overflow-hidden aspect-square bg-[#0b0f19] border border-[#1e293b]">
+          <div className="relative rounded-lg overflow-hidden aspect-square bg-slate-50 border border-slate-100">
             <img
               src={product.image}
               alt={product.title}
               className="w-full h-full object-cover"
             />
             {product.tag && (
-              <span className="absolute top-3 left-3 px-3 py-1 text-xs font-bold rounded-md bg-gradient-to-r from-[#fbbf24] to-[#f59e0b] text-slate-950 shadow-lg">
+              <span className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded bg-[#0F172A] text-white shadow-2xs">
                 {product.tag}
               </span>
             )}
@@ -66,88 +66,88 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
           {/* Product Info */}
           <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-wider font-bold text-[#38bdf8] mb-1">
+            <span className="text-xs uppercase tracking-wider font-semibold text-[#4F46E5] mb-1">
               {product.category}
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-[#f8fafc] mb-2 leading-snug">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] mb-2 leading-snug">
               {product.title}
             </h2>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex text-[#fbbf24]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex text-[#F59E0B]">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-[#fbbf24]" />
+                  <Star key={i} className="w-4 h-4 fill-[#F59E0B]" />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-[#f8fafc]">{product.rating}</span>
-              <span className="text-xs text-[#94a3b8]">({product.reviewsCount} customer reviews)</span>
+              <span className="text-sm font-semibold text-[#0F172A]">{product.rating}</span>
+              <span className="text-xs text-slate-400">({product.reviewsCount} reviews)</span>
             </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-2xl sm:text-3xl font-black text-[#f8fafc] font-mono">
-                ৳{product.price}
+              <span className="text-2xl sm:text-3xl font-bold text-[#0F172A] font-mono tabular-nums">
+                ৳{product.price.toLocaleString()}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-sm text-[#94a3b8] line-through font-mono">
-                  ৳{product.originalPrice}
+                <span className="text-sm text-slate-400 line-through font-mono tabular-nums">
+                  ৳{product.originalPrice.toLocaleString()}
                 </span>
               )}
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-xs font-bold text-[#fbbf24] bg-[#fbbf24]/10 border border-[#fbbf24]/30 px-2 py-0.5 rounded-full">
-                  -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% (Save ৳{product.originalPrice - product.price})
+                <span className="text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                  -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% (Save ৳{(product.originalPrice - product.price).toLocaleString()})
                 </span>
               )}
             </div>
 
             {/* Stock Status Indicator */}
-            <div className="mb-4">
+            <div className="mb-3.5">
               {product.inStock ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                   In Stock • Ready to Dispatch
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 bg-rose-950/50 border border-rose-500/30 px-2.5 py-1 rounded-lg">
-                  <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-800 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md">
+                  <span className="w-2 h-2 rounded-full bg-rose-600"></span>
                   Out of Stock • সাময়িকভাবে স্টক শেষ
                 </span>
               )}
             </div>
 
             {/* Description */}
-            <p className="text-sm text-[#94a3b8] mb-5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 mb-4 leading-relaxed">
               {product.description}
             </p>
 
             {/* Features Checklist */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
               {product.features.map((feat, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-[#94a3b8]">
-                  <Zap className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <Zap className="w-3.5 h-3.5 text-[#4F46E5] shrink-0" />
                   <span>{feat}</span>
                 </div>
               ))}
             </div>
 
             {/* Quantity Selector & Add Button */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4 border-t border-[#1e293b]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3.5 border-t border-slate-100">
               <div className="flex items-center justify-between sm:justify-start gap-2">
-                <span className="text-xs text-slate-400 font-medium sm:hidden">পরিমাণ:</span>
-                <div className="flex items-center bg-[#0b0f19] border border-[#1e293b] rounded-xl p-1 shrink-0">
+                <span className="text-xs text-slate-500 font-medium sm:hidden">পরিমাণ:</span>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5 shrink-0">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#1e293b] text-lg font-bold"
+                    className="w-8 h-8 rounded flex items-center justify-center text-slate-600 hover:text-[#0F172A] hover:bg-slate-200 text-base font-bold cursor-pointer"
                   >
                     -
                   </button>
-                  <span className="w-10 text-center text-sm font-bold font-mono text-[#38bdf8]">
+                  <span className="w-9 text-center text-sm font-bold font-mono text-[#0F172A]">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#1e293b] text-lg font-bold"
+                    className="w-8 h-8 rounded flex items-center justify-center text-slate-600 hover:text-[#0F172A] hover:bg-slate-200 text-base font-bold cursor-pointer"
                   >
                     +
                   </button>
@@ -158,12 +158,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <button
                   onClick={handleAddToCart}
                   disabled={!product.inStock}
-                  className={`flex-1 py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-lg ${
+                  className={`flex-1 py-2.5 px-3 rounded-lg font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                     !product.inStock
-                      ? 'bg-slate-900 border border-[#1e293b] text-slate-500 cursor-not-allowed'
+                      ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'
                       : added
-                      ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)]'
-                      : 'bg-[#38bdf8] hover:bg-[#0284c7] text-slate-950 font-black shadow-[0_0_20px_rgba(56,189,248,0.35)]'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-98'
                   }`}
                 >
                   {!product.inStock ? (
@@ -176,7 +176,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   ) : (
                     <>
                       <ShoppingCart className="w-4 h-4" />
-                      <span className="truncate">Add to Cart • ৳{product.price * quantity}</span>
+                      <span className="truncate">Add to Cart • ৳{(product.price * quantity).toLocaleString()}</span>
                     </>
                   )}
                 </button>
@@ -185,9 +185,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   <button
                     id="modal-buy-now-btn"
                     onClick={handleBuyNow}
-                    className="py-3 px-4 sm:px-5 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-[#fbbf24] via-[#fcd34d] to-[#f59e0b] hover:brightness-110 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.35)] transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shrink-0"
+                    className="py-2.5 px-4 rounded-lg font-semibold text-xs sm:text-sm bg-[#4F46E5] hover:bg-[#4338CA] text-white transition-colors flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shrink-0"
                   >
-                    <Zap className="w-4 h-4 fill-current" />
+                    <Zap className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
                     <span>Buy Now</span>
                   </button>
                 )}
@@ -195,17 +195,17 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#94a3b8] mt-5 pt-3 border-t border-[#1e293b]">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 mt-4 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#38bdf8]" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>100% Original</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-[#fbbf24]" />
+                <Truck className="w-3.5 h-3.5 text-[#4F46E5]" />
                 <span>Fast Nationwide Delivery</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                 <span>7 Days Return</span>
               </div>
             </div>

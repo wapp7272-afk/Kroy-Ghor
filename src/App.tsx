@@ -20,29 +20,46 @@ import {
   Video,
   Store,
   ChevronRight,
-  RotateCcw
+  ChevronDown,
+  RotateCcw,
+  SlidersHorizontal
 } from 'lucide-react';
-import { Product, CartItem, UserProfile, Address, Order, Coupon, ActivePage, Seller, SystemBannerSettings, PayoutRequest, WalletTransaction } from './types';
+import { Product, CartItem, UserProfile, Address, Order, Coupon, ActivePage, Seller, SystemBannerSettings, PayoutRequest, WalletTransaction, CatalogFilterState, SortOption, ReturnRequest } from './types';
 import { PRODUCTS, CATEGORIES } from './data/products';
 import { INITIAL_COUPONS } from './data/coupons';
+import { 
+  INITIAL_FILTER_STATE,
+  DEPARTMENT_OPTIONS,
+  SORT_OPTIONS,
+  countActiveFilters,
+  FilterSidebarContent,
+  MobileFilterDrawer,
+  ActiveFilterChips
+} from './components/ProductCatalogFilter';
 import { LoadingScreen } from './components/LoadingScreen';
 import { Header } from './components/Header';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailsModal } from './components/ProductDetailsModal';
 import { ProductDetailView } from './components/ProductDetailView';
+import { UserProfile as CustomerProfileView } from './components/UserProfile';
 import { MyOrdersView } from './components/MyOrdersView';
 import { SellerCenterView } from './components/SellerCenterView';
 import { PublicSellerStoreView } from './components/PublicSellerStoreView';
 import { HeroSection } from './components/HeroSection';
 import { CategoryNavGrid } from './components/CategoryNavGrid';
 import { FlashSaleSection } from './components/FlashSaleSection';
+import { CinematicVideoShowcase } from './components/CinematicVideoShowcase';
 import { TrustValueProposition } from './components/TrustValueProposition';
 import { FeaturedYouTubeSection } from './components/FeaturedYouTubeSection';
+import { INITIAL_PROMO_BANNERS } from './data/banners';
 import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { CustomerSupport } from './components/CustomerSupport';
+import { ReturnPolicyModal } from './components/ReturnPolicyModal';
+import { FaqModal } from './components/FaqModal';
 import { AdminDashboard, AUTHORIZED_ADMIN_EMAIL } from './components/AdminDashboard';
 
 export default function App() {
@@ -73,7 +90,13 @@ export default function App() {
   const [bannerSettings, setBannerSettings] = useState<SystemBannerSettings>(() => {
     try {
       const saved = localStorage.getItem('primevault_banner_settings');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          promoBanners: parsed.promoBanners && parsed.promoBanners.length > 0 ? parsed.promoBanners : INITIAL_PROMO_BANNERS,
+        };
+      }
     } catch {}
     return {
       announcementBadge: '⚡ Flash Offer',
@@ -86,6 +109,7 @@ export default function App() {
       youtubeChannelUrl: 'https://www.youtube.com/@primevaultzone',
       youtubeSectionTitle: 'Featured YouTube Videos',
       youtubeSectionSubtitle: 'Watch authentic fragrance unboxings, batch code verification guides, and official product showcases directly from our channel.',
+      promoBanners: INITIAL_PROMO_BANNERS,
     };
   });
 
@@ -169,8 +193,8 @@ export default function App() {
       document.title = 'Brand Storefront | PRIME VAULT ZONE';
     } else if (activePage === 'SellerCenter') {
       document.title = 'Merchant Seller Center | PRIME VAULT ZONE';
-    } else if (activePage === 'MyOrders') {
-      document.title = 'Live Order Tracking & History | PRIME VAULT ZONE';
+    } else if (activePage === 'MyOrders' || activePage === 'UserProfile') {
+      document.title = 'Customer Portal & Order History | PRIME VAULT ZONE';
     } else {
       document.title = 'PRIME VAULT ZONE | Bangladesh Premier Lifestyle & Perfume Marketplace';
     }
@@ -181,6 +205,35 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeFilterTab, setActiveFilterTab] = useState<'All' | 'Flash Sale' | 'Best Deals' | 'New Arrivals'>('All');
   const [catalogTab, setCatalogTab] = useState<'recommended' | 'bestsellers' | 'newarrivals' | 'perfumes' | 'tech'>('recommended');
+  const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState<boolean>(false);
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState<boolean>(false);
+
+  // Phase 4: Advanced Catalog Filters & Sorting State
+  const [catalogFilters, setCatalogFilters] = useState<CatalogFilterState>(INITIAL_FILTER_STATE);
+  const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState<boolean>(false);
+
+  const handleResetAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setActiveFilterTab('All');
+    setCatalogFilters(INITIAL_FILTER_STATE);
+    showToast('✓ All filters cleared');
+  };
+
+  const handleSelectCategoryFromNav = (cat: string) => {
+    setSelectedCategory(cat);
+    setActiveFilterTab('All');
+    if (cat === 'All') {
+      setCatalogFilters((prev) => ({ ...prev, categories: [] }));
+    } else {
+      const foundDept = DEPARTMENT_OPTIONS.find((d) => d.name === cat || d.matches(cat));
+      const deptName = foundDept ? foundDept.name : cat;
+      setCatalogFilters((prev) => ({ ...prev, categories: [deptName] }));
+    }
+    setActivePage('Home');
+    const el = document.getElementById('explore');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // State: Wishlist with LocalStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -229,6 +282,11 @@ export default function App() {
     }
     return PRODUCTS;
   });
+
+  // Dynamic max ceiling price from catalog
+  const maxCatalogPrice = useMemo(() => {
+    return products.reduce((max, p) => Math.max(max, p.price), 20000);
+  }, [products]);
 
   // State: Dynamic Coupons with LocalStorage persistence
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
@@ -313,6 +371,8 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [isReturnPolicyOpen, setIsReturnPolicyOpen] = useState(false);
+  const [isFaqOpen, setIsFaqOpen] = useState(false);
 
   // State: Orders with LocalStorage persistence
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -325,10 +385,10 @@ export default function App() {
     return [
       {
         id: 'PVZ-91823',
-        date: '2026-09-19 18:32',
+        date: '2026-09-24 18:32',
         items: [
-          { product: PRODUCTS[0], quantity: 1 },
-          { product: PRODUCTS[2], quantity: 2 }
+          { product: PRODUCTS[0], quantity: 1, selectedSize: '100ml' },
+          { product: PRODUCTS[2], quantity: 2, selectedSize: 'Standard' }
         ],
         subtotal: 1850,
         discount: 185,
@@ -344,13 +404,15 @@ export default function App() {
           fullAddress: 'House 14, Road 5, Dhanmondi, Dhaka',
           notes: 'Call before delivery'
         },
-        status: 'Confirmed'
+        status: 'Delivered',
+        courierName: 'Pathao Express',
+        trackingNumber: 'PT-91823BD'
       },
       {
         id: 'PVZ-82914',
-        date: '2026-09-18 14:15',
+        date: '2026-09-22 14:15',
         items: [
-          { product: PRODUCTS[1], quantity: 1 }
+          { product: PRODUCTS[1], quantity: 1, selectedSize: '100ml' }
         ],
         subtotal: 890,
         discount: 0,
@@ -364,10 +426,32 @@ export default function App() {
           cityDivision: 'Outside Dhaka',
           fullAddress: 'Agrabad C/A, Chattogram'
         },
-        status: 'Processing'
+        status: 'Processing',
+        courierName: 'Steadfast Courier',
+        trackingNumber: 'ST-82914BD'
       }
     ];
   });
+
+  const handleSubmitReturnRequest = (
+    orderId: string,
+    returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>
+  ) => {
+    const newReq: ReturnRequest = {
+      ...returnData,
+      id: `RET-${Math.floor(1000 + Math.random() * 9000)}`,
+      requestedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      status: 'Pending Review',
+    };
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, returnRequest: newReq } : order
+      )
+    );
+
+    showToast(`✓ রিটার্ন আবেদন #${newReq.id} জমা হয়েছে! আমাদের টিম ২৪ ঘণ্টার মধ্যে যোগাযোগ করবে।`);
+  };
 
   // State: Registered Sellers with LocalStorage persistence
   const [sellers, setSellers] = useState<Seller[]>(() => {
@@ -615,7 +699,13 @@ export default function App() {
 
   const handleOpenOrders = () => {
     setSelectedProductDetail(null);
-    setActivePage('MyOrders');
+    setActivePage('UserProfile');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenUserProfile = () => {
+    setSelectedProductDetail(null);
+    setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1009,13 +1099,45 @@ export default function App() {
       });
   };
 
-  // Filtered Products based on Category, Search Query, and Active Secondary Nav Filter Tab
+  // Filtered and Sorted Products based on Phase 4 Advanced System
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      // 1. Category Matching (with support for marketplace group categories)
+    const matched = products.filter((product) => {
+      // 1. Multi-Department Category Filtering
       let matchesCategory = true;
-      if (selectedCategory !== 'All') {
-        if (selectedCategory === 'Perfume & Fragrances') {
+      if (catalogFilters.categories.length > 0) {
+        matchesCategory = catalogFilters.categories.some((catName) => {
+          const option = DEPARTMENT_OPTIONS.find((d) => d.name === catName);
+          if (option) {
+            return option.matches(product.category || '');
+          }
+          if (catName === 'Perfumes & Attars' || catName === 'Perfume & Fragrances' || catName === 'Perfume') {
+            return product.category === 'Perfume' || product.category === 'Attar Perfumes' || product.category === 'Perfume & Fragrances';
+          }
+          if (catName === 'Electronics & Tech' || catName === 'Electronics & Gadgets') {
+            return product.category === 'Electronics & Gadgets' || product.category === 'Glow Lights';
+          }
+          if (catName === 'Fashion & Lifestyle') {
+            return product.category === 'Fashion & Lifestyle';
+          }
+          if (catName === 'Watches & Accessories') {
+            return product.category === 'Watches & Accessories';
+          }
+          if (catName === 'Beauty & Skincare' || catName === 'Beauty & Personal Care') {
+            return product.category === 'Beauty & Personal Care';
+          }
+          if (catName === 'Home Living' || catName === 'Home & Living') {
+            return product.category === 'Home & Living';
+          }
+          if (catName === 'Luxury Gifts' || catName === 'Premium Gifts') {
+            return product.category === 'Premium Gifts' || product.category === 'Notebooks' || product.category === 'Bricks Toys';
+          }
+          return (product.category || '').toLowerCase() === catName.toLowerCase();
+        });
+      } else if (selectedCategory !== 'All') {
+        const option = DEPARTMENT_OPTIONS.find((d) => d.name === selectedCategory);
+        if (option) {
+          matchesCategory = option.matches(product.category || '');
+        } else if (selectedCategory === 'Perfume & Fragrances') {
           matchesCategory = product.category === 'Perfume' || product.category === 'Attar Perfumes' || product.category === 'Perfume & Fragrances';
         } else if (selectedCategory === 'Fashion & Lifestyle') {
           matchesCategory = product.category === 'Fashion & Lifestyle';
@@ -1040,11 +1162,58 @@ export default function App() {
         !q ||
         product.title.toLowerCase().includes(q) ||
         (product.name && product.name.toLowerCase().includes(q)) ||
-        product.category.toLowerCase().includes(q) ||
+        (product.category && product.category.toLowerCase().includes(q)) ||
         (product.description && product.description.toLowerCase().includes(q)) ||
-        (product.features && product.features.some((f) => f.toLowerCase().includes(q)));
+        (product.features && product.features.some((f) => f.toLowerCase().includes(q))) ||
+        (product.tag && product.tag.toLowerCase().includes(q)) ||
+        (product.storeName && product.storeName.toLowerCase().includes(q));
 
-      // 3. Secondary Nav Tab Filtering ('All' | 'Flash Sale' | 'Best Deals' | 'New Arrivals')
+      // 3. Price Range Slider / Manual Text Inputs
+      const matchesPrice =
+        product.price >= catalogFilters.minPrice &&
+        product.price <= catalogFilters.maxPrice;
+
+      // 4. Stock Availability Toggle
+      const matchesStock = !catalogFilters.inStockOnly || product.inStock;
+
+      // 5. Minimum Discount Percentage Filter
+      let matchesDiscount = true;
+      if (catalogFilters.minDiscount > 0) {
+        const discPct =
+          product.originalPrice && product.originalPrice > product.price
+            ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+            : (product.discount ? parseInt(product.discount) || 0 : 0);
+        matchesDiscount = discPct >= catalogFilters.minDiscount;
+      }
+
+      // 6. Customer Rating Filter
+      const matchesRating =
+        catalogFilters.minRating === 0 || (product.rating && product.rating >= catalogFilters.minRating);
+
+      // 7. Brands Filter
+      let matchesBrand = true;
+      if (catalogFilters.selectedBrands.length > 0) {
+        matchesBrand = catalogFilters.selectedBrands.some(
+          (brand) =>
+            product.title.toLowerCase().includes(brand.toLowerCase()) ||
+            (product.name && product.name.toLowerCase().includes(brand.toLowerCase())) ||
+            (product.description && product.description.toLowerCase().includes(brand.toLowerCase())) ||
+            (product.storeName && product.storeName.toLowerCase().includes(brand.toLowerCase())) ||
+            (product.sellerName && product.sellerName.toLowerCase().includes(brand.toLowerCase()))
+        );
+      }
+
+      // 8. Tags / Sub-Category Badges Filter
+      let matchesTag = true;
+      if (catalogFilters.selectedTags.length > 0) {
+        matchesTag = catalogFilters.selectedTags.some(
+          (tag) =>
+            (product.tag && product.tag.toLowerCase().includes(tag.toLowerCase())) ||
+            (product.features && product.features.some((f) => f.toLowerCase().includes(tag.toLowerCase())))
+        );
+      }
+
+      // 9. Secondary Nav Tab Quick Filter ('All' | 'Flash Sale' | 'Best Deals' | 'New Arrivals')
       let matchesTab = true;
       if (activeFilterTab === 'Flash Sale') {
         matchesTab = Boolean(
@@ -1068,38 +1237,45 @@ export default function App() {
         );
       }
 
-      // 4. Catalog Sub-Tab Filtering ('recommended' | 'bestsellers' | 'newarrivals' | 'perfumes' | 'tech')
-      let matchesCatalogTab = true;
-      if (catalogTab === 'bestsellers') {
-        matchesCatalogTab = Boolean(
-          (product.rating && product.rating >= 4.8) ||
-          (product.tag && (product.tag.includes('Best') || product.tag.includes('Popular') || product.tag.includes('Hot') || product.tag.includes('Sale')))
-        );
-      } else if (catalogTab === 'newarrivals') {
-        matchesCatalogTab = Boolean(
-          product.id.startsWith('fash') ||
-          product.id.startsWith('wtch') ||
-          product.id.startsWith('bty') ||
-          product.id.startsWith('home') ||
-          product.id.startsWith('brick') ||
-          (product.tag && (product.tag.includes('Exclusive') || product.tag.includes('Trending') || product.tag.includes('New')))
-        );
-      } else if (catalogTab === 'perfumes') {
-        matchesCatalogTab = Boolean(
-          product.category === 'Perfume' ||
-          product.category === 'Attar Perfumes' ||
-          product.category === 'Perfume & Fragrances'
-        );
-      } else if (catalogTab === 'tech') {
-        matchesCatalogTab = Boolean(
-          product.category === 'Electronics & Gadgets' ||
-          product.category === 'Glow Lights'
-        );
-      }
-
-      return matchesCategory && matchesSearch && matchesTab && matchesCatalogTab;
+      return (
+        matchesCategory &&
+        matchesSearch &&
+        matchesPrice &&
+        matchesStock &&
+        matchesDiscount &&
+        matchesRating &&
+        matchesBrand &&
+        matchesTag &&
+        matchesTab
+      );
     });
-  }, [products, searchQuery, selectedCategory, activeFilterTab, catalogTab]);
+
+    // Dynamic Sorting Engine
+    return matched.sort((a, b) => {
+      switch (catalogFilters.sortBy) {
+        case 'popularity': {
+          const scoreA = (a.soldCount || 0) * 10 + (a.reviewsCount || 0) + (a.tag?.includes('Best') ? 50 : 0);
+          const scoreB = (b.soldCount || 0) * 10 + (b.reviewsCount || 0) + (b.tag?.includes('Best') ? 50 : 0);
+          return scoreB - scoreA;
+        }
+        case 'newest': {
+          const isNewA = a.id.startsWith('fash') || a.id.startsWith('wtch') || a.id.startsWith('bty') || a.id.startsWith('home') || a.tag?.includes('New');
+          const isNewB = b.id.startsWith('fash') || b.id.startsWith('wtch') || b.id.startsWith('bty') || b.id.startsWith('home') || b.tag?.includes('New');
+          if (isNewA && !isNewB) return -1;
+          if (!isNewA && isNewB) return 1;
+          return 0;
+        }
+        case 'price-asc':
+          return a.price - b.price;
+        case 'price-desc':
+          return b.price - a.price;
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [products, searchQuery, selectedCategory, activeFilterTab, catalogFilters]);
 
   // Top 5 Popular Perfumes
   const popularPerfumes = useMemo(() => {
@@ -1120,7 +1296,7 @@ export default function App() {
   }, [products]);
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative">
+    <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
       {/* Animated Loading Screen */}
       <LoadingScreen />
 
@@ -1133,23 +1309,25 @@ export default function App() {
         user={user}
         ordersCount={orders.length}
         wishlistCount={wishlist.length}
+        products={products}
+        selectedCategory={selectedCategory}
+        onSelectProduct={handleSelectProductDetail}
+        isMobileCategoriesOpen={isMobileCategoriesOpen}
+        onToggleMobileCategories={setIsMobileCategoriesOpen}
+        isMobileSearchActive={isMobileSearchActive}
+        onToggleMobileSearch={setIsMobileSearchActive}
         onOpenWishlist={() => {
           showToast(`❤️ You have ${wishlist.length} items saved in your Wishlist`);
         }}
         onOpenOrders={handleOpenOrders}
+        onOpenUserProfile={handleOpenUserProfile}
         onOpenSellerCenter={handleOpenSellerCenter}
         onOpenSellerStore={handleOpenSellerStore}
         onOpenAuth={() => setIsAuthOpen(true)}
         onDownloadHtml={handleDownloadStandaloneHtml}
         onOpenAdmin={handleOpenAdmin}
         onGoHome={handleGoHome}
-        onSelectCategory={(cat) => {
-          setSelectedCategory(cat);
-          setActiveFilterTab('All');
-          setActivePage('Home');
-          const el = document.getElementById('explore');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
+        onSelectCategory={handleSelectCategoryFromNav}
         onSelectFilterTab={(tab) => {
           setActiveFilterTab(tab);
           setActivePage('Home');
@@ -1164,14 +1342,26 @@ export default function App() {
       />
 
       {/* Active Page Routing Router */}
-      {activePage === 'MyOrders' ? (
-        <MyOrdersView
-          orders={orders}
+      {activePage === 'UserProfile' || activePage === 'MyOrders' ? (
+        <CustomerProfileView
           user={user}
-          onBackToShop={handleGoHome}
-          onViewProduct={handleSelectProductDetail}
+          orders={orders}
+          products={products}
+          wishlist={wishlist}
+          onToggleWishlist={handleToggleWishlist}
+          onAddToCart={handleAddToCart}
+          onSelectProduct={handleSelectProductDetail}
           onReorder={handleReorder}
+          onUpdateAddress={handleUpdateAddress}
+          onUpdateSavedAddresses={(addresses: Address[]) => {
+            setUser((prev) => ({ ...prev, savedAddresses: addresses }));
+          }}
+          onLogout={handleLogout}
+          onBackToShop={handleGoHome}
           onOpenAuth={() => setIsAuthOpen(true)}
+          initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
+          onSubmitReturnRequest={handleSubmitReturnRequest}
+          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
         />
       ) : activePage === 'SellerCenter' ? (
         <SellerCenterView
@@ -1181,8 +1371,10 @@ export default function App() {
           sellers={sellers}
           onAddProduct={handleAddProduct}
           onUpdateProduct={handleUpdateProduct}
+          onDeleteProduct={handleDeleteProduct}
           onRegisterSeller={handleRegisterSeller}
           onUpdateOrderStatus={handleUpdateOrderStatus}
+          onUpdateOrderTracking={handleUpdateOrderTracking}
           currentSellerId={currentSellerId}
           onSwitchSeller={setCurrentSellerId}
           commissionRate={commissionRate}
@@ -1207,42 +1399,45 @@ export default function App() {
       ) : activePage === 'ProductDetail' && selectedProductDetail ? (
         <ProductDetailView
           product={selectedProductDetail}
+          products={products}
           onBackToShop={handleGoHome}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
+          onSelectProduct={handleSelectProductDetail}
           isWishlisted={wishlist.includes(selectedProductDetail.id)}
           onToggleWishlist={handleToggleWishlist}
           onOpenSellerStore={handleOpenSellerStore}
+          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          showToast={showToast}
         />
       ) : (
         <>
-          {/* ==================== HERO SECTION (Prompt 03) ==================== */}
+          {/* ==================== 1. HERO PROMO BANNER CAROUSEL ==================== */}
           <HeroSection
-            featuredProduct={featuredProduct}
-            bannerSettings={bannerSettings}
+            banners={bannerSettings.promoBanners || INITIAL_PROMO_BANNERS}
+            products={products}
             onSelectProduct={handleSelectProductDetail}
             onBuyNow={handleBuyNow}
             onAddToCart={handleAddToCart}
-            onExploreDeals={() => {
-              setActiveFilterTab('Best Deals');
-              setSelectedCategory('All');
-              const el = document.getElementById('explore');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            onSelectCategory={handleSelectCategoryFromNav}
+            onSelectFilterTab={(tab) => {
+              setActiveFilterTab(tab);
+              if (tab !== 'All') {
+                const el = document.getElementById('explore');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
+            bannerSettings={bannerSettings}
+            showToast={showToast}
           />
 
-          {/* ==================== INTERACTIVE CATEGORY SECTION (Prompt 02) ==================== */}
+          {/* ==================== 2. POPULAR CATEGORIES GRID ==================== */}
           <CategoryNavGrid
             selectedCategory={selectedCategory}
-            onSelectCategory={(cat) => {
-              setSelectedCategory(cat);
-              setActiveFilterTab('All');
-              const el = document.getElementById('explore');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onSelectCategory={handleSelectCategoryFromNav}
           />
 
-          {/* ==================== FLASH SALE SYSTEM & PROMOTIONAL BANNERS (Prompt 04) ==================== */}
+          {/* ==================== 3. FLASH SALES & SPECIAL DEALS ==================== */}
           <FlashSaleSection
             products={products}
             onSelectProduct={handleSelectProductDetail}
@@ -1254,341 +1449,272 @@ export default function App() {
               const el = document.getElementById('explore');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
-            onSelectCategory={(cat) => {
-              setSelectedCategory(cat);
-              setActiveFilterTab('All');
-              const el = document.getElementById('explore');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onSelectCategory={handleSelectCategoryFromNav}
           />
 
-          {/* ==================== WHY SHOP WITH US - VALUE PROPOSITION (Prompt 02) ==================== */}
-          <TrustValueProposition />
+          {/* ==================== 4. FEATURED MULTI-CATEGORY PRODUCTS (PHASE 4 FILTER ENGINE) ==================== */}
+          <main id="explore" className="py-10 lg:py-16 bg-[#F9FAFB] border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+              
+              {/* Section Header with Dynamic Sorting & Mobile Filter Trigger */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#4F46E5] font-bold mb-1">
+                    <Sparkles className="w-3.5 h-3.5 text-[#4F46E5]" />
+                    <span>CURATED MULTI-CATEGORY MARKETPLACE</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
+                    Featured Marketplace Products
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Explore authentic fragrances, smart electronics, designer fashion, luxury watches & home wellness.
+                  </p>
+                </div>
 
-          {/* ==================== POPULAR PRODUCTS GRID ==================== */}
-          <section id="popular" className="py-12 lg:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-slate-200">
-            <div className="text-center max-w-2xl mx-auto mb-8 space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#4F46E5] font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-[#4F46E5]" />
-                <span>TOP TRENDING FRAGRANCES</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A]">
-                Best Selling Perfumes in Bangladesh
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500">
-                যে ৫টি পারফিউম এখন সবার মধ্যে সবচেয়ে বেশি জনপ্রিয় ও প্রশংসিত
-              </p>
-            </div>
+                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                  {/* Results Count Badge */}
+                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shrink-0">
+                    Showing {filteredProducts.length} items
+                  </span>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              {popularPerfumes.map((product) => {
-                const isAdded = cart.some((item) => item.product.id === product.id);
-                const isWishlisted = wishlist.includes(product.id);
-                return (
-                  <div
-                    key={product.id}
-                    className="group bg-white rounded-lg border border-slate-200 hover:border-slate-300 overflow-hidden flex flex-col justify-between transition-colors shadow-2xs"
+                  {/* Mobile Filter Trigger Button (lg:hidden) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFilterDrawerOpen(true)}
+                    className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-[#4F46E5] text-white rounded-lg text-xs font-bold shadow-xs hover:bg-[#4338CA] transition-colors cursor-pointer shrink-0"
                   >
-                    {/* Uniform Square Ratio */}
-                    <div 
-                      className="relative aspect-square w-full overflow-hidden bg-slate-50 cursor-pointer"
-                      onClick={() => handleSelectProductDetail(product)}
-                    >
-                      <img
-                        src={product.image}
-                        alt={product.title}
-                        className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
-                        loading="lazy"
-                      />
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-white" />
+                    <span>Filters</span>
+                    {countActiveFilters(catalogFilters, searchQuery) > 0 && (
+                      <span className="bg-white text-[#4F46E5] text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
+                        {countActiveFilters(catalogFilters, searchQuery)}
+                      </span>
+                    )}
+                  </button>
 
-                      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          In Stock
-                        </span>
-                      </div>
-
-                      {product.discount && (
-                        <div className="absolute top-2 right-2 z-10">
-                          <span className="bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                            {product.discount}
-                          </span>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleWishlist(product.id);
-                        }}
-                        className={`absolute bottom-2 right-2 p-1.5 rounded-md bg-white/90 backdrop-blur-xs border border-slate-200 shadow-2xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${
-                          isWishlisted ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="Wishlist"
+                  {/* Dynamic Sorting Engine Dropdown */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <label htmlFor="catalog-sort-select" className="text-xs text-slate-500 font-medium hidden sm:inline">Sort:</label>
+                    <div className="relative">
+                      <select
+                        id="catalog-sort-select"
+                        value={catalogFilters.sortBy}
+                        onChange={(e) => setCatalogFilters((prev) => ({ ...prev, sortBy: e.target.value as SortOption }))}
+                        className="text-xs font-bold bg-white border border-slate-300 rounded-lg pl-3 pr-7 py-1.5 text-slate-700 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] cursor-pointer shadow-2xs appearance-none"
                       >
-                        <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
-
-                    {/* Product Info & Actions */}
-                    <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
-                      <div 
-                        className="cursor-pointer"
-                        onClick={() => handleSelectProductDetail(product)}
-                      >
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
-                          {product.category}
-                        </span>
-                        <h3 className="text-xs sm:text-sm font-semibold text-[#0F172A] group-hover:text-[#4F46E5] transition-colors line-clamp-1">
-                          {product.title}
-                        </h3>
-                      </div>
-
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-sm sm:text-base font-bold text-[#0F172A] font-mono tabular-nums">
-                            ৳{product.price.toLocaleString()}
-                          </span>
-                          {product.originalPrice && (
-                            <span className="text-[11px] text-slate-400 line-through tabular-nums">
-                              ৳{product.originalPrice.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Dual Action Buttons */}
-                      <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-100">
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          className={`py-1.5 px-2 rounded-md font-medium text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer ${
-                            isAdded
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-98'
-                          }`}
-                        >
-                          {isAdded ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Added</span>
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingBag className="w-3.5 h-3.5" />
-                              <span>Cart</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => handleBuyNow(product)}
-                          className="py-1.5 px-2 rounded-md font-semibold text-xs bg-[#4F46E5] hover:bg-[#4338CA] text-white transition-colors flex items-center justify-center gap-1 cursor-pointer active:scale-98"
-                        >
-                          <Zap className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]" />
-                          <span>Buy</span>
-                        </button>
-                      </div>
+                        {SORT_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.iconLabel} {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </section>
+                </div>
+              </div>
 
-          {/* ==================== CATEGORIES & VAULT CATALOG ==================== */}
-          <main id="explore" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16">
-            {/* Category Navigation Pills */}
-            <section className="mb-6">
-              <div className="flex items-center justify-between gap-4 mb-3">
-                <h2 className="text-base sm:text-lg font-bold text-[#0F172A] flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-[#F59E0B]" />
-                  <span>Explore Marketplace Categories</span>
-                </h2>
-                <span className="text-xs text-slate-500 font-medium">
-                  Showing {filteredProducts.length} items
+              {/* Dynamic Sorting Quick Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1 shrink-0">
+                  <Flame className="w-3.5 h-3.5 text-[#F59E0B]" /> Instant Sort:
                 </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer ${
-                      selectedCategory === cat
-                        ? 'bg-[#4F46E5] text-white shadow-2xs'
-                        : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                    }`}
-                  >
-                    <span>{cat}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* ==================== HOMEPAGE MULTI-CATEGORY CATALOG TABS ==================== */}
-            <section className="mb-6">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200">
-                {[
-                  { id: 'recommended', label: 'Recommended For You', icon: '🌟' },
-                  { id: 'bestsellers', label: 'Best Sellers', icon: '🔥' },
-                  { id: 'newarrivals', label: 'New Arrivals', icon: '✨' },
-                  { id: 'perfumes', label: 'Luxury Perfumes', icon: '💎' },
-                  { id: 'tech', label: 'Tech & Gadgets', icon: '📱' },
-                ].map((tab) => {
-                  const isActive = catalogTab === tab.id;
+                {SORT_OPTIONS.map((opt) => {
+                  const isActive = catalogFilters.sortBy === opt.id;
                   return (
                     <button
-                      key={tab.id}
-                      onClick={() => {
-                        setCatalogTab(tab.id as any);
-                        if (tab.id === 'perfumes') setSelectedCategory('Perfume & Fragrances');
-                        else if (tab.id === 'tech') setSelectedCategory('Electronics & Gadgets');
-                      }}
-                      className={`pb-2.5 px-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative cursor-pointer flex items-center gap-1.5 ${
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setCatalogFilters((prev) => ({ ...prev, sortBy: opt.id }))}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
                         isActive
-                          ? 'text-[#4F46E5]'
-                          : 'text-slate-500 hover:text-[#0F172A]'
+                          ? 'bg-[#0F172A] text-white font-bold shadow-2xs'
+                          : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
                       }`}
                     >
-                      <span>{tab.icon}</span>
-                      <span>{tab.label}</span>
-                      {isActive && (
-                        <div className="absolute bottom-0 inset-x-0 h-0.5 bg-[#4F46E5] rounded-full" />
-                      )}
+                      <span>{opt.iconLabel}</span>
+                      <span>{opt.label}</span>
                     </button>
                   );
                 })}
               </div>
-            </section>
 
-            {/* Active Search / Category / Filter Tab feedback */}
-            {(searchQuery || selectedCategory !== 'All' || activeFilterTab !== 'All' || catalogTab !== 'recommended') && (
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-slate-400">Active Filters:</span>
-                  {catalogTab !== 'recommended' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-200 text-[11px] font-medium">
-                      Tab: {catalogTab}
-                      <button 
-                        onClick={() => setCatalogTab('recommended')}
-                        className="ml-1 hover:text-rose-600 cursor-pointer"
-                        title="Reset tab"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {activeFilterTab !== 'All' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#4F46E5] text-white text-[11px] font-medium">
-                      Badge: {activeFilterTab}
-                      <button 
-                        onClick={() => setActiveFilterTab('All')}
-                        className="ml-1 hover:text-amber-300 cursor-pointer"
-                        title="Remove tab filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {selectedCategory !== 'All' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-200 text-[11px] font-medium">
-                      Category: {selectedCategory}
-                      <button 
-                        onClick={() => setSelectedCategory('All')}
-                        className="ml-1 hover:text-rose-600 cursor-pointer"
-                        title="Remove category filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {searchQuery && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-[#0F172A] border border-slate-200 text-[11px] font-medium">
-                      Search: &quot;{searchQuery}&quot;
-                      <button 
-                        onClick={() => setSearchQuery('')}
-                        className="ml-1 hover:text-rose-600 cursor-pointer"
-                        title="Clear search"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                    setActiveFilterTab('All');
-                    setCatalogTab('recommended');
-                  }}
-                  className="text-[#4F46E5] hover:text-[#4338CA] font-medium hover:underline cursor-pointer text-xs"
-                >
-                  Reset All Filters
-                </button>
+              {/* Department Quick Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
+                {[
+                  { id: 'all', label: 'All Curated', icon: '🌟', cat: 'All' },
+                  { id: 'perfumes', label: 'Perfumes & Attars', icon: '✨', cat: 'Perfumes & Attars' },
+                  { id: 'gadgets', label: 'Electronics & Tech', icon: '📱', cat: 'Electronics & Tech' },
+                  { id: 'fashion', label: 'Fashion & Lifestyle', icon: '👔', cat: 'Fashion & Lifestyle' },
+                  { id: 'watches', label: 'Watches & Accessories', icon: '⌚', cat: 'Watches & Accessories' },
+                  { id: 'beauty', label: 'Beauty & Skincare', icon: '💄', cat: 'Beauty & Skincare' },
+                  { id: 'home', label: 'Home Living', icon: '🏠', cat: 'Home Living' },
+                  { id: 'gifts', label: 'Luxury Gifts', icon: '🎁', cat: 'Luxury Gifts & Bricks' },
+                ].map((tab) => {
+                  const isAll = tab.cat === 'All';
+                  const isActive = isAll 
+                    ? catalogFilters.categories.length === 0 && selectedCategory === 'All'
+                    : catalogFilters.categories.includes(tab.cat);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        if (isAll) {
+                          setSelectedCategory('All');
+                          setCatalogFilters((prev) => ({ ...prev, categories: [] }));
+                        } else {
+                          setSelectedCategory(tab.cat);
+                          setCatalogFilters((prev) => ({ ...prev, categories: [tab.cat] }));
+                        }
+                      }}
+                      className={`py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-[#4F46E5] text-white shadow-xs'
+                          : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span>{tab.icon}</span>
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
 
-            {/* Products Grid */}
-            <section>
-              {filteredProducts.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-lg border border-slate-200">
-                  <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-2.5" />
-                  <h3 className="text-base font-semibold text-[#0F172A] mb-1">কোনো পণ্য খুঁজে পাওয়া যায়নি</h3>
-                  <p className="text-xs text-slate-500 mb-4">
-                    অনুগ্রহ করে অন্য কোনো কি-ওয়ার্ড দিয়ে সার্চ করুন অথবা ফিল্টার পরিবর্তন করুন।
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedCategory('All');
-                      setActiveFilterTab('All');
-                      setCatalogTab('recommended');
-                    }}
-                    className="px-3.5 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold cursor-pointer"
-                  >
-                    সব পণ্য দেখুন
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3.5 md:gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      onQuickView={(p) => handleSelectProductDetail(p)}
-                      onBuyNow={handleBuyNow}
-                      isWishlisted={wishlist.includes(product.id)}
-                      onToggleWishlist={handleToggleWishlist}
-                      onOpenSellerStore={handleOpenSellerStore}
+              {/* Active Filter Chips & Clear Action */}
+              <ActiveFilterChips
+                filters={catalogFilters}
+                searchQuery={searchQuery}
+                onClearSearch={() => setSearchQuery('')}
+                onChange={setCatalogFilters}
+                onResetAll={handleResetAllFilters}
+                totalFilteredCount={filteredProducts.length}
+              />
+
+              {/* Two-Column Responsive Layout: Sticky Sidebar (Desktop) + Product Catalog */}
+              <div className="flex flex-col lg:flex-row gap-6 items-start">
+                {/* Desktop Filter Sidebar */}
+                <aside className="hidden lg:block w-64 xl:w-72 shrink-0 self-start sticky top-24">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+                    <FilterSidebarContent
+                      filters={catalogFilters}
+                      onChange={setCatalogFilters}
+                      products={products}
+                      onReset={handleResetAllFilters}
+                      maxCatalogPrice={maxCatalogPrice}
                     />
-                  ))}
+                  </div>
+                </aside>
+
+                {/* Slide-out Mobile Filter Drawer */}
+                <MobileFilterDrawer
+                  isOpen={isMobileFilterDrawerOpen}
+                  onClose={() => setIsMobileFilterDrawerOpen(false)}
+                  filters={catalogFilters}
+                  onChange={setCatalogFilters}
+                  products={products}
+                  totalMatchesCount={filteredProducts.length}
+                  onReset={handleResetAllFilters}
+                  maxCatalogPrice={maxCatalogPrice}
+                />
+
+                {/* Product Catalog Grid Column */}
+                <div className="flex-1 min-w-0 w-full">
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-center py-16 px-6 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                      <div className="w-14 h-14 bg-indigo-50 text-[#4F46E5] rounded-full flex items-center justify-center mx-auto mb-3">
+                        <ShoppingBag className="w-7 h-7 text-[#4F46E5]" />
+                      </div>
+                      <h3 className="text-lg font-bold text-[#0F172A] mb-1">কোনো পণ্য খুঁজে পাওয়া যায়নি</h3>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto mb-5">
+                        No products match your selected combination of filters, price range, or search criteria.
+                      </p>
+                      <button
+                        onClick={handleResetAllFilters}
+                        className="px-5 py-2.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-2 transition-all"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Reset / Clear All Filters</span>
+                      </button>
+                      <div className="mt-8 pt-6 border-t border-slate-100">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                          Or browse popular departments:
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {[
+                            'Perfumes & Attars',
+                            'Electronics & Tech',
+                            'Fashion & Lifestyle',
+                            'Watches & Accessories',
+                            'Beauty & Skincare'
+                          ].map((dept) => (
+                            <button
+                              key={dept}
+                              onClick={() => {
+                                setCatalogFilters({
+                                  ...INITIAL_FILTER_STATE,
+                                  categories: [dept],
+                                });
+                                setSearchQuery('');
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium cursor-pointer transition-colors"
+                            >
+                              {dept}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
+                      {filteredProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          onQuickView={(p) => handleSelectProductDetail(p)}
+                          onBuyNow={handleBuyNow}
+                          isWishlisted={wishlist.includes(product.id)}
+                          onToggleWishlist={handleToggleWishlist}
+                          onOpenSellerStore={handleOpenSellerStore}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </section>
+              </div>
 
-            {/* ==================== FEATURED YOUTUBE VIDEOS & CHANNEL ==================== */}
-            <FeaturedYouTubeSection
-              settings={bannerSettings}
-              onOpenAdmin={handleOpenAdmin}
-            />
+            </div>
+          </main>
 
-            {/* Value Proposition Highlights */}
-            <section className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-5 rounded-lg bg-white border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
+          {/* ==================== 5. AI CINEMATIC VIDEO SHOWCASE ==================== */}
+          <CinematicVideoShowcase
+            featuredProduct={featuredProduct}
+            onSelectProduct={handleSelectProductDetail}
+            onBuyNow={handleBuyNow}
+            onAddToCart={handleAddToCart}
+            bannerSettings={bannerSettings}
+            onOpenAdmin={handleOpenAdmin}
+          />
+
+          {/* ==================== 6. TRUST BADGES & VALUE PROPOSITION ==================== */}
+          <TrustValueProposition />
+
+          {/* Value Proposition Highlights */}
+          <section className="py-10 bg-white border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-[#0F172A] mb-1">১০০% অথেনটিক কোয়ালিটি</h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    অরিজিনাল ব্র্যান্ডের পারফিউম, খাঁটি প্রাকৃতিক আতর ও বিশ্বস্ত সেলার নিশ্চয়তা।
+                    অরিজিনাল ব্র্যান্ডের পারফিউম, গ্যাজেটস ও বিশ্বস্ত ভেরিফাইড সেলারদের পণ্য নিশ্চয়তা।
                   </p>
                 </div>
               </div>
 
-              <div className="p-5 rounded-lg bg-white border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
+              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
                   <Truck className="w-5 h-5" />
                 </div>
@@ -1600,7 +1726,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-lg bg-white border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
+              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
                   <Gift className="w-5 h-5" />
                 </div>
@@ -1611,8 +1737,8 @@ export default function App() {
                   </p>
                 </div>
               </div>
-            </section>
-          </main>
+            </div>
+          </section>
         </>
       )}
 
@@ -1625,6 +1751,8 @@ export default function App() {
         onOpenSellerStore={handleOpenSellerStore}
         onOpenAdmin={handleOpenAdmin}
         onDownloadHtml={handleDownloadStandaloneHtml}
+        onOpenFaq={() => setIsFaqOpen(true)}
+        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
       />
 
       {/* Toast Notification */}
@@ -1656,6 +1784,7 @@ export default function App() {
           setIsCheckoutOpen(true);
         }}
         onViewOrders={handleOpenOrders}
+        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
       />
 
       {/* Product Quick View Modal */}
@@ -1676,6 +1805,7 @@ export default function App() {
         onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
         onUpdateAddress={handleUpdateAddress}
         onLogout={handleLogout}
+        onOpenCustomerPortal={handleOpenUserProfile}
       />
 
       {/* Checkout Modal */}
@@ -1697,6 +1827,7 @@ export default function App() {
         onViewOrders={handleOpenOrders}
         onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
       />
 
       {/* Admin Dashboard */}
@@ -1733,8 +1864,44 @@ export default function App() {
         onGoOrders={handleOpenOrders}
       />
 
+      {/* Fixed Mobile Bottom Navigation Bar (Home, Categories, Search, Cart, Account) */}
+      <MobileBottomNav
+        activeNav={activePage}
+        activeFilterTab={activeFilterTab}
+        selectedCategory={selectedCategory}
+        cartCount={totalCartCount}
+        user={user}
+        onGoHome={handleGoHome}
+        onOpenCategories={() => setIsMobileCategoriesOpen(true)}
+        onOpenSearch={() => setIsMobileSearchActive(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenAccount={user.isLoggedIn ? handleOpenUserProfile : () => setIsAuthOpen(true)}
+        isSearchOpen={isMobileSearchActive}
+        isCategoriesDrawerOpen={isMobileCategoriesOpen}
+      />
+
       {/* Floating Customer Support Widget */}
-      <CustomerSupport />
+      <CustomerSupport
+        onOpenFaq={() => setIsFaqOpen(true)}
+        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+      />
+
+      {/* 7-Day Hassle-Free Replacement & Return Policy Modal */}
+      <ReturnPolicyModal
+        isOpen={isReturnPolicyOpen}
+        onClose={() => setIsReturnPolicyOpen(false)}
+        onOpenOrders={handleOpenOrders}
+      />
+
+      {/* Interactive FAQ & Help Center Modal */}
+      <FaqModal
+        isOpen={isFaqOpen}
+        onClose={() => setIsFaqOpen(false)}
+        onOpenReturnPolicy={() => {
+          setIsFaqOpen(false);
+          setIsReturnPolicyOpen(true);
+        }}
+      />
     </div>
   );
 }

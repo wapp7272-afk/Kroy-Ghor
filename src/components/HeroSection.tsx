@@ -1,346 +1,418 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Volume2, 
-  VolumeX, 
-  Play, 
-  Pause, 
-  Maximize2, 
   Sparkles, 
   Zap, 
   ArrowRight, 
   ShieldCheck, 
   Truck, 
   Star,
+  ChevronLeft, 
+  ChevronRight,
   Flame,
+  CheckCircle,
   ShoppingBag,
-  Heart,
-  CheckCircle
+  Tag,
+  Copy,
+  Layers
 } from 'lucide-react';
-import { Product, SystemBannerSettings } from '../types';
+import { Product, PromoBanner, SystemBannerSettings } from '../types';
+import { INITIAL_PROMO_BANNERS } from '../data/banners';
 
 interface HeroSectionProps {
-  featuredProduct?: Product;
+  banners?: PromoBanner[];
+  products?: Product[];
   onSelectProduct: (product: Product) => void;
   onBuyNow: (product: Product) => void;
   onAddToCart: (product: Product) => void;
-  onExploreDeals: () => void;
+  onSelectCategory: (category: string) => void;
+  onSelectFilterTab: (tab: 'All' | 'Flash Sale' | 'Best Deals' | 'New Arrivals') => void;
   bannerSettings?: SystemBannerSettings;
+  showToast?: (msg: string) => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
-  featuredProduct,
+  banners,
+  products = [],
   onSelectProduct,
   onBuyNow,
   onAddToCart,
-  onExploreDeals,
+  onSelectCategory,
+  onSelectFilterTab,
   bannerSettings,
+  showToast,
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const activeBanners = (banners && banners.length > 0)
+    ? banners.filter((b) => b.isActive !== false)
+    : INITIAL_PROMO_BANNERS;
 
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
-  // Fallback hero product if none passed
-  const heroProduct: Product = featuredProduct || {
-    id: 'p1',
-    title: 'Cool Water Davidoff — Signature Edition',
-    name: 'Cool Water Davidoff',
-    category: 'Perfume',
-    price: 3450,
-    originalPrice: 4500,
-    rating: 4.9,
-    reviewsCount: 328,
-    image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=800',
-    images: ['https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=800'],
-    description: 'Authentic imported aromatic fresh fragrance with crisp mint, ocean water notes, lavender and sandalwood base.',
-    tag: 'Trending',
-    inStock: true,
-    features: ['100% Original Imported', 'All-Day Crisp Sillage', 'Signature Fresh Scent', 'Instant Nationwide Delivery']
-  };
-
-  // High definition promotional perfume showcase video
-  const videoUrl = heroProduct.videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-perfume-bottle-and-rose-petals-40291-large.mp4';
-  const posterUrl = heroProduct.videoPoster || heroProduct.image || 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=1200';
-
-  // Toggle Video Sound
-  const toggleSound = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  // Toggle Play / Pause
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      } else {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      }
-    }
-  };
-
-  // Toggle Fullscreen
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen?.().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-      setIsFullscreen(false);
-    }
-  };
-
+  // Auto-play interval
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    if (isPaused || activeBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isPaused, activeBanners.length]);
+
+  const currentBanner = activeBanners[currentIndex] || activeBanners[0];
+
+  // Find linked product for current banner
+  const linkedProduct = React.useMemo(() => {
+    if (!products || products.length === 0) return null;
+    if (currentBanner.linkedProductId) {
+      const found = products.find((p) => p.id === currentBanner.linkedProductId);
+      if (found) return found;
+    }
+    // Fallback to category matching product
+    const catProduct = products.find((p) => 
+      p.category.toLowerCase().includes(currentBanner.category.toLowerCase()) ||
+      currentBanner.category.toLowerCase().includes(p.category.toLowerCase())
+    );
+    return catProduct || products[0];
+  }, [currentBanner, products]);
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const diff = touchStartX.current - touchEndX.current;
+    if (diff > 50) {
+      handleNext();
+    } else if (diff < -50) {
+      handlePrev();
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  const handlePrimaryCta = () => {
+    if (currentBanner.primaryCtaTarget) {
+      if (['Flash Sale', 'Best Deals', 'New Arrivals'].includes(currentBanner.primaryCtaTarget)) {
+        onSelectFilterTab(currentBanner.primaryCtaTarget as any);
+        onSelectCategory('All');
+      } else {
+        onSelectCategory(currentBanner.primaryCtaTarget);
+        onSelectFilterTab('All');
+      }
+    } else {
+      onSelectCategory(currentBanner.category);
+    }
+    const el = document.getElementById('explore');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSecondaryCta = () => {
+    if (currentBanner.secondaryCtaTarget) {
+      if (['Flash Sale', 'Best Deals', 'New Arrivals'].includes(currentBanner.secondaryCtaTarget)) {
+        onSelectFilterTab(currentBanner.secondaryCtaTarget as any);
+        onSelectCategory('All');
+      } else {
+        onSelectCategory(currentBanner.secondaryCtaTarget);
+        onSelectFilterTab('All');
+      }
+    } else {
+      onSelectFilterTab('Flash Sale');
+      onSelectCategory('All');
+    }
+    const el = document.getElementById('explore');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard?.writeText(code);
+    if (showToast) {
+      showToast(`🎟️ Coupon "${code}" copied to clipboard!`);
+    }
+  };
 
   return (
-    <section className="relative overflow-hidden bg-[#F9FAFB] border-b border-slate-200 pt-6 pb-12 lg:pt-10 lg:pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section 
+      id="hero-banner-carousel"
+      className="relative overflow-hidden bg-[#F9FAFB] border-b border-slate-200 pt-3 pb-6 sm:pt-5 sm:pb-8 lg:pt-6 lg:pb-10"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         
-        {/* Top Header Tag */}
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#4F46E5] text-xs font-semibold tracking-wide">
+        {/* Top Market Bar Indicator */}
+        <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#4F46E5] text-[11px] sm:text-xs font-semibold tracking-wide">
             <Sparkles className="w-3.5 h-3.5 text-[#4F46E5]" />
-            <span>AUTHENTIC LUXURY & LIFESTYLE MARKETPLACE</span>
+            <span className="truncate">BANGLADESH&apos;S PREMIER MULTI-CATEGORY MARKETPLACE</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-4 text-xs text-slate-500">
+            <span className="flex items-center gap-1 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               100% Genuine Verified
             </span>
             <span className="text-slate-300">•</span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 font-medium">
               <Truck className="w-4 h-4 text-[#4F46E5]" />
               Express 64 Districts Delivery
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="flex items-center gap-1 font-medium">
+              <Zap className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
+              Cash On Delivery
             </span>
           </div>
         </div>
 
-        {/* 2-Column Split Grid (Desktop) / Vertical Stack (Mobile) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+        {/* ================= HERO CAROUSEL CONTAINER ================= */}
+        <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm min-h-[380px] sm:min-h-[430px] lg:min-h-[470px] flex flex-col justify-between">
           
-          {/* ================= LEFT COLUMN: Promotional Autoplay Video Container ================= */}
-          <div className="lg:col-span-6 flex flex-col">
-            <div 
-              ref={containerRef}
-              className="relative w-full aspect-4/3 sm:aspect-16/10 lg:aspect-auto lg:h-[460px] rounded-xl overflow-hidden bg-slate-900 border border-slate-200 shadow-xs group"
-            >
-              {/* HTML5 Autoplay Video Player */}
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                poster={posterUrl}
-                autoPlay
-                muted
-                loop
-                playsInline
-                onLoadedData={() => setVideoLoaded(true)}
-                className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-700"
-              />
-
-              {/* Gradient Vignette */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/30 pointer-events-none" />
-
-              {/* Top High-Converting Overlay Text Badge */}
-              <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs border border-white/20 text-white text-xs font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-ping" />
-                  <Zap className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
-                  <span>AI Product Spotlight</span>
-                </div>
-
-                <div className="px-2.5 py-1 rounded-md bg-black/50 backdrop-blur-xs text-[11px] font-medium text-white/90 border border-white/10">
-                  Featured Brand
-                </div>
-              </div>
-
-              {/* Center Play/Pause Watermark on Hover */}
-              <button
-                onClick={togglePlay}
-                className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-white/20 backdrop-blur-xs border border-white/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-105 active:scale-95 cursor-pointer z-10"
-                aria-label={isPlaying ? 'Pause video' : 'Play video'}
-              >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-              </button>
-
-              {/* Bottom Video Information & Controls Overlay */}
-              <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-10 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-white">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#F59E0B] uppercase tracking-wider mb-0.5">
-                      <Flame className="w-3.5 h-3.5 fill-current" />
-                      <span>Signature Collection 2026</span>
-                    </div>
-                    <h4 className="text-sm sm:text-base font-semibold text-white drop-shadow-xs">
-                      Sensory Luxury Fragrance Film
-                    </h4>
-                  </div>
-
-                  {/* Interactive Video Controls (Sound Toggle & Fullscreen) */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={toggleSound}
-                      className="p-2 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-xs border border-white/20 text-white transition-colors cursor-pointer"
-                      title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-                    >
-                      {isMuted ? (
-                        <VolumeX className="w-4 h-4 text-slate-300" />
-                      ) : (
-                        <Volume2 className="w-4 h-4 text-[#F59E0B]" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={toggleFullscreen}
-                      className="p-2 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-xs border border-white/20 text-white transition-colors cursor-pointer"
-                      title="Fullscreen View"
-                    >
-                      <Maximize2 className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Progress Visualizer Bar */}
-                <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#4F46E5] to-[#F59E0B] w-3/4 rounded-full" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ================= RIGHT COLUMN: Featured Showcase & Call to Action ================= */}
-          <div className="lg:col-span-6 flex flex-col justify-between p-6 sm:p-7 rounded-xl bg-white border border-slate-200 shadow-2xs relative overflow-hidden">
-            <div className="space-y-4 relative z-10">
-              {/* Featured Badge */}
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#4F46E5] text-xs font-semibold tracking-wide">
-                  <Star className="w-3.5 h-3.5 fill-[#4F46E5]" />
-                  PRIME VAULT EXCLUSIVE
+          {/* Main Slide Content Split Grid */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center p-5 sm:p-7 lg:p-9 flex-1">
+            
+            {/* Left Content Column */}
+            <div className="lg:col-span-7 flex flex-col justify-center space-y-3.5 sm:space-y-4 text-left">
+              
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#4F46E5] text-white text-xs font-bold shadow-xs">
+                  <Flame className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
+                  <span>{currentBanner.badge}</span>
                 </span>
-                <span className="text-xs text-amber-700 font-medium flex items-center gap-1">
-                  <Flame className="w-3.5 h-3.5 fill-current text-[#F59E0B]" />
-                  Limited Time Offer
+
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-bold">
+                  {currentBanner.discountText}
                 </span>
+
+                {currentBanner.codeText && (
+                  <button
+                    onClick={() => handleCopyCode(currentBanner.codeText!)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-[11px] font-mono font-semibold transition-colors cursor-pointer"
+                    title="Click to copy voucher code"
+                  >
+                    <Tag className="w-3 h-3 text-[#4F46E5]" />
+                    <span>CODE: {currentBanner.codeText}</span>
+                    <Copy className="w-2.5 h-2.5 text-slate-400 ml-0.5" />
+                  </button>
+                )}
               </div>
 
-              {/* Title & Subtitle */}
+              {/* Title & Description */}
               <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0F172A] tracking-tight leading-tight">
-                  {bannerSettings?.heroHeadline ? (
-                    <span>{bannerSettings.heroHeadline}</span>
-                  ) : (
-                    <>
-                      Luxury Scents For Every You —{' '}
-                      <span className="text-[#4F46E5]">Exclusive Perfume Vault</span>
-                    </>
-                  )}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight leading-tight transition-all duration-300">
+                  {currentBanner.title}
                 </h1>
-                <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  {bannerSettings?.heroSubheadline ||
-                    'প্রতিটি মুহূর্তকে করে তুলুন অনন্য। ১০০% অরিজিনাল ফ্রেগ্রেন্স, সিগনেচার সিল্যাজ ও বিশেষ ডিসকাউন্টে সরাসরি আপনার দরজায়। Authentic imports with long-lasting notes & certified batch codes.'}
+                <p className="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl transition-all duration-300">
+                  {currentBanner.subtitle}
                 </p>
               </div>
 
-              {/* Featured Product Preview Card */}
-              <div 
-                onClick={() => onSelectProduct(heroProduct)}
-                className="p-3.5 sm:p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-lg overflow-hidden bg-white border border-slate-200 shrink-0">
-                    <img 
-                      src={heroProduct.image} 
-                      alt={heroProduct.title}
-                      className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300" 
-                    />
-                  </div>
+              {/* Multi-Category Department Indicators */}
+              <div className="flex items-center gap-1.5 pt-1 overflow-x-auto whitespace-nowrap scrollbar-none pb-0.5">
+                {[
+                  { name: 'Perfume & Fragrances', label: 'Perfumes', icon: '✨' },
+                  { name: 'Electronics & Gadgets', label: 'Gadgets', icon: '📱' },
+                  { name: 'Fashion & Lifestyle', label: 'Fashion', icon: '👔' },
+                  { name: 'Watches & Accessories', label: 'Watches', icon: '⌚' },
+                  { name: 'Home & Living', label: 'Home Living', icon: '🏠' },
+                ].map((dep) => {
+                  const isCurrent = currentBanner.category === dep.name;
+                  return (
+                    <button
+                      key={dep.name}
+                      onClick={() => {
+                        onSelectCategory(dep.name);
+                        const el = document.getElementById('explore');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0 ${
+                        isCurrent
+                          ? 'bg-indigo-100 text-[#4F46E5] font-semibold border border-indigo-200 shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span>{dep.icon}</span>
+                      <span>{dep.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#4F46E5] bg-indigo-50 px-2 py-0.5 rounded">
-                        {heroProduct.category}
-                      </span>
-                      <div className="flex items-center text-[#F59E0B] text-xs font-semibold gap-0.5">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{heroProduct.rating || 4.9}</span>
-                        <span className="text-slate-400 text-[10px]">({heroProduct.reviewsCount || 320})</span>
+              {/* CTA Action Buttons */}
+              <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
+                <button
+                  id="hero-primary-cta-btn"
+                  onClick={handlePrimaryCta}
+                  className="px-5 py-3 min-h-[44px] rounded-xl font-bold text-xs sm:text-sm text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98 group"
+                >
+                  <ShoppingBag className="w-4 h-4 text-white" />
+                  <span>{currentBanner.primaryCtaText}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button
+                  id="hero-secondary-cta-btn"
+                  onClick={handleSecondaryCta}
+                  className="px-4 py-3 min-h-[44px] rounded-xl font-semibold text-xs sm:text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                >
+                  <Zap className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  <span>{currentBanner.secondaryCtaText || 'Explore Flash Sale'}</span>
+                </button>
+              </div>
+
+              {/* Trust Guarantees */}
+              <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-slate-500 font-medium">
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  Authenticity Verified
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  Fast Dispatch
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  Hassle-Free Returns
+                </span>
+              </div>
+
+            </div>
+
+            {/* Right Featured Imagery & Spotlight Card Column */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+              {/* Main Banner Hero Photography */}
+              <div className="relative w-full aspect-16/10 sm:aspect-16/9 lg:aspect-4/3 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-md group">
+                <img
+                  src={currentBanner.imageUrl}
+                  alt={currentBanner.title}
+                  className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500"
+                />
+                
+                {/* Gradient vignette */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+
+                {/* Top Corner Pill */}
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold border border-white/20 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-[#F59E0B]" />
+                    <span>{currentBanner.category}</span>
+                  </span>
+                </div>
+
+                {/* Bottom Corner Linked Product Mini Card (Instant Conversion) */}
+                {linkedProduct && (
+                  <div 
+                    onClick={() => onSelectProduct(linkedProduct)}
+                    className="absolute bottom-2.5 inset-x-2.5 p-2 sm:p-2.5 rounded-lg bg-white/95 backdrop-blur-md border border-white/40 shadow-lg cursor-pointer hover:bg-white transition-all flex items-center justify-between gap-2 z-10"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img 
+                        src={linkedProduct.image} 
+                        alt={linkedProduct.title}
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-md object-cover border border-slate-200 shrink-0 bg-slate-50"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
+                          <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                          <span>{linkedProduct.rating || 4.9}</span>
+                          <span className="text-slate-400 font-normal">({linkedProduct.reviewsCount || 120})</span>
+                        </div>
+                        <p className="text-xs font-bold text-[#0F172A] truncate">
+                          {linkedProduct.title}
+                        </p>
+                        <p className="text-xs font-mono font-bold text-[#4F46E5]">
+                          ৳{linkedProduct.price.toLocaleString()}
+                          {linkedProduct.originalPrice && linkedProduct.originalPrice > linkedProduct.price && (
+                            <span className="text-[10px] text-slate-400 line-through ml-1 font-normal">
+                              ৳{linkedProduct.originalPrice.toLocaleString()}
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
 
-                    <h3 className="text-sm sm:text-base font-semibold text-[#0F172A] group-hover:text-[#4F46E5] transition-colors truncate">
-                      {heroProduct.title}
-                    </h3>
-
-                    {/* Price & Discount Display */}
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-lg sm:text-xl font-bold text-[#0F172A] font-mono tabular-nums">
-                        ৳{heroProduct.price.toLocaleString()}
-                      </span>
-                      {heroProduct.originalPrice && heroProduct.originalPrice > heroProduct.price && (
-                        <span className="text-xs sm:text-sm text-slate-400 line-through tabular-nums">
-                          ৳{heroProduct.originalPrice.toLocaleString()}
-                        </span>
-                      )}
-                      {heroProduct.originalPrice && heroProduct.originalPrice > heroProduct.price && (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-bold">
-                          -{Math.round(((heroProduct.originalPrice - heroProduct.price) / heroProduct.originalPrice) * 100)}% OFF
-                        </span>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBuyNow(linkedProduct);
+                      }}
+                      className="px-2.5 py-1.5 rounded-md bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[11px] font-bold shrink-0 transition-colors flex items-center gap-1"
+                    >
+                      <Zap className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]" />
+                      <span>Buy</span>
+                    </button>
                   </div>
-                </div>
-              </div>
-
-              {/* Benefit Pills */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">100% Genuine</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">Express Shipping</span>
-                </div>
-                <div className="col-span-2 sm:col-span-1 flex items-center gap-1.5 text-xs text-slate-700 font-medium bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="truncate">Cash on Delivery</span>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-5 mt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-3 relative z-10">
-              {/* Primary Indigo Button */}
+          </div>
+
+          {/* ================= BOTTOM CAROUSEL CONTROLS BAR ================= */}
+          <div className="px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-4">
+            
+            {/* Slide Dots Indicator with comfortable touch target */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {activeBanners.map((banner, index) => (
+                <button
+                  key={banner.id}
+                  onClick={() => setCurrentIndex(index)}
+                  className="p-2 min-h-[40px] min-w-[32px] flex items-center justify-center cursor-pointer"
+                  aria-label={`Go to slide ${index + 1}`}
+                >
+                  <span
+                    className={`h-2 rounded-full transition-all duration-300 block ${
+                      currentIndex === index
+                        ? 'w-7 sm:w-8 bg-[#4F46E5]'
+                        : 'w-2 bg-slate-300 hover:bg-slate-400'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Slide Counter & Category Tag */}
+            <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500">
+              <span className="font-mono text-slate-700 font-bold">0{currentIndex + 1} / 0{activeBanners.length}</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-[#4F46E5] font-semibold">{currentBanner.category}</span>
+            </div>
+
+            {/* Next / Prev Navigation Buttons (Min 44px Hitboxes) */}
+            <div className="flex items-center gap-1.5">
               <button
-                onClick={() => onBuyNow(heroProduct)}
-                className="w-full sm:flex-1 py-3 px-5 rounded-lg font-semibold text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-colors flex items-center justify-center gap-2 group cursor-pointer active:scale-98"
+                onClick={handlePrev}
+                className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                aria-label="Previous Banner"
               >
-                <Zap className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-                <span>Shop Featured Product Now</span>
-                <ArrowRight className="w-4 h-4 text-[#F59E0B] group-hover:translate-x-1 transition-transform" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {/* Secondary Button: Explore All Deals */}
               <button
-                onClick={onExploreDeals}
-                className="w-full sm:w-auto py-3 px-5 rounded-lg font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors text-center cursor-pointer active:scale-98"
+                onClick={handleNext}
+                className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                aria-label="Next Banner"
               >
-                Explore All Deals
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 

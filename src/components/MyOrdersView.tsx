@@ -27,8 +27,9 @@ import {
   ChevronUp,
   FileText
 } from 'lucide-react';
-import { Order, UserProfile, Product, CartItem } from '../types';
+import { Order, UserProfile, Product, CartItem, ReturnRequest } from '../types';
 import { InvoiceModal } from './InvoiceModal';
+import { ReturnRequestModal } from './ReturnRequestModal';
 
 interface MyOrdersViewProps {
   orders: Order[];
@@ -37,6 +38,8 @@ interface MyOrdersViewProps {
   onViewProduct: (product: Product) => void;
   onReorder: (order: Order) => void;
   onOpenAuth: () => void;
+  onSubmitReturnRequest?: (orderId: string, returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>) => void;
+  onOpenReturnPolicy?: () => void;
 }
 
 export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
@@ -46,12 +49,15 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
   onViewProduct,
   onReorder,
   onOpenAuth,
+  onSubmitReturnRequest,
+  onOpenReturnPolicy,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'delivered'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
   const [expandedTrackingId, setExpandedTrackingId] = useState<string | null>(null);
+  const [returnTargetOrder, setReturnTargetOrder] = useState<Order | null>(null);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -691,7 +697,47 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Card Actions Footer: Print Invoice & Reorder */}
+                  {/* Return Request Status Banner (If Submitted) */}
+                  {order.returnRequest && (
+                    <div className="mx-5 mb-4 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <RotateCcw className="w-4 h-4 text-amber-600" />
+                          <span className="font-extrabold text-amber-950">
+                            রিটার্ন / রিপ্লেসমেন্ট আবেদন #{order.returnRequest.id}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          order.returnRequest.status === 'Approved'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : order.returnRequest.status === 'Refund Credited to Wallet'
+                            ? 'bg-purple-100 text-[#5B21B6]'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {order.returnRequest.status}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 flex flex-wrap items-center gap-3">
+                        <span><strong>কারণ:</strong> {order.returnRequest.reason}</span>
+                        <span>•</span>
+                        <span><strong>পছন্দের সমাধান:</strong> {order.returnRequest.resolutionType}</span>
+                        <span>•</span>
+                        <span><strong>অ্যামাউন্ট:</strong> ৳{order.returnRequest.refundAmount.toLocaleString()}</span>
+                      </div>
+                      {order.returnRequest.photoProofUrl && (
+                        <div className="pt-1 flex items-center gap-2">
+                          <span className="text-[10px] text-slate-400">আপলোডকৃত প্রমাণ:</span>
+                          <img
+                            src={order.returnRequest.photoProofUrl}
+                            alt="Return Proof"
+                            className="w-8 h-8 rounded-md object-cover border border-amber-200"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Card Actions Footer: Print Invoice & Reorder & Return Request */}
                   <div className="p-4 bg-gray-50/80 border-t border-[#E5E7EB] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       {order.trxId && (
@@ -701,7 +747,20 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Return Request Action for Delivered Items */}
+                      {order.status === 'Delivered' && !order.returnRequest && (
+                        <button
+                          type="button"
+                          onClick={() => setReturnTargetOrder(order)}
+                          className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="7 দিনের সহজ রিপ্লেসমেন্ট বা রিটার্ন আবেদন করুন"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+                          <span>7-Day Return / Replacement</span>
+                        </button>
+                      )}
+
                       {/* Print / Download Invoice Button */}
                       <button
                         id={`print-invoice-btn-${order.id.replace('#', '')}`}
@@ -710,7 +769,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                         title="View & Print Official Invoice"
                       >
                         <Printer className="w-3.5 h-3.5 text-[#5B21B6]" />
-                        <span>Print / Download Invoice</span>
+                        <span>Print Invoice</span>
                       </button>
 
                       {/* Reorder Button */}
@@ -720,7 +779,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                         className="px-4 py-2 rounded-xl bg-[#5B21B6] hover:bg-[#4C1D95] text-white font-black text-xs shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Order Again (পুনরায় অর্ডার করুন)</span>
+                        <span>Order Again (পুনরায় অর্ডার)</span>
                       </button>
                     </div>
                   </div>
@@ -737,6 +796,22 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
         onClose={() => setSelectedInvoiceOrder(null)}
         order={selectedInvoiceOrder}
       />
+
+      {/* 7-Day Return & Replacement Modal */}
+      {returnTargetOrder && (
+        <ReturnRequestModal
+          isOpen={Boolean(returnTargetOrder)}
+          onClose={() => setReturnTargetOrder(null)}
+          order={returnTargetOrder}
+          onSubmit={(orderId, returnData) => {
+            if (onSubmitReturnRequest) {
+              onSubmitReturnRequest(orderId, returnData);
+            }
+            setReturnTargetOrder(null);
+          }}
+          onOpenReturnPolicy={onOpenReturnPolicy}
+        />
+      )}
     </div>
   );
 };

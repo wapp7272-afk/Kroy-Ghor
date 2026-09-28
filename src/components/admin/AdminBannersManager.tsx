@@ -4,14 +4,23 @@ import {
   Sparkles, 
   Save, 
   Eye, 
-  RefreshCw, 
-  Image as ImageIcon,
-  Flame,
-  CheckCircle2,
-  PhoneCall,
-  Sliders
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Sliders, 
+  Tag, 
+  Flame, 
+  CheckCircle2, 
+  PhoneCall, 
+  Layers, 
+  ShoppingBag,
+  ArrowRight,
+  ExternalLink,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
-import { SystemBannerSettings } from '../../types';
+import { SystemBannerSettings, PromoBanner } from '../../types';
+import { INITIAL_PROMO_BANNERS } from '../../data/banners';
 
 interface AdminBannersManagerProps {
   settings: SystemBannerSettings;
@@ -24,16 +33,39 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
   onUpdateSettings,
   showToast = () => {},
 }) => {
+  // Global announcement settings
   const [announcementText, setAnnouncementText] = useState(settings.announcementText);
   const [announcementBadge, setAnnouncementBadge] = useState(settings.announcementBadge);
   const [helplineNumber, setHelplineNumber] = useState(settings.helplineNumber);
   const [heroHeadline, setHeroHeadline] = useState(settings.heroHeadline);
   const [heroSubheadline, setHeroSubheadline] = useState(settings.heroSubheadline);
   const [flashSaleTag, setFlashSaleTag] = useState(settings.flashSaleTag);
-  const [heroBannerImage, setHeroBannerImage] = useState(settings.heroBannerImage || '');
+
+  // Dynamic promo banners list
+  const [promoBanners, setPromoBanners] = useState<PromoBanner[]>(() => {
+    return settings.promoBanners && settings.promoBanners.length > 0
+      ? settings.promoBanners
+      : INITIAL_PROMO_BANNERS;
+  });
+
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Quick Preset Templates
+  // New Banner Form State
+  const [newBadge, setNewBadge] = useState('⚡ SPECIAL PROMO');
+  const [newTitle, setNewTitle] = useState('');
+  const [newSubtitle, setNewSubtitle] = useState('');
+  const [newDiscount, setNewDiscount] = useState('UP TO 30% OFF');
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [newCategory, setNewCategory] = useState('Perfume & Fragrances');
+  const [newPrimaryCta, setNewPrimaryCta] = useState('Shop Now');
+  const [newPrimaryTarget, setNewPrimaryTarget] = useState('Perfume & Fragrances');
+  const [newSecondaryCta, setNewSecondaryCta] = useState('Explore Flash Sale');
+  const [newSecondaryTarget, setNewSecondaryTarget] = useState('Flash Sale');
+  const [newCode, setNewCode] = useState('VAULT10');
+  const [isAddingBanner, setIsAddingBanner] = useState(false);
+
+  // Quick Preset Campaigns
   const applyPreset = (presetName: string) => {
     if (presetName === 'eid') {
       setAnnouncementBadge('🌙 EID MUBARAK');
@@ -54,7 +86,6 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
       setHeroHeadline('Shop Bangladesh’s #1 Authentic Lifestyle Marketplace');
       setHeroSubheadline('Zero delivery charges for Dhaka & all 64 districts. Cash on Delivery & bKash available.');
     } else {
-      // Default
       setAnnouncementBadge('⚡ Flash Offer');
       setAnnouncementText('Free Delivery on orders over ৳2000 in Dhaka! | 🇧🇩 100% Genuine Guaranteed');
       setFlashSaleTag('UP TO 50% OFF — EXCLUSIVE');
@@ -64,16 +95,67 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
     showToast(`Applied preset: ${presetName.toUpperCase()}`);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleToggleBannerActive = (bannerId: string) => {
+    const updated = promoBanners.map((b) => 
+      b.id === bannerId ? { ...b, isActive: !b.isActive } : b
+    );
+    setPromoBanners(updated);
+    showToast('Banner active status updated');
+  };
+
+  const handleDeleteBanner = (bannerId: string) => {
+    if (promoBanners.length <= 1) {
+      showToast('⚠️ Cannot delete the only banner. At least 1 banner is required.');
+      return;
+    }
+    const updated = promoBanners.filter((b) => b.id !== bannerId);
+    setPromoBanners(updated);
+    showToast('Banner deleted successfully');
+  };
+
+  const handleAddBannerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newTitle.trim() || !newImageUrl.trim()) {
+      showToast('Please provide a banner title and image URL');
+      return;
+    }
+
+    const created: PromoBanner = {
+      id: `banner-${Date.now()}`,
+      badge: newBadge.trim(),
+      title: newTitle.trim(),
+      subtitle: newSubtitle.trim() || 'Authentic imported collection with guaranteed batch codes.',
+      discountText: newDiscount.trim() || 'LIMITED TIME OFFER',
+      imageUrl: newImageUrl.trim(),
+      category: newCategory,
+      primaryCtaText: newPrimaryCta.trim() || 'Shop Now',
+      primaryCtaTarget: newPrimaryTarget || newCategory,
+      secondaryCtaText: newSecondaryCta.trim() || 'Explore Flash Sale',
+      secondaryCtaTarget: newSecondaryTarget || 'Flash Sale',
+      codeText: newCode.trim() || undefined,
+      isActive: true,
+    };
+
+    setPromoBanners([created, ...promoBanners]);
+    setIsAddingBanner(false);
+    // Reset inputs
+    setNewTitle('');
+    setNewSubtitle('');
+    setNewImageUrl('');
+    showToast('✓ New Promo Banner added to carousel!');
+  };
+
+  const handleSaveAll = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const updated: SystemBannerSettings = {
+      ...settings,
       announcementText: announcementText.trim(),
       announcementBadge: announcementBadge.trim(),
       helplineNumber: helplineNumber.trim(),
       heroHeadline: heroHeadline.trim(),
       heroSubheadline: heroSubheadline.trim(),
       flashSaleTag: flashSaleTag.trim(),
-      heroBannerImage: heroBannerImage.trim() || undefined,
+      promoBanners: promoBanners,
     };
     onUpdateSettings(updated);
     setSavedSuccess(true);
@@ -83,22 +165,23 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header bar */}
+      
+      {/* Top Header & Presets Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800">
         <div>
           <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
             <Megaphone className="w-4 h-4 text-cyan-400" />
-            <span>Homepage Announcements & Banner Campaign Manager</span>
+            <span>Homepage Announcements & Promo Banner Manager</span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Modify promotional headlines, announcement bar badges, and flash sale banners across the entire store.
+            Manage multi-category hero carousel slides, promo headlines, discount tags, and announcement tickers.
           </p>
         </div>
 
-        {/* Campaign Presets */}
+        {/* Quick Campaign Presets */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[11px] text-slate-400 font-medium mr-1 flex items-center gap-1">
-            <Sliders className="w-3 h-3 text-cyan-400" /> Quick Presets:
+            <Sliders className="w-3 h-3 text-cyan-400" /> Presets:
           </span>
           <button
             type="button"
@@ -126,59 +209,275 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
             onClick={() => applyPreset('default')}
             className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
           >
-            Reset Default
+            Default
           </button>
         </div>
       </div>
 
-      {/* Live Preview Card */}
-      <div className="p-4 rounded-xl bg-slate-950 border border-cyan-500/30 space-y-3">
-        <div className="flex items-center justify-between text-xs text-cyan-400 font-semibold border-b border-white/10 pb-2">
-          <span className="flex items-center gap-1.5">
-            <Eye className="w-4 h-4" /> Live Customer View Simulation
-          </span>
-          <span className="text-[10px] text-slate-500">Real-time Homepage preview</span>
+      {/* ================= SECTION 1: DYNAMIC HERO PROMO BANNERS ================= */}
+      <div className="p-4 sm:p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#F59E0B]" />
+              <span>Dynamic Hero Carousel Banners ({promoBanners.length} Slides)</span>
+            </h4>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Each banner supports imagery, promotional headlines, discount badges, and 1-click CTA links.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsAddingBanner(!isAddingBanner)}
+            className="px-3 py-1.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{isAddingBanner ? 'Cancel' : 'Add New Slide'}</span>
+          </button>
         </div>
 
-        {/* 1. Announcement Bar Preview */}
-        <div className="rounded-lg bg-[#5B21B6] text-white p-2.5 text-xs flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <span className="bg-[#4C1D95] px-2 py-0.5 rounded-full text-[10px] font-bold text-amber-300 shrink-0">
-              {announcementBadge || '⚡ Flash Offer'}
-            </span>
-            <span className="truncate text-white/95 text-xs">
-              {announcementText || 'Free Delivery on orders over ৳2000 in Dhaka!'}
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1 text-[10px] text-purple-200 shrink-0 pl-2">
-            <PhoneCall className="w-3 h-3" />
-            <span>{helplineNumber || '01883-418309'}</span>
-          </div>
-        </div>
+        {/* Add New Banner Form Drawer */}
+        {isAddingBanner && (
+          <form onSubmit={handleAddBannerSubmit} className="p-4 rounded-xl bg-slate-900/90 border border-indigo-500/40 space-y-3.5 animate-fadeIn">
+            <div className="flex items-center justify-between text-xs font-bold text-indigo-300 pb-1 border-b border-indigo-500/20">
+              <span>Create New Promo Banner Slide</span>
+              <span className="text-[10px] text-slate-400">Live preview below</span>
+            </div>
 
-        {/* 2. Hero Headline Preview */}
-        <div className="p-4 rounded-lg bg-gradient-to-r from-purple-950/40 to-slate-900/60 border border-purple-500/20">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center gap-1">
-              <Flame className="w-3 h-3" /> {flashSaleTag || 'UP TO 50% OFF'}
-            </span>
-          </div>
-          <h4 className="text-base sm:text-lg font-black text-white">{heroHeadline}</h4>
-          <p className="text-xs text-slate-400 mt-1 line-clamp-2">{heroSubheadline}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Banner Title / Headline *</label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. Hypnotic Smart Lamps & Desktop Decors"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Banner Image URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Subtitle / Value Proposition</label>
+                <input
+                  type="text"
+                  value={newSubtitle}
+                  onChange={(e) => setNewSubtitle(e.target.value)}
+                  placeholder="Brief description showing under the banner headline..."
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Campaign Badge Tag</label>
+                <input
+                  type="text"
+                  value={newBadge}
+                  onChange={(e) => setNewBadge(e.target.value)}
+                  placeholder="e.g. ⚡ MEGA FLASH SALE"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Discount Tag Text</label>
+                <input
+                  type="text"
+                  value={newDiscount}
+                  onChange={(e) => setNewDiscount(e.target.value)}
+                  placeholder="e.g. UP TO 50% OFF"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Marketplace Category</label>
+                <select
+                  value={newCategory}
+                  onChange={(e) => {
+                    setNewCategory(e.target.value);
+                    setNewPrimaryTarget(e.target.value);
+                  }}
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                >
+                  <option value="Perfume & Fragrances">Perfume & Fragrances</option>
+                  <option value="Electronics & Gadgets">Electronics & Gadgets</option>
+                  <option value="Fashion & Lifestyle">Fashion & Lifestyle</option>
+                  <option value="Watches & Accessories">Watches & Accessories</option>
+                  <option value="Beauty & Personal Care">Beauty & Personal Care</option>
+                  <option value="Home & Living">Home & Living</option>
+                  <option value="Premium Gifts">Premium Gifts</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Primary CTA Button Label</label>
+                <input
+                  type="text"
+                  value={newPrimaryCta}
+                  onChange={(e) => setNewPrimaryCta(e.target.value)}
+                  placeholder="e.g. Shop Now"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Secondary CTA Button Label</label>
+                <input
+                  type="text"
+                  value={newSecondaryCta}
+                  onChange={(e) => setNewSecondaryCta(e.target.value)}
+                  placeholder="e.g. Explore Flash Sale"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Coupon Voucher Code (Optional)</label>
+                <input
+                  type="text"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value)}
+                  placeholder="e.g. VAULT10"
+                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsAddingBanner(false)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 text-white text-xs font-bold hover:brightness-110"
+              >
+                Add Banner Slide
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Existing Promo Banners Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {promoBanners.map((banner, index) => (
+            <div
+              key={banner.id}
+              className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between ${
+                banner.isActive
+                  ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                  : 'bg-slate-950/40 border-slate-900 opacity-60'
+              }`}
+            >
+              <div className="space-y-2">
+                {/* Header status */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-mono text-[10px] font-bold">
+                      {index + 1}
+                    </span>
+                    <span className="font-semibold text-white truncate max-w-[150px]">
+                      {banner.category}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleBannerActive(banner.id)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                        banner.isActive
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {banner.isActive ? 'Active' : 'Hidden'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBanner(banner.id)}
+                      className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Delete Slide"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Banner Thumbnail & Info */}
+                <div className="flex gap-3 items-center">
+                  <img
+                    src={banner.imageUrl}
+                    alt={banner.title}
+                    className="w-16 h-12 object-cover rounded-lg border border-slate-800 shrink-0 bg-slate-950"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded">
+                        {banner.badge}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {banner.discountText}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-white truncate">
+                      {banner.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {banner.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                {/* CTA Buttons preview */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                  <span>
+                    Primary CTA: <strong className="text-indigo-300">{banner.primaryCtaText}</strong>
+                  </span>
+                  {banner.codeText && (
+                    <span className="font-mono text-amber-300">
+                      Voucher: {banner.codeText}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Editor Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Announcement Badge */}
+      {/* ================= SECTION 2: GLOBAL ANNOUNCEMENT TOPBAR & HELPLINE ================= */}
+      <div className="p-4 sm:p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+        <h4 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2.5">
+          <PhoneCall className="w-4 h-4 text-emerald-400" />
+          <span>Global Announcement Topbar & Customer Support Hotline</span>
+        </h4>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
               Top Bar Badge Text
             </label>
             <input
               type="text"
-              required
               value={announcementBadge}
               onChange={(e) => setAnnouncementBadge(e.target.value)}
               placeholder="e.g. ⚡ Flash Offer, 🌙 Eid Fest"
@@ -186,14 +485,12 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
             />
           </div>
 
-          {/* Helpline phone */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Customer Support Helpline
+              Helpline Phone Number
             </label>
             <input
               type="text"
-              required
               value={helplineNumber}
               onChange={(e) => setHelplineNumber(e.target.value)}
               placeholder="e.g. 01883-418309"
@@ -201,107 +498,60 @@ export const AdminBannersManager: React.FC<AdminBannersManagerProps> = ({
             />
           </div>
 
-          {/* Announcement Bar Text */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Top Header Announcement Marquee / Message
-            </label>
-            <input
-              type="text"
-              required
-              value={announcementText}
-              onChange={(e) => setAnnouncementText(e.target.value)}
-              placeholder="e.g. Free Delivery on orders over ৳2000 in Dhaka! | 🇧🇩 100% Genuine Guaranteed"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-
-          {/* Hero Headline */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Homepage Hero Spotlight Headline
-            </label>
-            <input
-              type="text"
-              required
-              value={heroHeadline}
-              onChange={(e) => setHeroHeadline(e.target.value)}
-              placeholder="e.g. Luxury Scents & Lifestyle Vault"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-
-          {/* Flash Sale Tag */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
               Flash Sale Campaign Tag
             </label>
             <input
               type="text"
-              required
               value={flashSaleTag}
               onChange={(e) => setFlashSaleTag(e.target.value)}
-              placeholder="e.g. UP TO 50% OFF — EXCLUSIVE"
+              placeholder="e.g. UP TO 50% OFF"
               className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
             />
           </div>
 
-          {/* Hero Subheadline */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Hero Section Subtitle / Value Proposition
-            </label>
-            <textarea
-              rows={2}
-              required
-              value={heroSubheadline}
-              onChange={(e) => setHeroSubheadline(e.target.value)}
-              placeholder="Detailed tagline shown in Hero Spotlight..."
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-
-          {/* Hero Custom Image URL */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              <span>Optional Hero Custom Promotional Image URL</span>
+              Top Header Announcement Marquee Message
             </label>
             <input
-              type="url"
-              value={heroBannerImage}
-              onChange={(e) => setHeroBannerImage(e.target.value)}
-              placeholder="https://images.unsplash.com/... (Leave empty to use featured product video & artwork)"
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              type="text"
+              value={announcementText}
+              onChange={(e) => setAnnouncementText(e.target.value)}
+              placeholder="e.g. Free Delivery on orders over ৳2000 in Dhaka! | 🇧🇩 100% Genuine Guaranteed"
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
             />
           </div>
         </div>
+      </div>
 
-        {/* Submit Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-          <div className="text-xs text-slate-400">
-            Changes take effect immediately across all customer sessions and devices.
-          </div>
-
-          <button
-            type="submit"
-            id="admin-save-banners-btn"
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer"
-          >
-            {savedSuccess ? (
-              <>
-                <CheckCircle2 className="w-4 h-4 text-black" />
-                <span>Saved & Live!</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 text-black" />
-                <span>Save & Deploy Banners</span>
-              </>
-            )}
-          </button>
+      {/* Save All Changes Action Button */}
+      <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <div className="text-xs text-slate-400">
+          All updates sync immediately with customer storefronts, mobile app views, and LocalStorage.
         </div>
-      </form>
+
+        <button
+          type="button"
+          onClick={() => handleSaveAll()}
+          id="admin-save-banners-btn"
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-98"
+        >
+          {savedSuccess ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span>Saved & Published Live!</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 text-white" />
+              <span>Save & Publish All Banners</span>
+            </>
+          )}
+        </button>
+      </div>
+
     </div>
   );
 };

@@ -98,7 +98,7 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
   };
 
   return (
-    <section className="py-8 lg:py-12 bg-white border-b border-slate-200">
+    <section className="py-8 lg:py-12 bg-[#F9FAFB] border-b border-slate-200" id="flash-sale">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* ================= 1. FLASH SALE HEADER & TICKING COUNTDOWN TIMER ================= */}

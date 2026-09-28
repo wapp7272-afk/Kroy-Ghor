@@ -42,6 +42,8 @@ import { AdminSettlementsManager } from './admin/AdminSettlementsManager';
 import { AdminBannersManager } from './admin/AdminBannersManager';
 import { AdminYouTubeManager } from './admin/AdminYouTubeManager';
 import { AdminOrdersManager } from './admin/AdminOrdersManager';
+import { AdminInventoryManager } from './admin/AdminInventoryManager';
+import { INITIAL_PROMO_BANNERS } from '../data/banners';
 
 export const AUTHORIZED_ADMIN_EMAIL = 'wapp7272@gmail.com';
 const ADMIN_STORAGE_KEY = 'primevault_admin_session';
@@ -127,7 +129,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Dashboard Filters & Selected Detail
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'sellers' | 'settlements' | 'banners' | 'coupons' | 'youtube'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'inventory' | 'sellers' | 'settlements' | 'banners' | 'coupons' | 'youtube'>('analytics');
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -210,6 +212,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
     return Math.max(s.size, 142);
   }, [orders]);
+
+  const lowStockCount = useMemo(() => {
+    return products.filter((p) => {
+      const stock = p.stockQuantity !== undefined ? p.stockQuantity : (p.inStock ? 12 : 0);
+      return stock <= 5 && stock > 0;
+    }).length;
+  }, [products]);
 
   const handleApplyRate = (newRate: number) => {
     if (onUpdateCommissionRate) {
@@ -460,6 +469,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>Products ({products.length})</span>
                 </button>
                 <button
+                  id="tab-inventory-btn"
+                  onClick={() => setActiveTab('inventory')}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeTab === 'inventory'
+                      ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
+                  }`}
+                >
+                  <AlertTriangle className={`w-4 h-4 ${activeTab === 'inventory' ? 'text-black' : 'text-amber-400'}`} />
+                  <span>Low-Stock & Inventory</span>
+                  {lowStockCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-black text-[10px] animate-pulse">
+                      {lowStockCount}
+                    </span>
+                  )}
+                </button>
+                <button
                   id="tab-sellers-btn"
                   onClick={() => setActiveTab('sellers')}
                   className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -601,6 +627,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onAddProduct={onAddProduct}
                 onUpdateProduct={onUpdateProduct}
                 onDeleteProduct={onDeleteProduct}
+              />
+            )}
+
+            {/* TAB: LOW-STOCK & INVENTORY CONTROL CENTER */}
+            {activeTab === 'inventory' && (
+              <AdminInventoryManager
+                products={products}
+                onUpdateProduct={onUpdateProduct}
+                showToast={showToast}
               />
             )}
 
@@ -834,6 +869,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     heroHeadline: 'Luxury Scents & Lifestyle Vault',
                     heroSubheadline: 'Bangladesh’s Premier Authentic Perfume & Lifestyle Marketplace. 100% genuine guaranteed with fast nationwide express delivery.',
                     flashSaleTag: 'EXCLUSIVE COLLECTION',
+                    promoBanners: INITIAL_PROMO_BANNERS,
                   }
                 }
                 onUpdateSettings={onUpdateBannerSettings || (() => {})}

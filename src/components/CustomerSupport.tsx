@@ -6,25 +6,38 @@ import {
   Bot, 
   Sparkles, 
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  PhoneCall,
+  Mail,
+  HelpCircle,
+  RotateCcw
 } from 'lucide-react';
 import { ChatMessage } from '../types';
 
-export const CustomerSupport: React.FC = () => {
+export interface CustomerSupportProps {
+  onOpenFaq?: () => void;
+  onOpenReturnPolicy?: () => void;
+}
+
+export const CustomerSupport: React.FC<CustomerSupportProps> = ({
+  onOpenFaq,
+  onOpenReturnPolicy,
+}) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       sender: 'assistant',
-      text: 'আসসালামু আলাইকুম! PRIME VAULT ZONE-এ আপনাকে স্বাগতম। ✨\nআমি আপনার AI শপিং সহকারী। আমাদের লাক্সারি পারফিউম, রয়্যাল আতর, ডেলিভারি, পেমেন্ট, কুপন বা ভল্ট প্রোডাক্ট সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
+      text: 'আসসালামু আলাইকুম! PRIME VAULT ZONE-এ আপনাকে স্বাগতম। ✨\nআমি আপনার শপিং সহকারী। আমাদের লাক্সারি পারফিউম, ডেলিভারি, বিকাশ/নগদ পেমেন্ট, কুপন বা ৭ দিনের রিটার্ন পলিসি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
       time: 'এখন',
       quickOptions: [
         '✨ সেরা লাক্সারি পারফিউম কোনগুলো?',
         '🚚 ডেলিভারি চার্জ ও সময় কত?',
         '💳 বিকাশ ও নগদে পেমেন্ট নিয়ম',
-        '🎟️ ZEST20 কুপন কোড কীভাবে কাজ করে?',
+        '🎟️ কুপন কোড কীভাবে কাজ করে?',
         '🎁 ৳২০ সাইনআপ বোনাস কীভাবে কাজে লাগাব?',
-        '🔄 রিটার্ন ও রিপ্লেসমেন্ট পলিসি কী?'
+        '🔄 ৭ দিনের রিটার্ন ও রিফান্ড পলিসি কী?'
       ]
     }
   ]);
@@ -112,65 +125,138 @@ export const CustomerSupport: React.FC = () => {
 
   return (
     <>
-      {/* Floating Buttons Stack - Bottom Right */}
+      {/* Floating Buttons Stack - Positioned above Mobile Bottom Nav (bottom-[72px] on mobile, bottom-6 on desktop) */}
       <div 
         id="floating-support-bar"
-        className="fixed bottom-4 right-3 sm:bottom-5 sm:right-5 z-40 flex flex-col items-end gap-2.5"
+        className="fixed bottom-[72px] right-3 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end gap-2 pointer-events-none"
       >
-        {/* Social channels (collapsed/open or elegant vertical stack) */}
-        <div className="flex flex-col gap-2.5 items-end">
-          {/* WhatsApp Button */}
+        {/* Support quick action channels - Expandable on mobile to avoid blocking screen content */}
+        <div 
+          className={`flex flex-col gap-2 items-end transition-all duration-300 pointer-events-auto ${
+            isMenuExpanded 
+              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' 
+              : 'opacity-0 translate-y-4 scale-95 pointer-events-none sm:opacity-100 sm:translate-y-0 sm:scale-100 sm:pointer-events-auto'
+          }`}
+        >
+          {/* WhatsApp Support Button */}
           <a
-            href="https://wa.me/8801883418309"
+            href="https://wa.me/8801883418309?text=Hello%20Prime%20Vault%20Zone%2C%20I%20need%20support"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-11 h-11 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-[0_0_16px_rgba(37,211,102,0.6),0_0_24px_rgba(0,242,254,0.3)] hover:shadow-[0_0_24px_rgba(37,211,102,0.85),0_0_35px_rgba(0,242,254,0.5)] border border-[#25D366]/50 hover:border-[#25D366] hover:scale-110 active:scale-95 transition-all group relative"
+            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
             aria-label="WhatsApp Support"
-            title="Chat on WhatsApp"
+            title="Chat on WhatsApp (+880 1883-418309)"
           >
-            <i className="fa-brands fa-whatsapp text-xl text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"></i>
-            <span className="absolute right-14 px-2.5 py-1 bg-slate-900/90 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-              WhatsApp Support
+            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
+              WhatsApp: 01883-418309
             </span>
           </a>
 
-          {/* Telegram Button */}
+          {/* Live Phone Helpline Call */}
           <a
-            href="https://t.me/+8801883418309"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-11 h-11 rounded-full bg-[#0088cc] hover:bg-[#007bb8] text-white flex items-center justify-center shadow-[0_0_16px_rgba(0,136,204,0.65),0_0_24px_rgba(0,242,254,0.35)] hover:shadow-[0_0_24px_rgba(0,136,204,0.9),0_0_35px_rgba(0,242,254,0.6)] border border-[#0088cc]/50 hover:border-[#00f2fe] hover:scale-110 active:scale-95 transition-all group relative"
-            aria-label="Telegram Support"
-            title="Chat on Telegram"
+            href="tel:01883418309"
+            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-[#4F46E5] hover:bg-[#4338CA] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Call Customer Helpline"
+            title="Call Customer Care (01883-418309)"
           >
-            <i className="fa-brands fa-telegram text-xl text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"></i>
-            <span className="absolute right-14 px-2.5 py-1 bg-slate-900/90 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-              Telegram Support
+            <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
+              Helpline: 01883-418309
             </span>
           </a>
+
+          {/* Email Support */}
+          <a
+            href="mailto:support@primevaultzone.com"
+            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Email Customer Support"
+            title="Email Support (support@primevaultzone.com)"
+          >
+            <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-300" />
+            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
+              support@primevaultzone.com
+            </span>
+          </a>
+
+          {/* FAQ Modal Trigger */}
+          {onOpenFaq && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenFaq();
+                setIsMenuExpanded(false);
+              }}
+              className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
+              aria-label="Open FAQ Center"
+              title="Frequently Asked Questions (FAQ)"
+            >
+              <HelpCircle className="w-5 h-5 text-white" />
+              <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
+                সাধারণ প্রশ্নোত্তর (FAQ)
+              </span>
+            </button>
+          )}
+
+          {/* 7-Day Return Policy Trigger */}
+          {onOpenReturnPolicy && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenReturnPolicy();
+                setIsMenuExpanded(false);
+              }}
+              className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
+              aria-label="7-Day Return Policy"
+              title="৭ দিনের রিটার্ন ও রিফান্ড পলিসি"
+            >
+              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
+              <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
+                ৭ দিনের রিটার্ন পলিসি
+              </span>
+            </button>
+          )}
         </div>
 
-        {/* Primary AI Assistant Floating Trigger */}
-        <button
-          id="open-ai-chat-btn"
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold text-xs shadow-md transition-all group cursor-pointer active:scale-95"
-          aria-label="Open AI Shop Assistant"
-        >
-          <div className="relative">
-            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 border-2 border-[#4F46E5] rounded-full" />
-          </div>
-          <span className="tracking-wide">AI চ্যাট সহকারী</span>
-          <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
-        </button>
+        {/* Primary Floating Support Trigger */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Mobile Quick Channels Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMenuExpanded(!isMenuExpanded)}
+            className="sm:hidden w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg border border-slate-700 active:scale-95 transition-transform cursor-pointer"
+            aria-label={isMenuExpanded ? 'Hide contact channels' : 'Show contact channels'}
+            title="Customer Help Channels"
+          >
+            {isMenuExpanded ? (
+              <X className="w-5 h-5 text-amber-400" />
+            ) : (
+              <PhoneCall className="w-4 h-4 text-emerald-400" />
+            )}
+          </button>
+
+          {/* Primary AI Assistant Floating Trigger */}
+          <button
+            id="open-ai-chat-btn"
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-xl border border-indigo-500/30 hover:border-indigo-400 transition-all group cursor-pointer active:scale-95"
+            aria-label="Open AI Shop Assistant"
+          >
+            <div className="relative">
+              <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 border-2 border-[#0F172A] rounded-full" />
+            </div>
+            <span className="tracking-wide">AI চ্যাট</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          </button>
+        </div>
       </div>
 
       {/* --- INTERACTIVE AI CHAT MODAL --- */}
       {isChatOpen && (
         <div 
           id="ai-chat-modal"
-          className="fixed bottom-16 sm:bottom-20 right-2 sm:right-6 z-50 w-[calc(100vw-16px)] sm:w-96 max-w-[400px] max-h-[580px] h-[520px] flex flex-col rounded-xl bg-white border border-slate-200 shadow-xl overflow-hidden animate-slideUp"
+          className="fixed bottom-[72px] sm:bottom-20 right-2 sm:right-6 z-50 w-[calc(100vw-16px)] sm:w-96 max-w-[400px] max-h-[calc(100vh-90px)] h-[480px] sm:h-[520px] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-slideUp"
         >
           {/* Chat Header */}
           <div className="p-3.5 bg-[#0F172A] text-white border-b border-slate-800 flex items-center justify-between">

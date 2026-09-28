@@ -18,6 +18,8 @@ export interface Product {
   tag?: string;
   isFeatured?: boolean;
   inStock: boolean;
+  stockQuantity?: number;
+  lowStockThreshold?: number;
   storeName?: string;
   sellerName?: string;
   soldCount?: number;
@@ -57,6 +59,8 @@ export interface Address {
   cityDivision: 'Inside Dhaka' | 'Outside Dhaka';
   fullAddress: string;
   notes?: string;
+  label?: string;
+  isDefault?: boolean;
 }
 
 export interface WalletTransaction {
@@ -82,6 +86,19 @@ export interface UserProfile {
   walletHistory?: WalletTransaction[];
 }
 
+export interface ReturnRequest {
+  id: string;
+  requestedAt: string;
+  reason: string;
+  additionalDetails?: string;
+  photoProofUrl?: string;
+  status: 'Pending Review' | 'Approved' | 'Refund Credited to Wallet' | 'Rejected';
+  refundAmount: number;
+  resolutionType: 'Wallet Credit' | 'Replacement' | 'Original Payment';
+  courierPickupDate?: string;
+  adminNotes?: string;
+}
+
 export interface Order {
   id: string;
   date: string;
@@ -95,9 +112,10 @@ export interface Order {
   trxId?: string;
   paymentStatus?: 'Verified' | 'Pending Verification' | 'Paid (COD on Delivery)' | 'Failed';
   address: Address;
-  status: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Processing' | 'Ready for Pickup' | 'Shipped' | 'Delivered' | 'Cancelled';
   courierName?: string;
   trackingNumber?: string;
+  returnRequest?: ReturnRequest;
 }
 
 export interface ChatMessage {
@@ -108,7 +126,7 @@ export interface ChatMessage {
   quickOptions?: string[];
 }
 
-export type ActivePage = 'Home' | 'ProductDetail' | 'Cart' | 'Checkout' | 'MyOrders' | 'SellerCenter' | 'Admin' | 'Store';
+export type ActivePage = 'Home' | 'ProductDetail' | 'Cart' | 'Checkout' | 'MyOrders' | 'UserProfile' | 'SellerCenter' | 'Admin' | 'Store';
 
 export interface Seller {
   id: string;
@@ -144,6 +162,24 @@ export interface YouTubeVideo {
   badge?: string;
 }
 
+export interface PromoBanner {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  discountText: string;
+  imageUrl: string;
+  category: string;
+  primaryCtaText: string;
+  primaryCtaTarget?: string;
+  secondaryCtaText?: string;
+  secondaryCtaTarget?: string;
+  codeText?: string;
+  isActive: boolean;
+  linkedProductId?: string;
+  accentColor?: string;
+}
+
 export interface SystemBannerSettings {
   announcementText: string;
   announcementBadge: string;
@@ -158,6 +194,7 @@ export interface SystemBannerSettings {
   youtubeSectionTitle?: string;
   youtubeSectionSubtitle?: string;
   youtubePlaylist?: YouTubeVideo[];
+  promoBanners?: PromoBanner[];
 }
 
 export interface PayoutRequest {
@@ -171,4 +208,18 @@ export interface PayoutRequest {
   requestedAt: string;
   status: 'Pending' | 'Completed' | 'Rejected';
   trxId?: string;
+}
+
+export type SortOption = 'popularity' | 'newest' | 'price-asc' | 'price-desc' | 'rating';
+
+export interface CatalogFilterState {
+  categories: string[]; // multi-department selection
+  minPrice: number;
+  maxPrice: number;
+  inStockOnly: boolean;
+  minDiscount: number; // 0, 10, 20, 30, 50
+  minRating: number; // 0, 3, 4
+  selectedTags: string[]; // e.g., 'Best Seller', 'Trending', etc.
+  selectedBrands: string[]; // Brand names or seller tags
+  sortBy: SortOption;
 }

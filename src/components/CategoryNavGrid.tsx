@@ -114,10 +114,10 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
   onSelectCategory,
 }) => {
   return (
-    <section className="py-8 bg-white border-b border-slate-100" id="categories-section">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-6 sm:py-8 bg-white border-b border-slate-100" id="categories-section">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="flex items-end justify-between mb-5">
+        <div className="flex items-end justify-between mb-4 sm:mb-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-[#4F46E5]" />
@@ -125,15 +125,15 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
                 Marketplace Explorer
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+            <h2 className="text-lg sm:text-2xl font-bold text-[#0F172A] tracking-tight">
               Featured Categories
             </h2>
           </div>
           <button
             onClick={() => onSelectCategory('All')}
-            className={`text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+            className={`min-h-[36px] px-2.5 py-1 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer rounded-lg ${
               selectedCategory === 'All'
-                ? 'text-[#4F46E5]'
+                ? 'text-[#4F46E5] bg-indigo-50/70'
                 : 'text-slate-500 hover:text-[#4F46E5]'
             }`}
           >
@@ -143,7 +143,7 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3.5">
           {MARKETPLACE_CATEGORIES.map((cat) => {
             const isSelected =
               selectedCategory === cat.name ||
@@ -155,9 +155,9 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
                 key={cat.id}
                 id={`cat-card-${cat.id}`}
                 onClick={() => onSelectCategory(cat.name)}
-                className={`group relative flex flex-col items-center text-center p-3 rounded-lg border transition-colors cursor-pointer overflow-hidden last:col-span-2 sm:last:col-span-1 ${
+                className={`group relative flex flex-col items-center text-center p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer overflow-hidden min-h-[144px] active:scale-98 last:col-span-2 sm:last:col-span-1 ${
                   isSelected
-                    ? 'border-[#4F46E5] bg-indigo-50/50 shadow-2xs'
+                    ? 'border-[#4F46E5] bg-indigo-50/50 shadow-xs'
                     : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >

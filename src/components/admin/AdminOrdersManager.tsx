@@ -374,8 +374,36 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                   </div>
 
                   {/* Status Dropdown & Action Cluster */}
-                  <div className="flex items-center gap-2">
-                    {/* Status Dropdown */}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {/* One-Click bKash/Nagad TrxID Quick Verification Toggle */}
+                    {(order.paymentMethod === 'bkash' || order.paymentMethod === 'nagad') && (
+                      order.paymentStatus === 'Verified' ? (
+                        <span className="px-2 py-1 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>TrxID Verified</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onUpdateOrderPaymentStatus) {
+                              onUpdateOrderPaymentStatus(order.id, 'Verified');
+                            }
+                            if (order.status === 'Pending') {
+                              onUpdateOrderStatus(order.id, 'Confirmed');
+                            }
+                            showToast(`✓ TrxID for Order #${order.id} verified & confirmed!`);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-xs active:scale-95 transition-all"
+                          title={`Click to verify ${order.paymentMethod.toUpperCase()} TrxID: ${order.trxId || 'N/A'}`}
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          <span>Verify TrxID</span>
+                        </button>
+                      )
+                    )}
+
+                    {/* Status Dropdown with Ready for Pickup */}
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] text-slate-400 hidden sm:inline">Status:</span>
                       <select
@@ -389,6 +417,7 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                         <option value="Pending">Pending</option>
                         <option value="Confirmed">Confirmed</option>
                         <option value="Processing">Processing</option>
+                        <option value="Ready for Pickup">Ready for Pickup</option>
                         <option value="Shipped">Shipped</option>
                         <option value="Delivered">Delivered</option>
                         <option value="Cancelled">Cancelled</option>
@@ -417,7 +446,49 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
 
                 {/* Collapsible Detailed Section */}
                 {isExpanded && (
-                  <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 text-xs">
+                  <div className="p-4 sm:p-5 space-y-5">
+                    {/* Status Override Sequence Pipeline */}
+                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                          <span>Admin Status Override Pipeline:</span>
+                        </span>
+                        <span className="text-[11px] text-slate-500 hidden sm:inline">Click any stage to instantly transition order state</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-1 text-xs">
+                        {[
+                          { id: 'Pending', label: '1. Pending' },
+                          { id: 'Confirmed', label: '2. Confirmed (Verified)' },
+                          { id: 'Processing', label: '3. Processing' },
+                          { id: 'Ready for Pickup', label: '4. Ready for Pickup' },
+                          { id: 'Shipped', label: '5. Shipped' },
+                          { id: 'Delivered', label: '6. Delivered' },
+                        ].map((step) => {
+                          const isActive = order.status === step.id;
+                          return (
+                            <button
+                              key={step.id}
+                              type="button"
+                              onClick={() => {
+                                onUpdateOrderStatus(order.id, step.id as Order['status']);
+                                showToast(`✓ Order #${order.id} status transitioned to ${step.id}`);
+                              }}
+                              className={`p-2 rounded-xl text-center text-[11px] font-bold transition-all cursor-pointer border ${
+                                isActive
+                                  ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                              }`}
+                            >
+                              <span>{step.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 text-xs">
                     {/* LEFT (Cols 1-5): Customer & Delivery Information */}
                     <div className="lg:col-span-5 space-y-3 border-b lg:border-b-0 lg:border-r border-slate-800/80 pb-4 lg:pb-0 lg:pr-5">
                       <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase tracking-wider text-[11px]">
@@ -673,6 +744,7 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
                 )}
               </div>
             );
