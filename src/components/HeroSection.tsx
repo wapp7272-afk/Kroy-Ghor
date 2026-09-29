@@ -30,7 +30,7 @@ interface HeroSectionProps {
   showToast?: (msg: string) => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({
+export const HeroSection: React.FC<HeroSectionProps> = React.memo(({
   banners,
   products = [],
   onSelectProduct,
@@ -305,6 +305,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   src={currentBanner.imageUrl}
                   alt={currentBanner.title}
                   className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500"
+                  loading="lazy"
+                  decoding="async"
                 />
                 
                 {/* Gradient vignette */}
@@ -329,6 +331,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                         src={linkedProduct.image} 
                         alt={linkedProduct.title}
                         className="w-10 h-10 sm:w-11 sm:h-11 rounded-md object-cover border border-slate-200 shrink-0 bg-slate-50"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
@@ -423,4 +427,4 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
     </section>
   );
-};
+});

@@ -603,7 +603,7 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden lg:hidden" aria-modal="true" role="dialog">
+    <div className="fixed inset-0 z-50 overflow-hidden lg:hidden" aria-modal="true" role="dialog" aria-labelledby="filter-drawer-title">
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -616,7 +616,7 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
           <div className="p-3.5 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-[#4F46E5]" />
-              <h2 className="text-sm sm:text-base font-bold text-[#0F172A]">Filters & Sorting</h2>
+              <h2 id="filter-drawer-title" className="text-sm sm:text-base font-bold text-[#0F172A]">Filters & Sorting</h2>
               {countActiveFilters(filters) > 0 && (
                 <span className="bg-[#4F46E5] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
                   {countActiveFilters(filters)}

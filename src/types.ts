@@ -43,6 +43,24 @@ export interface Coupon {
   isActive: boolean;
   usageCount?: number;
   description?: string;
+  isAutoApply?: boolean;
+  autoApplyRule?: 'first_order' | 'free_shipping' | 'cart_threshold' | 'multi_item';
+  autoApplyLabel?: string;
+}
+
+export interface NotificationLog {
+  id: string;
+  orderId: string;
+  recipientName: string;
+  recipientPhone: string;
+  recipientEmail?: string;
+  type: 'sms' | 'email';
+  channel: 'GP_BULK_SMS' | 'ROBI_GATEWAY' | 'BANGLALINK_SMS' | 'AWS_SES_EMAIL' | 'SENDGRID_EMAIL';
+  title: string;
+  message: string;
+  status: 'Delivered' | 'Sent' | 'Failed';
+  sentAt: string;
+  gatewayTrxId?: string;
 }
 
 export interface CartItem {
@@ -126,7 +144,42 @@ export interface ChatMessage {
   quickOptions?: string[];
 }
 
-export type ActivePage = 'Home' | 'ProductDetail' | 'Cart' | 'Checkout' | 'MyOrders' | 'UserProfile' | 'SellerCenter' | 'Admin' | 'Store';
+export type ActivePage = 
+  | 'Home' 
+  | 'ProductDetail' 
+  | 'Cart' 
+  | 'Checkout' 
+  | 'MyOrders' 
+  | 'UserProfile' 
+  | 'SellerCenter' 
+  | 'Admin' 
+  | 'Store' 
+  | 'TrackOrder';
+
+export interface CustomerReview {
+  id: string;
+  productId?: string;
+  name: string;
+  location: string;
+  rating: number;
+  date: string;
+  comment: string;
+  verified: boolean;
+  likes: number;
+  hasLiked?: boolean;
+  longevityRating?: '4-6 Hours' | '6-8 Hours' | '8-12 Hours' | 'All Day (12h+)';
+  authenticityRating?: string;
+  photoUrl?: string;
+}
+
+export interface CourierRiderInfo {
+  name: string;
+  phone: string;
+  bikeNumber: string;
+  hubName: string;
+  avatar?: string;
+  currentEtaMinutes: number;
+}
 
 export interface Seller {
   id: string;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { 
   Sparkles, 
   Zap, 
@@ -56,17 +56,36 @@ import { FeaturedYouTubeSection } from './components/FeaturedYouTubeSection';
 import { INITIAL_PROMO_BANNERS } from './data/banners';
 import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
-import { CheckoutModal } from './components/CheckoutModal';
 import { CustomerSupport } from './components/CustomerSupport';
-import { ReturnPolicyModal } from './components/ReturnPolicyModal';
-import { FaqModal } from './components/FaqModal';
-import { AdminDashboard, AUTHORIZED_ADMIN_EMAIL } from './components/AdminDashboard';
+import { OrderTrackingPortal } from './components/OrderTrackingPortal';
+import { PwaInstallBanner } from './components/PwaInstallBanner';
+
+// Code-split heavy secondary view modals and admin components with React.lazy
+const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const ReturnPolicyModal = lazy(() => import('./components/ReturnPolicyModal').then((m) => ({ default: m.ReturnPolicyModal })));
+const FaqModal = lazy(() => import('./components/FaqModal').then((m) => ({ default: m.FaqModal })));
+
+// Accessible Suspense Fallback Loader
+const ModalSuspenseFallback = () => (
+  <div 
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fadeIn" 
+    role="status" 
+    aria-label="Loading modal interface..."
+  >
+    <div className="p-6 rounded-2xl bg-white shadow-2xl flex flex-col items-center gap-3 border border-slate-200 min-w-[200px]">
+      <div className="w-9 h-9 border-3 border-[#5B21B6] border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs font-bold text-slate-800 tracking-wide">Loading module...</span>
+    </div>
+  </div>
+);
 
 export default function App() {
   // State: Active Navigation Routing
   const [activePage, setActivePage] = useState<ActivePage>('Home');
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>('perfume-vault-bd');
+  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
 
   // State: Dynamic Platform Commission Rate (Configurable: Default 8%)
   const [commissionRate, setCommissionRate] = useState<number>(() => {
@@ -195,6 +214,8 @@ export default function App() {
       document.title = 'Merchant Seller Center | PRIME VAULT ZONE';
     } else if (activePage === 'MyOrders' || activePage === 'UserProfile') {
       document.title = 'Customer Portal & Order History | PRIME VAULT ZONE';
+    } else if (activePage === 'TrackOrder') {
+      document.title = 'Live Parcel Tracker & Courier Status | PRIME VAULT ZONE';
     } else {
       document.title = 'PRIME VAULT ZONE | Bangladesh Premier Lifestyle & Perfume Marketplace';
     }
@@ -684,38 +705,38 @@ export default function App() {
     setIsCheckoutOpen(true);
   };
 
-  // Navigation Handlers
-  const handleGoHome = () => {
+  // Navigation Handlers memoized with useCallback to prevent re-renders
+  const handleGoHome = useCallback(() => {
     setSelectedProductDetail(null);
     setActivePage('Home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleSelectProductDetail = (product: Product) => {
+  const handleSelectProductDetail = useCallback((product: Product) => {
     setSelectedProductDetail(product);
     setActivePage('ProductDetail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenOrders = () => {
+  const handleOpenOrders = useCallback(() => {
     setSelectedProductDetail(null);
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenUserProfile = () => {
+  const handleOpenUserProfile = useCallback(() => {
     setSelectedProductDetail(null);
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenSellerCenter = () => {
+  const handleOpenSellerCenter = useCallback(() => {
     setSelectedProductDetail(null);
     setActivePage('SellerCenter');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenSellerStore = (slugOrName: string) => {
+  const handleOpenSellerStore = useCallback((slugOrName: string) => {
     const raw = (slugOrName || '').toLowerCase().trim();
     const slugKey = raw.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
@@ -735,11 +756,20 @@ export default function App() {
     setSelectedProductDetail(null);
     setActivePage('Store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [sellers]);
 
-  const handleOpenAdmin = () => {
+  const handleOpenAdmin = useCallback(() => {
     setIsAdminOpen(true);
-  };
+  }, []);
+
+  const handleOpenTrackOrder = useCallback((orderId?: string) => {
+    if (orderId) {
+      setTrackedOrderId(orderId);
+    }
+    setSelectedProductDetail(null);
+    setActivePage('TrackOrder');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const handleReorder = (order: Order) => {
     order.items.forEach((item) => {
@@ -1339,6 +1369,7 @@ export default function App() {
         activeFilterTab={activeFilterTab}
         activeNav={activePage}
         bannerSettings={bannerSettings}
+        onOpenTrackOrder={handleOpenTrackOrder}
       />
 
       {/* Active Page Routing Router */}
@@ -1362,6 +1393,17 @@ export default function App() {
           initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
           onSubmitReturnRequest={handleSubmitReturnRequest}
           onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          onTrackOrder={handleOpenTrackOrder}
+        />
+      ) : activePage === 'TrackOrder' ? (
+        <OrderTrackingPortal
+          orders={orders}
+          user={user}
+          initialOrderId={trackedOrderId}
+          onBackToShop={handleGoHome}
+          onViewProduct={handleSelectProductDetail}
+          onOpenSupport={() => setIsFaqOpen(true)}
+          onOpenOrders={handleOpenOrders}
         />
       ) : activePage === 'SellerCenter' ? (
         <SellerCenterView
@@ -1400,6 +1442,7 @@ export default function App() {
         <ProductDetailView
           product={selectedProductDetail}
           products={products}
+          user={user}
           onBackToShop={handleGoHome}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
@@ -1808,61 +1851,69 @@ export default function App() {
         onOpenCustomerPortal={handleOpenUserProfile}
       />
 
-      {/* Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        items={cart}
-        user={user}
-        subtotal={cartSubtotal}
-        couponDiscount={couponDiscount}
-        walletDeducted={applyWalletBonus && cartSubtotal > 0 ? Math.min(user.walletBalance, 20) : 0}
-        couponCode={couponCode}
-        isCouponApplied={isCouponApplied}
-        appliedCoupon={appliedCoupon}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-        onPlaceOrder={handleCreateOrder}
-        onClearCart={() => setCart([])}
-        onViewOrders={handleOpenOrders}
-        onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-      />
+      {/* Code-Split Checkout Modal */}
+      {isCheckoutOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            items={cart}
+            user={user}
+            subtotal={cartSubtotal}
+            couponDiscount={couponDiscount}
+            walletDeducted={applyWalletBonus && cartSubtotal > 0 ? Math.min(user.walletBalance, 20) : 0}
+            couponCode={couponCode}
+            isCouponApplied={isCouponApplied}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
+            onPlaceOrder={handleCreateOrder}
+            onClearCart={() => setCart([])}
+            onViewOrders={handleOpenOrders}
+            onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          />
+        </Suspense>
+      )}
 
-      {/* Admin Dashboard */}
-      <AdminDashboard
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        orders={orders}
-        onUpdateOrderStatus={handleUpdateOrderStatus}
-        onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
-        onUpdateOrderTracking={handleUpdateOrderTracking}
-        products={products}
-        onAddProduct={handleAddProduct}
-        onUpdateProduct={handleUpdateProduct}
-        onDeleteProduct={handleDeleteProduct}
-        coupons={coupons}
-        onAddCoupon={handleAddCoupon}
-        onUpdateCoupon={handleUpdateCoupon}
-        onDeleteCoupon={handleDeleteCoupon}
-        sellers={sellers}
-        onUpdateSellerStatus={handleUpdateSellerStatus}
-        commissionRate={commissionRate}
-        onUpdateCommissionRate={handleUpdateCommissionRate}
-        bannerSettings={bannerSettings}
-        onUpdateBannerSettings={handleUpdateBannerSettings}
-        payoutRequests={payoutRequests}
-        onApprovePayout={handleApprovePayout}
-        onRejectPayout={handleRejectPayout}
-        showToast={showToast}
-        onViewPublicStore={(slug) => {
-          setIsAdminOpen(false);
-          handleOpenSellerStore(slug);
-        }}
-        onGoShop={handleGoHome}
-        onGoOrders={handleOpenOrders}
-      />
+      {/* Code-Split Admin Dashboard */}
+      {isAdminOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <AdminDashboard
+            isOpen={isAdminOpen}
+            onClose={() => setIsAdminOpen(false)}
+            orders={orders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
+            onUpdateOrderTracking={handleUpdateOrderTracking}
+            products={products}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+            coupons={coupons}
+            onAddCoupon={handleAddCoupon}
+            onUpdateCoupon={handleUpdateCoupon}
+            onDeleteCoupon={handleDeleteCoupon}
+            sellers={sellers}
+            onUpdateSellerStatus={handleUpdateSellerStatus}
+            commissionRate={commissionRate}
+            onUpdateCommissionRate={handleUpdateCommissionRate}
+            bannerSettings={bannerSettings}
+            onUpdateBannerSettings={handleUpdateBannerSettings}
+            payoutRequests={payoutRequests}
+            onApprovePayout={handleApprovePayout}
+            onRejectPayout={handleRejectPayout}
+            showToast={showToast}
+            onViewPublicStore={(slug) => {
+              setIsAdminOpen(false);
+              handleOpenSellerStore(slug);
+            }}
+            onGoShop={handleGoHome}
+            onGoOrders={handleOpenOrders}
+          />
+        </Suspense>
+      )}
 
       {/* Fixed Mobile Bottom Navigation Bar (Home, Categories, Search, Cart, Account) */}
       <MobileBottomNav
@@ -1886,22 +1937,33 @@ export default function App() {
         onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
       />
 
-      {/* 7-Day Hassle-Free Replacement & Return Policy Modal */}
-      <ReturnPolicyModal
-        isOpen={isReturnPolicyOpen}
-        onClose={() => setIsReturnPolicyOpen(false)}
-        onOpenOrders={handleOpenOrders}
-      />
+      {/* Code-Split 7-Day Hassle-Free Replacement & Return Policy Modal */}
+      {isReturnPolicyOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <ReturnPolicyModal
+            isOpen={isReturnPolicyOpen}
+            onClose={() => setIsReturnPolicyOpen(false)}
+            onOpenOrders={handleOpenOrders}
+          />
+        </Suspense>
+      )}
 
-      {/* Interactive FAQ & Help Center Modal */}
-      <FaqModal
-        isOpen={isFaqOpen}
-        onClose={() => setIsFaqOpen(false)}
-        onOpenReturnPolicy={() => {
-          setIsFaqOpen(false);
-          setIsReturnPolicyOpen(true);
-        }}
-      />
+      {/* Code-Split Interactive FAQ & Help Center Modal */}
+      {isFaqOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <FaqModal
+            isOpen={isFaqOpen}
+            onClose={() => setIsFaqOpen(false)}
+            onOpenReturnPolicy={() => {
+              setIsFaqOpen(false);
+              setIsReturnPolicyOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* PWA Install Banner & Network Connection Ribbon */}
+      <PwaInstallBanner showToast={showToast} />
     </div>
   );
 }

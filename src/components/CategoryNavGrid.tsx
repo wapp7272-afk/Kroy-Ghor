@@ -109,7 +109,7 @@ interface CategoryNavGridProps {
   onSelectCategory: (categoryName: string) => void;
 }
 
-export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
+export const CategoryNavGrid: React.FC<CategoryNavGridProps> = React.memo(({
   selectedCategory,
   onSelectCategory,
 }) => {
@@ -179,6 +179,7 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
                     alt={cat.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
+                    decoding="async"
                   />
                   {isSelected && (
                     <div className="absolute inset-0 ring-1 ring-inset ring-[#4F46E5]/40 rounded-lg pointer-events-none" />
@@ -208,4 +209,4 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = ({
       </div>
     </section>
   );
-};
+});

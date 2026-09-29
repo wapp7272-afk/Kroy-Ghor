@@ -27,7 +27,8 @@ import {
   ArrowRight,
   TrendingUp,
   Filter,
-  Check
+  Check,
+  Truck
 } from 'lucide-react';
 import { UserProfile, SystemBannerSettings, Product } from '../types';
 import { VaultLogo } from './VaultLogo';
@@ -62,6 +63,7 @@ interface HeaderProps {
   isMobileSearchActive?: boolean;
   onToggleMobileSearch?: (open: boolean) => void;
   onOpenUserProfile?: () => void;
+  onOpenTrackOrder?: () => void;
 }
 
 export const CATEGORY_DROPDOWN_ITEMS = [
@@ -109,7 +111,7 @@ export const MOBILE_QUICK_CATEGORIES = [
   { name: 'Premium Gifts', label: 'Gifts', icon: '🎁' },
 ];
 
-export const Header: React.FC<HeaderProps> = ({
+export const Header: React.FC<HeaderProps> = React.memo(({
   searchQuery,
   onSearchChange,
   cartCount,
@@ -138,6 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMobileSearchActive = false,
   onToggleMobileSearch,
   onOpenUserProfile,
+  onOpenTrackOrder,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -364,6 +367,16 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="hidden md:flex items-center gap-4 text-[11px] text-slate-400 shrink-0">
+              {onOpenTrackOrder && (
+                <button
+                  onClick={onOpenTrackOrder}
+                  className="hover:text-amber-400 transition-colors flex items-center gap-1 font-semibold text-slate-200 cursor-pointer"
+                  title="Track parcel delivery live"
+                >
+                  <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Track Order</span>
+                </button>
+              )}
               {onOpenSellerCenter && (
                 <button 
                   onClick={onOpenSellerCenter}
@@ -982,6 +995,23 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
+              {/* Track Order */}
+              {onOpenTrackOrder && (
+                <button
+                  id="nav-link-track-order"
+                  onClick={onOpenTrackOrder}
+                  className={`relative px-3 py-1.5 rounded-md transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 font-medium ${
+                    activeNav === 'TrackOrder'
+                      ? 'text-white bg-[#4F46E5]'
+                      : 'text-slate-700 bg-slate-100 hover:bg-slate-200'
+                  }`}
+                  title="Track any parcel live by Order ID or Phone"
+                >
+                  <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Track Order</span>
+                </button>
+              )}
+
               {/* Become a Seller */}
               {onOpenSellerCenter && (
                 <button
@@ -1184,6 +1214,19 @@ export const Header: React.FC<HeaderProps> = ({
                       {wishlistCount}
                     </span>
                   )}
+                </button>
+              )}
+
+              {onOpenTrackOrder && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenTrackOrder();
+                  }}
+                  className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-left font-semibold"
+                >
+                  <span>Track Order 🚚 (লাইভ পার্সেল ট্র্যাকিং)</span>
+                  <span>🚚</span>
                 </button>
               )}
 
@@ -1482,4 +1525,4 @@ export const Header: React.FC<HeaderProps> = ({
       )}
     </>
   );
-};
+});

@@ -46,7 +46,7 @@ export interface CartProps {
   onOpenReturnPolicy?: () => void;
 }
 
-export const Cart: React.FC<CartProps> = ({
+export const Cart: React.FC<CartProps> = React.memo(({
   isOpen = true,
   isDrawer = true,
   onClose,
@@ -707,4 +707,4 @@ export const Cart: React.FC<CartProps> = ({
       </div>
     </div>
   );
-};
+});

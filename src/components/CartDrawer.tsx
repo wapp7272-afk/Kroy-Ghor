@@ -6,6 +6,6 @@ export interface CartDrawerProps extends CartProps {
   onClose: () => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = (props) => {
+export const CartDrawer: React.FC<CartDrawerProps> = React.memo((props) => {
   return <Cart {...props} isDrawer={true} />;
-};
+});

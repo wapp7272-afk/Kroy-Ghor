@@ -33,7 +33,8 @@ import {
   AlertCircle,
   Building2,
   Gift,
-  Star
+  Star,
+  Navigation
 } from 'lucide-react';
 import { UserProfile as UserProfileType, Order, Product, Address, WalletTransaction, ReturnRequest } from '../types';
 import { InvoiceModal } from './InvoiceModal';
@@ -56,6 +57,7 @@ export interface UserProfileProps {
   initialTab?: 'overview' | 'orders' | 'wallet' | 'wishlist' | 'addresses';
   onSubmitReturnRequest?: (orderId: string, returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>) => void;
   onOpenReturnPolicy?: () => void;
+  onTrackOrder?: (orderId: string) => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -75,6 +77,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   initialTab = 'overview',
   onSubmitReturnRequest,
   onOpenReturnPolicy,
+  onTrackOrder,
 }) => {
   // Navigation tabs in Customer Portal
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'wallet' | 'wishlist' | 'addresses'>(initialTab);
@@ -802,8 +805,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             <Truck className="w-4 h-4 text-[#5B21B6]" />
                             <span>{progress.bangla} ({progress.label})</span>
                           </div>
-                          <div className="text-[11px] font-mono text-gray-500">
-                            Courier: <strong className="text-gray-800">{courierName}</strong> | Tracking: <strong className="text-[#5B21B6]">{trackingNumber}</strong>
+                          <div className="text-[11px] font-mono text-gray-500 flex items-center gap-2">
+                            <span>Courier: <strong className="text-gray-800">{courierName}</strong> | Tracking: <strong className="text-[#5B21B6]">{trackingNumber}</strong></span>
+                            {onTrackOrder && (
+                              <button
+                                type="button"
+                                onClick={() => onTrackOrder(order.id)}
+                                className="px-2 py-0.5 rounded bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[10px] font-bold transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
+                              >
+                                <Navigation className="w-3 h-3 text-emerald-300" />
+                                <span>Live GPS</span>
+                              </button>
+                            )}
                           </div>
                         </div>
 

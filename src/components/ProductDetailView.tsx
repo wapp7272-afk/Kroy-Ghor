@@ -33,11 +33,13 @@ import {
   Box,
   ExternalLink
 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, CustomerReview, UserProfile } from '../types';
+import { ProductReviewModal } from './ProductReviewModal';
 
 export interface ProductDetailViewProps {
   product: Product;
   products?: Product[];
+  user?: UserProfile;
   onBackToShop: () => void;
   onAddToCart: (product: Product, quantity: number, selectedSize?: string) => void;
   onBuyNow: (product: Product, quantity: number, selectedSize?: string) => void;
@@ -49,21 +51,10 @@ export interface ProductDetailViewProps {
   showToast?: (message: string) => void;
 }
 
-interface CustomerReview {
-  id: string;
-  name: string;
-  location: string;
-  rating: number;
-  date: string;
-  comment: string;
-  verified: boolean;
-  likes: number;
-  hasLiked?: boolean;
-}
-
 export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   product,
   products = [],
+  user,
   onBackToShop,
   onAddToCart,
   onBuyNow,
@@ -139,6 +130,25 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isYouTubePlaying, setIsYouTubePlaying] = useState(false);
+
+  // Video memory cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute('src');
+          videoRef.current.load();
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Reset video states when switching products or tabs
+  useEffect(() => {
+    setIsYouTubePlaying(false);
+  }, [product.id, activeMediaTab]);
 
   // Reviews State
   const initialReviews: CustomerReview[] = [
@@ -174,7 +184,29 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     },
   ];
 
-  const [reviewsList, setReviewsList] = useState<CustomerReview[]>(initialReviews);
+  const [reviewsList, setReviewsList] = useState<CustomerReview[]>(() => {
+    try {
+      const saved = localStorage.getItem(`primevault_reviews_${product.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialReviews;
+  });
+
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  const handlePublishReview = (newReview: CustomerReview) => {
+    setReviewsList((prev) => {
+      const updated = [newReview, ...prev];
+      try {
+        localStorage.setItem(`primevault_reviews_${product.id}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    showToast('🎉 Thank you! Your verified review has been published.');
+  };
 
   // Review Form State
   const [formRating, setFormRating] = useState(5);
@@ -540,6 +572,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                     alt={product.title}
                     className="w-full h-full object-cover object-center transition-all duration-300 group-hover:scale-105 pointer-events-none"
                     draggable={false}
+                    decoding="async"
                   />
 
                   {/* Over-image Badges */}
@@ -603,6 +636,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         src={imgUrl}
                         alt={`Thumbnail ${idx + 1}`}
                         className="w-full h-full object-cover object-center"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}
@@ -625,16 +660,51 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   </span>
                 </div>
 
-                {/* HTML5 or YouTube Embed Video Player */}
+                {/* HTML5 or YouTube Embed Video Player with Light Preview Facade */}
                 <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 group">
                   {youtubeEmbedUrl ? (
-                    <iframe
-                      src={youtubeEmbedUrl}
-                      title={product.title}
-                      className="w-full h-full object-cover border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    isYouTubePlaying ? (
+                      <iframe
+                        src={`${youtubeEmbedUrl}${youtubeEmbedUrl.includes('?') ? '&' : '?'}autoplay=1`}
+                        title={product.title}
+                        className="w-full h-full object-cover border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div
+                        onClick={() => setIsYouTubePlaying(true)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Play video showcase for ${product.title}`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsYouTubePlaying(true);
+                          }
+                        }}
+                        className="relative w-full h-full cursor-pointer flex items-center justify-center bg-slate-900 group"
+                      >
+                        <img
+                          src={product.videoPoster || product.image}
+                          alt={`Video thumbnail for ${product.title}`}
+                          className="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-300"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 group-hover:via-black/20 transition-all" />
+                        
+                        <div className="absolute flex flex-col items-center gap-2">
+                          <div className="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-200">
+                            <Play className="w-7 h-7 fill-current ml-1" />
+                          </div>
+                          <span className="text-xs font-bold text-white tracking-wide bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs border border-white/20">
+                            Click to Play Video Showcase
+                          </span>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <>
                       <video
@@ -1377,14 +1447,19 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
               {/* Interactive Review Submission Form */}
               <div className="p-5 rounded-2xl bg-white border border-indigo-100 shadow-2xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Write a Verified Customer Review</h4>
-                    <p className="text-xs text-slate-500">Share your genuine experience with other buyers.</p>
+                    <h4 className="text-sm font-bold text-slate-900">Verified Customer Reviews ({reviewsList.length})</h4>
+                    <p className="text-xs text-slate-500">Real ratings and feedback from verified purchasers in Bangladesh.</p>
                   </div>
-                  <span className="text-xs font-semibold text-[#4F46E5] bg-indigo-50 px-2.5 py-1 rounded-md">
-                    Verified Buyer
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewModalOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Write Verified Review</span>
+                  </button>
                 </div>
 
                 <form onSubmit={handleReviewSubmit} className="space-y-4">
@@ -1478,9 +1553,38 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <span className="text-[11px] text-slate-400 font-mono">{rev.date}</span>
                     </div>
 
+                    {/* Authenticity and Longevity Badges */}
+                    {(rev.longevityRating || rev.authenticityRating) && (
+                      <div className="flex flex-wrap gap-1 text-[10px]">
+                        {rev.longevityRating && (
+                          <span className="px-2 py-0.5 rounded bg-indigo-50 text-[#4F46E5] font-semibold border border-indigo-100">
+                            ⏱️ {rev.longevityRating}
+                          </span>
+                        )}
+                        {rev.authenticityRating && (
+                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold border border-emerald-100">
+                            🛡️ {rev.authenticityRating}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-xs text-slate-800 leading-relaxed min-h-[40px]">
                       "{rev.comment}"
                     </p>
+
+                    {/* Customer Photo Proof */}
+                    {rev.photoUrl && (
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 shadow-2xs">
+                        <img
+                          src={rev.photoUrl}
+                          alt="Customer snapshot proof"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
+                    )}
 
                     <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
                       <div>
@@ -1540,6 +1644,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                     src={product.image}
                     alt={product.title}
                     className="w-16 h-16 object-cover rounded-lg"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="max-w-[140px]">
                     <div className="text-xs font-bold text-slate-900 truncate">{product.title}</div>
@@ -1561,6 +1667,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                     src={complementaryProduct.image}
                     alt={complementaryProduct.title}
                     className="w-16 h-16 object-cover rounded-lg"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="max-w-[140px]">
                     <div className="text-xs font-bold text-slate-900 truncate">{complementaryProduct.title}</div>
@@ -1659,6 +1767,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         alt={relProduct.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        decoding="async"
                       />
                       {relDiscount && (
                         <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-600 text-white shadow-2xs">
@@ -1765,6 +1874,25 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Verified Customer Review Submission Modal */}
+      {isReviewModalOpen && (
+        <ProductReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          product={product}
+          user={user || {
+            isLoggedIn: false,
+            name: '',
+            email: '',
+            phone: '',
+            walletBalance: 0,
+            hasReceivedBonus: false,
+            address: { fullName: '', phone: '', cityDivision: 'Inside Dhaka', fullAddress: '' }
+          }}
+          onSubmitReview={handlePublishReview}
+        />
+      )}
     </div>
   );
 };

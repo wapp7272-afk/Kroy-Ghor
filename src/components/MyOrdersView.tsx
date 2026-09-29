@@ -25,7 +25,8 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  FileText
+  FileText,
+  Navigation
 } from 'lucide-react';
 import { Order, UserProfile, Product, CartItem, ReturnRequest } from '../types';
 import { InvoiceModal } from './InvoiceModal';
@@ -40,6 +41,7 @@ interface MyOrdersViewProps {
   onOpenAuth: () => void;
   onSubmitReturnRequest?: (orderId: string, returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>) => void;
   onOpenReturnPolicy?: () => void;
+  onTrackOrder?: (orderId: string) => void;
 }
 
 export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
@@ -51,6 +53,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
   onOpenAuth,
   onSubmitReturnRequest,
   onOpenReturnPolicy,
+  onTrackOrder,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'delivered'>('all');
@@ -533,6 +536,16 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                           <span>{isTrackingExpanded ? 'Hide Timeline' : 'View Timeline'}</span>
                           {isTrackingExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
+                        {onTrackOrder && (
+                          <button
+                            type="button"
+                            onClick={() => onTrackOrder(order.id)}
+                            className="ml-auto px-2.5 py-1 rounded-md bg-[#5B21B6] hover:bg-[#4C1D95] text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <Navigation className="w-3 h-3 text-emerald-300" />
+                            <span>Live GPS Tracker</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 

@@ -224,7 +224,9 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
           <button
             type="button"
             onClick={() => setIsMenuExpanded(!isMenuExpanded)}
-            className="sm:hidden w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg border border-slate-700 active:scale-95 transition-transform cursor-pointer"
+            aria-expanded={isMenuExpanded}
+            aria-controls="floating-support-bar"
+            className="sm:hidden w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg border border-slate-700 active:scale-95 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
             aria-label={isMenuExpanded ? 'Hide contact channels' : 'Show contact channels'}
             title="Customer Help Channels"
           >
@@ -239,7 +241,9 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
           <button
             id="open-ai-chat-btn"
             onClick={() => setIsChatOpen(!isChatOpen)}
-            className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-xl border border-indigo-500/30 hover:border-indigo-400 transition-all group cursor-pointer active:scale-95"
+            aria-expanded={isChatOpen}
+            aria-controls="ai-chat-modal"
+            className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-xl border border-indigo-500/30 hover:border-indigo-400 transition-all group cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
             aria-label="Open AI Shop Assistant"
           >
             <div className="relative">
@@ -256,6 +260,9 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
       {isChatOpen && (
         <div 
           id="ai-chat-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI Shopping Assistant & Customer Support"
           className="fixed bottom-[72px] sm:bottom-20 right-2 sm:right-6 z-50 w-[calc(100vw-16px)] sm:w-96 max-w-[400px] max-h-[calc(100vh-90px)] h-[480px] sm:h-[520px] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-slideUp"
         >
           {/* Chat Header */}

@@ -32,7 +32,8 @@ import {
   Megaphone,
   X as XIcon,
   Youtube,
-  Tv
+  Tv,
+  Bell
 } from 'lucide-react';
 import { Order, Product, Coupon, Seller, SystemBannerSettings, PayoutRequest } from '../types';
 import { AdminProductsManager } from './admin/AdminProductsManager';
@@ -43,6 +44,7 @@ import { AdminBannersManager } from './admin/AdminBannersManager';
 import { AdminYouTubeManager } from './admin/AdminYouTubeManager';
 import { AdminOrdersManager } from './admin/AdminOrdersManager';
 import { AdminInventoryManager } from './admin/AdminInventoryManager';
+import { AdminNotificationsManager } from './admin/AdminNotificationsManager';
 import { INITIAL_PROMO_BANNERS } from '../data/banners';
 
 export const AUTHORIZED_ADMIN_EMAIL = 'wapp7272@gmail.com';
@@ -129,7 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Dashboard Filters & Selected Detail
-  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'inventory' | 'sellers' | 'settlements' | 'banners' | 'coupons' | 'youtube'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'products' | 'inventory' | 'sellers' | 'settlements' | 'banners' | 'coupons' | 'youtube' | 'notifications'>('analytics');
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -555,6 +557,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <Youtube className="w-4 h-4 text-red-500 fill-current" />
                   <span>YouTube Video Hub</span>
                 </button>
+                <button
+                  id="tab-notifications-btn"
+                  onClick={() => setActiveTab('notifications')}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeTab === 'notifications'
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80'
+                  }`}
+                >
+                  <Bell className={`w-4 h-4 ${activeTab === 'notifications' ? 'text-black' : 'text-emerald-400'}`} />
+                  <span>SMS & Email Gateway</span>
+                </button>
               </div>
 
               <div className="text-xs text-slate-400 flex items-center gap-1.5 shrink-0">
@@ -896,6 +910,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }
                 onUpdateSettings={onUpdateBannerSettings || (() => {})}
                 showToast={showToast}
+              />
+            )}
+
+            {/* TAB: NOTIFICATIONS & TELCO SMS GATEWAY MANAGER */}
+            {activeTab === 'notifications' && (
+              <AdminNotificationsManager
+                orders={orders}
+                showToast={showToast}
+                onViewOrder={(orderId) => {
+                  const match = orders.find(o => o.id === orderId);
+                  if (match) setSelectedOrder(match);
+                }}
               />
             )}
           </div>
