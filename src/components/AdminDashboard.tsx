@@ -46,6 +46,8 @@ import { AdminOrdersManager } from './admin/AdminOrdersManager';
 import { AdminInventoryManager } from './admin/AdminInventoryManager';
 import { AdminNotificationsManager } from './admin/AdminNotificationsManager';
 import { INITIAL_PROMO_BANNERS } from '../data/banners';
+import { api } from '../services/api';
+import { getStoredSession, clearStoredSession, isTokenExpired } from '../services/authService';
 
 export const AUTHORIZED_ADMIN_EMAIL = 'wapp7272@gmail.com';
 const ADMIN_STORAGE_KEY = 'primevault_admin_session';
@@ -109,9 +111,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onGoShop,
   onGoOrders,
 }) => {
-  // Session check
+  // Session check with JWT Bearer validation
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     try {
+      const session = getStoredSession();
+      if (session && session.role === 'admin' && !isTokenExpired(session.accessToken)) {
+        return true;
+      }
       const saved = sessionStorage.getItem(ADMIN_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -138,60 +144,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Secure Admin Login
-  const handleAdminLogin = (e: React.FormEvent) => {
+  // Handle Secure Admin Login using JWT / Bearer Token issuance
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setIsAuthenticating(true);
 
-    setTimeout(() => {
-      const trimmedEmail = inputEmail.trim().toLowerCase();
-      const trimmedPass = inputPassword.trim();
-
-      // Rule 1: Allow access ONLY to wapp7272@gmail.com
-      if (trimmedEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
-        setLoginError('Unauthorized Access: This email does not have administrative privileges.');
-        setIsAuthenticating(false);
-        return;
-      }
-
-      // Rule 2: Require correct password
-      const envPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-      const validPasswords = [envPassword, 'admin123', 'wapp7272', 'primevault2026', 'vault@2026'].filter(Boolean) as string[];
-
-      if (!trimmedPass || !validPasswords.includes(trimmedPass)) {
-        setLoginError('Unauthorized Access: Incorrect password provided.');
-        setIsAuthenticating(false);
-        return;
-      }
-
-      // Validated
-      try {
+    try {
+      const res = await api.auth.adminLogin(inputEmail, inputPassword);
+      if (res.success && res.data) {
         sessionStorage.setItem(
           ADMIN_STORAGE_KEY,
           JSON.stringify({
             email: AUTHORIZED_ADMIN_EMAIL,
             authenticated: true,
+            role: 'admin',
+            accessToken: res.data.accessToken,
             loginTime: new Date().toISOString(),
           })
         );
-      } catch (err) {
-        console.error(err);
+        setIsAdminLoggedIn(true);
+        setIsAuthenticating(false);
+        setInputPassword('');
+        setLoginError(null);
+        showToast('✓ Admin session authorized with Bearer token.');
+      } else {
+        setLoginError(res.message || 'Unauthorized access: Invalid credentials.');
+        setIsAuthenticating(false);
       }
-
-      setIsAdminLoggedIn(true);
+    } catch (err: any) {
+      setLoginError(err.message || 'Unauthorized Access: Authentication failed.');
       setIsAuthenticating(false);
-      setInputPassword('');
-      setLoginError(null);
-    }, 450);
+    }
   };
 
   const handleAdminLogout = () => {
     sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+    clearStoredSession();
     setIsAdminLoggedIn(false);
     setInputEmail('');
     setInputPassword('');
     setLoginError(null);
+    showToast('Admin session closed.');
   };
 
   // Metrics calculation

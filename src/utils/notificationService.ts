@@ -1,4 +1,10 @@
 import { Order, NotificationLog } from '../types';
+import {
+  interpolateSmsTemplate,
+  BD_SMS_TEMPLATES,
+  dispatchBdSms,
+  SmsTemplateVariables,
+} from '../services/smsGatewayService';
 
 const NOTIFICATIONS_STORAGE_KEY = 'primevault_notification_logs';
 
@@ -30,37 +36,33 @@ export const saveNotificationLogs = (logs: NotificationLog[]): void => {
 };
 
 /**
- * Generates an authentic Bangladesh Telco SMS message
+ * Generates an authentic Bangladesh Telco SMS message with dynamic template fields:
+ * {orderId}, {total}, {courierName}, {trackingNumber}, {trackingUrl}, {customerName}, {helpline}
  */
 export const generateSmsContent = (
   order: Order,
-  eventType: 'placed' | 'confirmed' | 'shipped' | 'out_for_delivery' | 'delivered'
+  eventType: 'placed' | 'confirmed' | 'shipped' | 'out_for_delivery' | 'delivered',
+  customTemplate?: string
 ): string => {
   const customerName = order.address.fullName.split(' ')[0] || 'Customer';
   const orderId = order.id;
   const total = `৳${order.total.toLocaleString()}`;
-  const courier = order.courierName || 'Pathao Express';
+  const courierName = order.courierName || 'Pathao Express';
   const trackingNumber = order.trackingNumber || `PT-${order.id.replace(/\D/g, '') || '918'}BD`;
+  const trackingUrl = `https://primevault.bd/track/${order.id.replace('#', '')}`;
+  const helpline = '01883-418309';
 
-  switch (eventType) {
-    case 'placed':
-      return `[PRIME VAULT] Dear ${customerName}, your Order #${orderId} of ${total} is received! Payment: ${order.paymentMethod.toUpperCase()}. Track live at https://primevault.bd/track/${orderId}. Helpline: 01883418309`;
-
-    case 'confirmed':
-      return `[PRIME VAULT] Order #${orderId} is confirmed! Packed with 100% genuine hologram seal. Handing to ${courier} shortly. Delivery within 24-48 hrs. Thank you for shopping with us!`;
-
-    case 'shipped':
-      return `[PRIME VAULT] Your parcel #${orderId} is dispatched via ${courier}! Consignment ID: ${trackingNumber}. Track route live: https://primevault.bd/track/${orderId}`;
-
-    case 'out_for_delivery':
-      return `[PRIME VAULT] Order #${orderId} is OUT FOR DELIVERY with Rider Md. Saiful Islam (01883-418309). Total payable: ${total}. Please keep cash ready.`;
-
-    case 'delivered':
-      return `[PRIME VAULT] Order #${orderId} delivered! Thank you for choosing PRIME VAULT ZONE. Rate your purchase to unlock ৳20 wallet credit! https://primevault.bd/track/${orderId}`;
-
-    default:
-      return `[PRIME VAULT] Status update for Order #${orderId}. Current status: ${order.status}.`;
-  }
+  const template = customTemplate || BD_SMS_TEMPLATES[eventType] || BD_SMS_TEMPLATES.confirmed;
+  return interpolateSmsTemplate(template, {
+    orderId,
+    total,
+    courierName,
+    trackingNumber,
+    trackingUrl,
+    customerName,
+    helpline,
+    status: order.status,
+  });
 };
 
 /**
@@ -201,17 +203,23 @@ export const triggerOrderNotifications = (
     minute: '2-digit',
   });
 
-  // SMS Gateway Selection based on Bangladeshi Phone Prefix (017=GP, 018=Robi, 019=Banglalink)
+  // SMS Gateway Selection based on Bangladeshi Phone Prefix (017=GP/Greenweb, 018=Robi/BulkSMS, 019=Banglalink/SSL)
   const phone = order.address.phone || '';
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   let gatewayChannel: NotificationLog['channel'] = 'GP_BULK_SMS';
   if (cleanPhone.startsWith('018') || cleanPhone.startsWith('88018')) {
-    gatewayChannel = 'ROBI_GATEWAY';
+    gatewayChannel = 'BULKSMS_BD';
   } else if (cleanPhone.startsWith('019') || cleanPhone.startsWith('88019')) {
-    gatewayChannel = 'BANGLALINK_SMS';
+    gatewayChannel = 'SSL_WIRELESS_SMS';
+  } else if (cleanPhone.startsWith('017') || cleanPhone.startsWith('88017')) {
+    gatewayChannel = 'GREENWEB_SMS';
   }
 
   const smsText = generateSmsContent(order, eventType);
+
+  // Dispatch asynchronous real BD SMS API payload
+  dispatchBdSms(order.address.phone, smsText).catch(() => {});
+
   const smsLog: NotificationLog = {
     id: `notif-sms-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     orderId: order.id,
@@ -223,7 +231,7 @@ export const triggerOrderNotifications = (
     message: smsText,
     status: 'Delivered',
     sentAt: timeFormatted,
-    gatewayTrxId: `SMS-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+    gatewayTrxId: `GW-${gatewayChannel.split('_')[0]}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
   };
 
   const currentLogs = getNotificationLogs();

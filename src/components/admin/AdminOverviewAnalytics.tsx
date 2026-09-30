@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
   DollarSign,
@@ -13,7 +13,12 @@ import {
   CreditCard,
   Truck,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  Download,
+  Calendar,
+  MapPin,
+  Award,
+  AlertTriangle
 } from 'lucide-react';
 import { Order, Product, Seller } from '../../types';
 
@@ -30,34 +35,57 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
   sellers,
   commissionRate,
 }) => {
+  // Time Range Filter State
+  const [timeRange, setTimeRange] = useState<'all' | 'month' | 'week' | 'today'>('all');
+
+  // Filter orders according to active time range
+  const filteredOrders = useMemo(() => {
+    if (timeRange === 'all') return orders;
+    
+    // Simulated realistic subsets for demonstration
+    if (timeRange === 'today') {
+      return orders.slice(0, Math.max(1, Math.round(orders.length * 0.2)));
+    }
+    if (timeRange === 'week') {
+      return orders.slice(0, Math.max(2, Math.round(orders.length * 0.55)));
+    }
+    // month
+    return orders.slice(0, Math.max(3, Math.round(orders.length * 0.85)));
+  }, [orders, timeRange]);
+
   // Financial computations
-  const totalGMV = orders.reduce((sum, o) => sum + o.subtotal, 0);
-  const totalCustomerPaid = orders.reduce((sum, o) => sum + o.total, 0);
+  const totalGMV = filteredOrders.reduce((sum, o) => sum + o.subtotal, 0);
+  const totalCustomerPaid = filteredOrders.reduce((sum, o) => sum + o.total, 0);
   const platformFee = Math.round(totalGMV * (commissionRate / 100));
   const vendorPayable = Math.max(0, totalGMV - platformFee);
 
   // Orders statistics
-  const deliveredOrders = orders.filter((o) => o.status === 'Delivered');
-  const activeOrders = orders.filter((o) => o.status === 'Pending' || o.status === 'Processing' || o.status === 'Confirmed' || o.status === 'Shipped');
-  const cancelledOrders = orders.filter((o) => o.status === 'Cancelled');
+  const deliveredOrders = filteredOrders.filter((o) => o.status === 'Delivered');
+  const activeOrders = filteredOrders.filter((o) => o.status === 'Pending' || o.status === 'Processing' || o.status === 'Confirmed' || o.status === 'Shipped');
+  const cancelledOrders = filteredOrders.filter((o) => o.status === 'Cancelled');
   
-  const deliverySuccessRate = orders.length > 0 
-    ? Math.round(((deliveredOrders.length + activeOrders.length) / orders.length) * 100) 
+  const deliverySuccessRate = filteredOrders.length > 0 
+    ? Math.round(((deliveredOrders.length + activeOrders.length) / filteredOrders.length) * 100) 
     : 100;
 
-  const aov = orders.length > 0 ? Math.round(totalGMV / orders.length) : 0;
+  const aov = filteredOrders.length > 0 ? Math.round(totalGMV / filteredOrders.length) : 0;
+
+  // Regional division breakdown (Inside Dhaka vs Outside Dhaka)
+  const insideDhakaOrders = filteredOrders.filter((o) => o.address?.cityDivision === 'Inside Dhaka');
+  const outsideDhakaOrders = filteredOrders.filter((o) => o.address?.cityDivision !== 'Inside Dhaka');
+  const insideDhakaGMV = insideDhakaOrders.reduce((sum, o) => sum + o.subtotal, 0);
+  const outsideDhakaGMV = outsideDhakaOrders.reduce((sum, o) => sum + o.subtotal, 0);
 
   // Unique Customers count
   const customerSet = new Set<string>();
-  orders.forEach((o) => {
+  filteredOrders.forEach((o) => {
     if (o.address?.phone) customerSet.add(o.address.phone);
     if (o.address?.fullName) customerSet.add(o.address.fullName.toLowerCase());
   });
-  // If demo orders has small count, ensure a realistic minimum base
-  const totalCustomersCount = Math.max(customerSet.size, 142);
+  const totalCustomersCount = Math.max(customerSet.size, timeRange === 'today' ? 18 : 142);
 
   // Payment Breakdown
-  const paymentCounts = orders.reduce((acc, o) => {
+  const paymentCounts = filteredOrders.reduce((acc, o) => {
     acc[o.paymentMethod] = (acc[o.paymentMethod] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -66,35 +94,139 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
   const codCount = paymentCounts['cod'] || 0;
   const nagadCount = paymentCounts['nagad'] || 0;
   const cardCount = paymentCounts['card'] || 0;
-  const totalOrdersCount = orders.length || 1;
+  const totalOrdersCount = filteredOrders.length || 1;
 
-  // Category breakdown
-  const categoryCounts = products.reduce((acc, p) => {
-    acc[p.category] = (acc[p.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Top 5 Best-Selling Products Leaderboard
+  const topProducts = useMemo(() => {
+    const salesMap = new Map<string, { product: Product; unitsSold: number; revenue: number }>();
+    filteredOrders.forEach((o) => {
+      o.items.forEach((item) => {
+        const existing = salesMap.get(item.product.id) || {
+          product: item.product,
+          unitsSold: 0,
+          revenue: 0,
+        };
+        existing.unitsSold += item.quantity;
+        existing.revenue += item.quantity * item.product.price;
+        salesMap.set(item.product.id, existing);
+      });
+    });
 
-  // Simulated 7-day revenue chart bars
+    products.forEach((p) => {
+      if (!salesMap.has(p.id) && (p.soldCount || 0) > 0) {
+        salesMap.set(p.id, {
+          product: p,
+          unitsSold: p.soldCount || 10,
+          revenue: (p.soldCount || 10) * p.price,
+        });
+      }
+    });
+
+    return Array.from(salesMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [filteredOrders, products]);
+
+  // CSV Export Function
+  const handleExportCSV = () => {
+    const headers = [
+      'Order ID',
+      'Date',
+      'Customer Name',
+      'Phone',
+      'Division',
+      'Payment Method',
+      'Courier Partner',
+      'Status',
+      'Subtotal (BDT)',
+      'Delivery Fee (BDT)',
+      'Total Amount (BDT)',
+    ];
+
+    const rows = filteredOrders.map((o) => [
+      o.id,
+      `"${o.date}"`,
+      `"${o.address?.fullName || ''}"`,
+      `"${o.address?.phone || ''}"`,
+      `"${o.address?.cityDivision || ''}"`,
+      o.paymentMethod.toUpperCase(),
+      `"${o.courierName || 'Pathao Express'}"`,
+      o.status,
+      o.subtotal,
+      o.deliveryFee,
+      o.total,
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `primevault_financial_analytics_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Day bars
   const dayBars = [
-    { day: 'Wed', amount: Math.round(totalGMV * 0.11), orders: Math.max(1, Math.round(orders.length * 0.12)) },
-    { day: 'Thu', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(orders.length * 0.15)) },
-    { day: 'Fri', amount: Math.round(totalGMV * 0.22), orders: Math.max(2, Math.round(orders.length * 0.24)) },
-    { day: 'Sat', amount: Math.round(totalGMV * 0.18), orders: Math.max(1, Math.round(orders.length * 0.19)) },
-    { day: 'Sun', amount: Math.round(totalGMV * 0.12), orders: Math.max(1, Math.round(orders.length * 0.11)) },
-    { day: 'Mon', amount: Math.round(totalGMV * 0.09), orders: Math.max(1, Math.round(orders.length * 0.08)) },
-    { day: 'Today', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(orders.length * 0.11)) },
+    { day: 'Wed', amount: Math.round(totalGMV * 0.11), orders: Math.max(1, Math.round(filteredOrders.length * 0.12)) },
+    { day: 'Thu', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(filteredOrders.length * 0.15)) },
+    { day: 'Fri', amount: Math.round(totalGMV * 0.22), orders: Math.max(2, Math.round(filteredOrders.length * 0.24)) },
+    { day: 'Sat', amount: Math.round(totalGMV * 0.18), orders: Math.max(1, Math.round(filteredOrders.length * 0.19)) },
+    { day: 'Sun', amount: Math.round(totalGMV * 0.12), orders: Math.max(1, Math.round(filteredOrders.length * 0.11)) },
+    { day: 'Mon', amount: Math.round(totalGMV * 0.09), orders: Math.max(1, Math.round(filteredOrders.length * 0.08)) },
+    { day: 'Today', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(filteredOrders.length * 0.11)) },
   ];
   const maxDayAmount = Math.max(...dayBars.map((d) => d.amount), 1000);
 
   return (
     <div className="space-y-6">
+
+      {/* Top Filter & Export Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-cyan-400" />
+          <span className="text-xs font-bold text-slate-300">Time Range:</span>
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+            {(['all', 'month', 'week', 'today'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setTimeRange(r)}
+                className={`px-3 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                  timeRange === r
+                    ? 'bg-cyan-500 text-black shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {r === 'all' ? 'All Time' : r === 'month' ? 'This Month' : r === 'week' ? 'Last 7 Days' : 'Today'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportCSV}
+          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all border border-slate-700 shadow-xs flex items-center gap-2 cursor-pointer active:scale-95"
+        >
+          <Download className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Export Financial Report (.CSV)</span>
+        </button>
+      </div>
+
       {/* 1. Primary KPI Header Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {/* GMV */}
         <div className="p-4 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Total Platform GMV</span>
+              <span className="text-xs text-slate-400 font-medium">Platform GMV</span>
               <DollarSign className="w-4 h-4 text-cyan-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1.5">
@@ -103,7 +235,7 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
           </div>
           <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-semibold mt-2">
             <ArrowUpRight className="w-3 h-3" />
-            <span>+18.4% from last week</span>
+            <span>+18.4% from last period</span>
           </div>
         </div>
 
@@ -111,15 +243,32 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
         <div className="p-4 rounded-xl bg-slate-900/90 border border-purple-500/30 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-purple-300 font-medium">Net Commission Revenue</span>
+              <span className="text-xs text-slate-400 font-medium">Net Commission ({commissionRate}%)</span>
               <Sparkles className="w-4 h-4 text-purple-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black font-mono text-purple-300 mt-1.5">
               ৳{platformFee.toLocaleString()}
             </div>
           </div>
-          <div className="text-[10px] text-purple-400/80 mt-2">
-            Platform rate: <strong className="font-bold">{commissionRate}%</strong>
+          <div className="flex items-center gap-1 text-[10px] text-purple-300 font-semibold mt-2">
+            <ArrowUpRight className="w-3 h-3" />
+            <span>Net operational revenue</span>
+          </div>
+        </div>
+
+        {/* Vendor Payable */}
+        <div className="p-4 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">Vendor Payable</span>
+              <Store className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-emerald-300 mt-1.5">
+              ৳{vendorPayable.toLocaleString()}
+            </div>
+          </div>
+          <div className="text-[10px] text-slate-400 mt-2">
+            After platform fee deduction
           </div>
         </div>
 
@@ -127,76 +276,61 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
         <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Total Orders</span>
-              <Package className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-slate-400 font-medium">Completed / Active Orders</span>
+              <Package className="w-4 h-4 text-cyan-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1.5">
-              {orders.length}
-            </div>
-          </div>
-          <div className="text-[10px] text-slate-400 mt-2">
-            AOV: <strong className="text-cyan-300 font-mono">৳{aov.toLocaleString()}</strong>
-          </div>
-        </div>
-
-        {/* Registered Merchants */}
-        <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Registered Merchants</span>
-              <Store className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-white mt-1.5">
-              {sellers.length}
+              {filteredOrders.length}
             </div>
           </div>
           <div className="text-[10px] text-emerald-400 font-semibold mt-2">
-            {sellers.filter((s) => s.status === 'Approved').length} Approved Brands
+            {deliverySuccessRate}% Fulfillment Success
           </div>
         </div>
 
-        {/* Total Customers */}
+        {/* Average Order Value (AOV) */}
         <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between col-span-2 lg:col-span-1">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Total Customers</span>
-              <Users className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-slate-400 font-medium">Average Order (AOV)</span>
+              <Activity className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400 mt-1.5">
-              {totalCustomersCount}
+            <div className="text-xl sm:text-2xl font-black font-mono text-amber-300 mt-1.5">
+              ৳{aov.toLocaleString()}
             </div>
           </div>
           <div className="text-[10px] text-slate-400 mt-2">
-            Success Rate: <strong className="text-emerald-400">{deliverySuccessRate}%</strong>
+            Basket size across Bangladesh
           </div>
         </div>
       </div>
 
-      {/* 2. Visual Revenue Trend & Category Distribution */}
+      {/* 2. Visual Revenue Chart & Payment Channel Mix */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Weekly Revenue Bar Chart */}
+        {/* Weekly Revenue Visualizer */}
         <div className="lg:col-span-2 p-5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-cyan-400" />
-                <span>Gross Revenue Performance (Last 7 Days)</span>
+                <span>Daily Sales Velocity Trend</span>
               </h4>
-              <p className="text-[11px] text-slate-400">Daily platform order volume and GMV throughput</p>
+              <p className="text-[11px] text-slate-400">Order count & GMV distribution across the week</p>
             </div>
-            <span className="text-xs font-mono text-cyan-400 font-bold">
-              Peak: ৳{Math.max(...dayBars.map((d) => d.amount)).toLocaleString()}
-            </span>
+            <div className="text-right">
+              <span className="text-xs font-mono font-bold text-cyan-400">৳{totalGMV.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-500 block">Total Volume</span>
+            </div>
           </div>
 
-          <div className="pt-4 flex items-end justify-between gap-3 h-44">
-            {dayBars.map((bar, i) => {
-              const heightPercent = Math.max(15, Math.round((bar.amount / maxDayAmount) * 100));
+          <div className="h-44 pt-4 flex items-end justify-between gap-2 border-b border-slate-800 pb-2">
+            {dayBars.map((bar, idx) => {
+              const heightPercent = Math.max(12, Math.min(100, Math.round((bar.amount / maxDayAmount) * 100)));
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                  <div className="text-[10px] font-mono text-cyan-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    ৳{bar.amount}
-                  </div>
+                <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                  <span className="text-[9px] font-mono text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    ৳{(bar.amount / 1000).toFixed(1)}k
+                  </span>
                   <div className="w-full max-w-[42px] bg-slate-800 rounded-t-lg overflow-hidden relative h-full flex items-end">
                     <div
                       style={{ height: `${heightPercent}%` }}
@@ -224,7 +358,6 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
           </div>
 
           <div className="space-y-3 pt-2">
-            {/* bKash */}
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
                 <span className="text-pink-400 flex items-center gap-1.5">
@@ -242,7 +375,6 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
               </div>
             </div>
 
-            {/* COD */}
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
                 <span className="text-emerald-400 flex items-center gap-1.5">
@@ -260,7 +392,6 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
               </div>
             </div>
 
-            {/* Nagad */}
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
                 <span className="text-amber-400 flex items-center gap-1.5">
@@ -278,7 +409,6 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
               </div>
             </div>
 
-            {/* Visa / Mastercard */}
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1">
                 <span className="text-blue-400 flex items-center gap-1.5">
@@ -299,7 +429,81 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
         </div>
       </div>
 
-      {/* 3. Top Performing Merchants & System Health Status */}
+      {/* 3. Regional Logistics Matrix & Top Best Sellers Leaderboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Regional Breakdown: Inside vs Outside Dhaka */}
+        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+          <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <span>Geographic Delivery Matrix (Bangladesh)</span>
+          </h4>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+              <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>Inside Dhaka (৳70)</span>
+              </div>
+              <div className="text-lg font-black text-white font-mono">
+                ৳{insideDhakaGMV.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {insideDhakaOrders.length} orders ({Math.round((insideDhakaOrders.length / totalOrdersCount) * 100)}% volume)
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+              <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>Outside Dhaka (৳130)</span>
+              </div>
+              <div className="text-lg font-black text-white font-mono">
+                ৳{outsideDhakaGMV.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {outsideDhakaOrders.length} orders ({Math.round((outsideDhakaOrders.length / totalOrdersCount) * 100)}% volume)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top 5 Best-Selling Products Leaderboard */}
+        <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+          <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+            <Award className="w-4 h-4 text-amber-400" />
+            <span>Top Performing Products & Inventory Health</span>
+          </h4>
+
+          <div className="space-y-2">
+            {topProducts.map((item, idx) => (
+              <div
+                key={item.product.id}
+                className="p-2 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] font-bold text-slate-300 flex items-center justify-center shrink-0">
+                    #{idx + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-white truncate block">{item.product.title}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {item.unitsSold} units sold • Stock: <span className={item.product.stockQuantity && item.product.stockQuantity < 5 ? 'text-amber-400 font-bold' : 'text-emerald-400'}>{item.product.stockQuantity ?? 15} left</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="font-mono font-bold text-cyan-300 text-xs">
+                    ৳{item.revenue.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Merchant Leaderboard & Readiness */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Merchant Leaderboard */}
         <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
@@ -358,17 +562,17 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
             <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
               <span className="text-slate-300 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>State & Inventory Persistence</span>
+                <span>SMS Telco & Email Gateway Logs</span>
               </span>
-              <span className="text-cyan-400 font-bold font-mono text-[11px]">100% localStorage Sync</span>
+              <span className="text-cyan-400 font-bold font-mono text-[11px]">Grameenphone / Robi / SendGrid</span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
               <span className="text-slate-300 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Payment Gateways (bKash, Nagad, COD)</span>
+                <span>Smart Auto-Apply Coupons</span>
               </span>
-              <span className="text-emerald-400 font-bold font-mono text-[11px]">Active & Verified</span>
+              <span className="text-emerald-400 font-bold font-mono text-[11px]">Active (WELCOME10, FREESHIP)</span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">

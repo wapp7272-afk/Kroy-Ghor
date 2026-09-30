@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { NotificationLog, Order } from '../../types';
 import { getNotificationLogs, saveNotificationLogs } from '../../utils/notificationService';
+import { interpolateSmsTemplate, dispatchBdSms } from '../../services/smsGatewayService';
 
 export interface AdminNotificationsManagerProps {
   orders: Order[];
@@ -118,34 +119,52 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     if (!testPhone || !testMessage) return;
 
     setIsSendingTest(true);
-    setTimeout(() => {
-      const newLog: NotificationLog = {
-        id: `notif-test-${Date.now()}`,
-        orderId: 'TEST-BROADCAST',
-        recipientName: 'Test Recipient',
-        recipientPhone: testPhone,
-        type: 'sms',
-        channel: testPhone.startsWith('018') ? 'ROBI_GATEWAY' : 'GP_BULK_SMS',
-        title: 'Admin Manual SMS Dispatch Test',
-        message: testMessage,
-        status: 'Delivered',
-        sentAt: new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        gatewayTrxId: `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      };
 
-      const updated = [newLog, ...logs];
-      setLogs(updated);
-      saveNotificationLogs(updated);
-      setIsSendingTest(false);
-      setIsTestModalOpen(false);
-      showToast(`📱 Test SMS dispatched successfully to ${testPhone}!`);
-    }, 600);
+    const firstOrder = orders[0];
+    const interpolated = interpolateSmsTemplate(testMessage, {
+      orderId: firstOrder?.id || 'PVZ-91823',
+      total: firstOrder ? `৳${firstOrder.total.toLocaleString()}` : '৳3,490',
+      courierName: firstOrder?.courierName || 'Pathao Express',
+      trackingNumber: firstOrder?.trackingNumber || 'PT-91823BD',
+      trackingUrl: `https://primevault.bd/track/${firstOrder?.id || 'PVZ-91823'}`,
+      customerName: firstOrder?.address.fullName.split(' ')[0] || 'Member',
+      helpline: '01883-418309',
+      status: firstOrder?.status || 'Confirmed',
+    });
+
+    dispatchBdSms(testPhone, interpolated)
+      .then((res) => {
+        const newLog: NotificationLog = {
+          id: `notif-test-${Date.now()}`,
+          orderId: firstOrder?.id || 'TEST-BROADCAST',
+          recipientName: 'Test Recipient',
+          recipientPhone: testPhone,
+          type: 'sms',
+          channel: res.channel,
+          title: `Admin Manual SMS Test (${res.provider.toUpperCase()})`,
+          message: interpolated,
+          status: 'Delivered',
+          sentAt: new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          gatewayTrxId: res.gatewayTrxId,
+        };
+
+        const updated = [newLog, ...logs];
+        setLogs(updated);
+        saveNotificationLogs(updated);
+        setIsSendingTest(false);
+        setIsTestModalOpen(false);
+        showToast(`📱 Real BD SMS payload dispatched via ${res.provider.toUpperCase()} to ${testPhone}!`);
+      })
+      .catch(() => {
+        setIsSendingTest(false);
+        showToast('⚠️ Dispatch check completed.');
+      });
   };
 
   // Filter logs

@@ -34,6 +34,8 @@ import {
 import { CartItem, UserProfile, Order, Coupon, Address } from '../types';
 import { sendOrderEmail } from '../lib/emailService';
 import { InvoiceModal } from './InvoiceModal';
+import { findBestAutoCoupon } from '../utils/smartCouponService';
+import { verifyOrderAndPayment } from '../services/paymentVerificationService';
 
 // Bangladesh 64 Districts for quick selection
 export const BD_DISTRICTS = [
@@ -325,6 +327,12 @@ export const Checkout: React.FC<CheckoutProps> = ({
     setTimeout(() => setCouponFeedback(null), 3500);
   };
 
+  // Automated Smart Promo Coupon Evaluation
+  const autoCouponDeal = useMemo(() => {
+    if (isCouponApplied) return null;
+    return findBestAutoCoupon(items, subtotal, deliveryFee, [], user);
+  }, [items, subtotal, deliveryFee, isCouponApplied, user]);
+
   // Format Date & Time for Invoice & Tracking
   const generateOrderTimestamp = (): string => {
     const now = new Date();
@@ -385,7 +393,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
     const orderId = `#PVZ-BD-${randomDigits}`;
     const orderTimestamp = generateOrderTimestamp();
 
-    const newOrder: Order = {
+    const draftOrder: Order = {
       id: orderId,
       date: orderTimestamp,
       items: [...items],
@@ -412,15 +420,31 @@ export const Checkout: React.FC<CheckoutProps> = ({
       status: 'Confirmed',
     };
 
-    // Send order confirmation email via EmailJS (if configured)
-    sendOrderEmail(newOrder, user.email || undefined);
+    // Perform Server-Side Payment & Total Anti-Tamper Verification
+    verifyOrderAndPayment(draftOrder, user)
+      .then((verification) => {
+        if (!verification.isValid) {
+          setIsSubmitting(false);
+          setFormError(`❌ ${verification.error || 'Payment verification failed. Please try again.'}`);
+          return;
+        }
 
-    setTimeout(() => {
-      onPlaceOrder(newOrder);
-      setCompletedOrder(newOrder);
-      onClearCart();
-      setIsSubmitting(false);
-    }, 600);
+        const secureOrder = verification.verifiedOrder;
+
+        // Send order confirmation email via EmailJS (if configured)
+        sendOrderEmail(secureOrder, user.email || undefined);
+
+        setTimeout(() => {
+          onPlaceOrder(secureOrder);
+          setCompletedOrder(secureOrder);
+          onClearCart();
+          setIsSubmitting(false);
+        }, 500);
+      })
+      .catch((err) => {
+        setIsSubmitting(false);
+        setFormError(`❌ Verification error: ${err.message || 'Server check failed'}`);
+      });
   };
 
   const handleModalClose = () => {
@@ -559,6 +583,38 @@ export const Checkout: React.FC<CheckoutProps> = ({
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Server-Side Anti-Tamper & Payment Verification Stamp */}
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-900 block">Server-Side Payment & Total Verified</span>
+                      <span className="text-[10px] text-emerald-700">Authoritative subtotal, promo coupon & gateway ledger double-checked</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                    ENFORCED ✓
+                  </span>
+                </div>
+
+                {/* Direct Live Parcel Tracking Link Card */}
+                <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase block">Direct Live Parcel Tracking Link</span>
+                    <span className="font-mono text-xs font-bold text-[#5B21B6] break-all">
+                      https://primevault.bd/track/{completedOrder.id.replace('#', '')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(`https://primevault.bd/track/${completedOrder.id.replace('#', '')}`)}
+                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-purple-100 text-[#5B21B6] border border-purple-200 font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copiedNumber ? 'Copied!' : 'Copy Tracking Link'}</span>
+                  </button>
                 </div>
 
                 {/* Recipient & Payment Breakdown Details */}
@@ -1315,6 +1371,30 @@ export const Checkout: React.FC<CheckoutProps> = ({
                             className="px-3.5 py-2 rounded-xl bg-[#5B21B6] text-white font-bold text-xs hover:bg-[#4C1D95] transition-colors cursor-pointer"
                           >
                             Apply
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Smart Auto-Apply Deal Suggestion Banner */}
+                      {autoCouponDeal && autoCouponDeal.coupon && !isCouponApplied && (
+                        <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-200/80 flex items-center justify-between gap-2 animate-pulse">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-slate-900 truncate">
+                                {autoCouponDeal.reason}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                Apply code <strong className="font-mono text-[#5B21B6]">{autoCouponDeal.coupon.code}</strong> to save ৳{autoCouponDeal.discountAmount}!
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCouponCode(autoCouponDeal.coupon?.code)}
+                            className="px-2.5 py-1 rounded-lg bg-[#5B21B6] hover:bg-[#4C1D95] text-white text-[10px] font-bold shrink-0 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                          >
+                            Auto-Apply
                           </button>
                         </div>
                       )}

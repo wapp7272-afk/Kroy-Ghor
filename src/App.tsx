@@ -59,6 +59,18 @@ import { AuthModal } from './components/AuthModal';
 import { CustomerSupport } from './components/CustomerSupport';
 import { OrderTrackingPortal } from './components/OrderTrackingPortal';
 import { PwaInstallBanner } from './components/PwaInstallBanner';
+import { triggerOrderNotifications } from './utils/notificationService';
+import { api } from './services/api';
+import {
+  createSession,
+  getStoredSession,
+  setStoredSession,
+  clearStoredSession,
+  isTokenExpiringSoon,
+  checkIsAdmin,
+  checkIsSeller,
+} from './services/authService';
+import { UserRole } from './types';
 
 // Code-split heavy secondary view modals and admin components with React.lazy
 const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
@@ -99,9 +111,7 @@ export default function App() {
 
   const handleUpdateCommissionRate = (newRate: number) => {
     setCommissionRate(newRate);
-    try {
-      localStorage.setItem('primevault_commission_rate', newRate.toString());
-    } catch {}
+    api.settings.updateCommissionRate(newRate).catch(() => {});
     showToast(`⚡ Platform commission rate set to ${newRate}%!`);
   };
 
@@ -134,9 +144,7 @@ export default function App() {
 
   const handleUpdateBannerSettings = (newSettings: SystemBannerSettings) => {
     setBannerSettings(newSettings);
-    try {
-      localStorage.setItem('primevault_banner_settings', JSON.stringify(newSettings));
-    } catch {}
+    api.settings.updateBannerSettings(newSettings).catch(() => {});
     showToast('🚀 System Banners & Global Announcements updated!');
   };
 
@@ -339,23 +347,31 @@ export default function App() {
   const [isCouponApplied, setIsCouponApplied] = useState(false);
   const [applyWalletBonus, setApplyWalletBonus] = useState(true);
 
-  // State: User Profile with LocalStorage persistence
+  // State: User Profile with LocalStorage & Tokenized Session persistence
   const [user, setUser] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem('primevault_user') || localStorage.getItem('zestflick_user');
+      const activeSession = getStoredSession();
       if (saved) {
         const parsed = JSON.parse(saved);
+        const resolvedRole: UserRole =
+          activeSession?.role ||
+          parsed.role ||
+          (parsed.email?.toLowerCase() === 'wapp7272@gmail.com' ? 'admin' : 'customer');
+
         return {
           isLoggedIn: parsed.isLoggedIn ?? false,
           name: parsed.name || '',
           email: parsed.email || '',
           phone: parsed.phone || '',
+          role: resolvedRole,
           walletBalance: parsed.walletBalance ?? 0,
           hasReceivedBonus: parsed.hasReceivedBonus ?? false,
           isPhoneVerified: parsed.isPhoneVerified ?? false,
           authProvider: parsed.authProvider || 'google',
           avatar: parsed.avatar,
           walletHistory: parsed.walletHistory || [],
+          session: activeSession || undefined,
           address: parsed.address || {
             fullName: '',
             phone: '',
@@ -372,6 +388,7 @@ export default function App() {
       name: '',
       email: '',
       phone: '',
+      role: 'customer',
       walletBalance: 0,
       hasReceivedBonus: false,
       isPhoneVerified: false,
@@ -531,6 +548,7 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('primevault_cart', JSON.stringify(cart));
+    api.cart.save(cart).catch(() => {});
   }, [cart]);
 
   useEffect(() => {
@@ -549,6 +567,31 @@ export default function App() {
     localStorage.setItem('primevault_sellers', JSON.stringify(sellers));
   }, [sellers]);
 
+  // Centralized Automatic Token Refresh Hook (checks every 60s)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const session = getStoredSession();
+      if (session && session.accessToken) {
+        if (isTokenExpiringSoon(session.accessToken, 300)) {
+          try {
+            const res = await api.auth.refreshToken();
+            if (res.success && res.data) {
+              setUser((prev) => ({
+                ...prev,
+                session: res.data || undefined,
+                role: res.data?.role || prev.role,
+              }));
+              console.log('[Auth] Token automatically refreshed via Bearer refresh token.');
+            }
+          } catch (e) {
+            console.warn('[Auth] Automatic token refresh failed:', e);
+          }
+        }
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
@@ -561,6 +604,7 @@ export default function App() {
       id: `pvz-prod-${Date.now()}`,
     };
     setProducts((prev) => [newProduct, ...prev]);
+    api.products.create(newProductData).catch(() => {});
     showToast(`✓ Product "${newProduct.title}" added to store!`);
   };
 
@@ -581,6 +625,7 @@ export default function App() {
     if (selectedProductDetail?.id === updatedProduct.id) {
       setSelectedProductDetail(updatedProduct);
     }
+    api.products.update(updatedProduct).catch(() => {});
     showToast(`✓ Product "${updatedProduct.title}" updated!`);
   };
 
@@ -594,6 +639,7 @@ export default function App() {
       setSelectedProductDetail(null);
       setActivePage('Home');
     }
+    api.products.delete(productId).catch(() => {});
     showToast('✓ Product deleted from store.');
   };
 
@@ -637,6 +683,7 @@ export default function App() {
     };
     setSellers((prev) => [newSeller, ...prev]);
     setCurrentSellerId(newSeller.id);
+    api.sellers.register(newSellerData as any).catch(() => {});
     showToast(`🏪 Application for "${newSeller.storeName}" submitted for approval!`);
   };
 
@@ -644,6 +691,7 @@ export default function App() {
     setSellers((prev) =>
       prev.map((s) => (s.id === sellerId ? { ...s, status: newStatus } : s))
     );
+    api.sellers.updateStatus(sellerId, newStatus).catch(() => {});
     showToast(`✓ Merchant status changed to ${newStatus}`);
   };
 
@@ -731,10 +779,16 @@ export default function App() {
   }, []);
 
   const handleOpenSellerCenter = useCallback(() => {
+    // RBAC Security Guard: Require authenticated user session for merchant center
+    if (!user.isLoggedIn) {
+      setIsAuthOpen(true);
+      showToast('🔒 Please sign in to access the Merchant Seller Center.');
+      return;
+    }
     setSelectedProductDetail(null);
     setActivePage('SellerCenter');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [user.isLoggedIn]);
 
   const handleOpenSellerStore = useCallback((slugOrName: string) => {
     const raw = (slugOrName || '').toLowerCase().trim();
@@ -844,7 +898,7 @@ export default function App() {
     showToast('Coupon removed');
   };
 
-  // User Profile Authentication Handlers
+  // User Profile Authentication Handlers with Tokenized Session & RBAC
   const handleLogin = (
     name: string,
     email: string,
@@ -880,11 +934,24 @@ export default function App() {
       }
     ];
 
+    // RBAC: Determine role
+    const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
+    const isUserSeller = sellers.some(
+      (s) => (email && s.email.toLowerCase() === email.toLowerCase()) || (cleanPhone && s.phone === cleanPhone)
+    );
+    const role: UserRole = isEmailAdmin ? 'admin' : isUserSeller ? 'seller' : 'customer';
+
+    // Issue Bearer token session
+    const session = createSession(email, cleanPhone, role);
+    setStoredSession(session);
+
     const updatedUser: UserProfile = {
       isLoggedIn: true,
       name: name || matched?.name || 'Prime Member',
       email: email || matched?.email || '',
       phone: cleanPhone || matched?.phone || '',
+      role,
+      session,
       walletBalance: balance,
       hasReceivedBonus: true,
       isPhoneVerified: verified,
@@ -896,7 +963,7 @@ export default function App() {
 
     setUser(updatedUser);
     setIsAuthOpen(false);
-    showToast(`✓ Welcome back, ${updatedUser.name}! Live Wallet: ৳${updatedUser.walletBalance}`);
+    showToast(`✓ Welcome back, ${updatedUser.name}! (Role: ${role.toUpperCase()})`);
   };
 
   const handleSignup = (
@@ -918,11 +985,18 @@ export default function App() {
       description: 'Welcome Sign-up & Phone Verification Bonus'
     };
 
+    const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
+    const role: UserRole = isEmailAdmin ? 'admin' : 'customer';
+    const session = createSession(email, cleanPhone, role);
+    setStoredSession(session);
+
     const newUser: UserProfile = {
       isLoggedIn: true,
       name: name || 'Prime Member',
       email: email || '',
       phone: cleanPhone,
+      role,
+      session,
       walletBalance: bonus,
       hasReceivedBonus: true,
       isPhoneVerified: isPhoneVerified ?? true,
@@ -1021,11 +1095,14 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    api.auth.logout().catch(() => {});
+    clearStoredSession();
     setUser({
       isLoggedIn: false,
       name: '',
       email: '',
       phone: '',
+      role: 'customer',
       walletBalance: 0,
       hasReceivedBonus: false,
       isPhoneVerified: false,
@@ -1046,6 +1123,11 @@ export default function App() {
     setOrders((prev) => [order, ...prev]);
     setCart([]);
     setIsCheckoutOpen(false);
+
+    // Asynchronous API client layer call with automatic fallback
+    api.orders.create(order).catch(() => {});
+    api.cart.clear().catch(() => {});
+
     if (order.walletDeducted > 0) {
       setUser((prev) => {
         const remaining = Math.max(0, prev.walletBalance - order.walletDeducted);
@@ -1084,13 +1166,33 @@ export default function App() {
         return updatedUser;
       });
     }
-    showToast(`🎉 Order Placed Successfully! ID: ${order.id}`);
+
+    // Trigger automated SMS & Email dispatch simulation
+    try {
+      triggerOrderNotifications(order, 'placed');
+      showToast(`🎉 Order Placed! 📱 SMS dispatched to ${order.address.phone}`);
+    } catch {
+      showToast(`🎉 Order Placed Successfully! ID: ${order.id}`);
+    }
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updated = { ...o, status: newStatus };
+          // Trigger automated notification for key events
+          try {
+            if (newStatus === 'Confirmed') triggerOrderNotifications(updated, 'confirmed');
+            else if (newStatus === 'Shipped') triggerOrderNotifications(updated, 'shipped');
+            else if (newStatus === 'Delivered') triggerOrderNotifications(updated, 'delivered');
+          } catch {}
+          return updated;
+        }
+        return o;
+      })
     );
+    api.orders.updateStatus(orderId, newStatus).catch(() => {});
     showToast(`✓ Order #${orderId} status updated: ${newStatus}`);
   };
 
@@ -1098,14 +1200,25 @@ export default function App() {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o))
     );
+    api.orders.updatePaymentStatus(orderId, newPaymentStatus).catch(() => {});
     showToast(`✓ Order #${orderId} payment status set to: ${newPaymentStatus}`);
   };
 
   const handleUpdateOrderTracking = (orderId: string, courierName: string, trackingNumber: string) => {
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, courierName, trackingNumber } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          const updated = { ...o, courierName, trackingNumber, status: 'Shipped' as const };
+          try {
+            triggerOrderNotifications(updated, 'shipped');
+          } catch {}
+          return updated;
+        }
+        return o;
+      })
     );
-    showToast(`✓ Tracking assigned for #${orderId}: ${courierName} (${trackingNumber})`);
+    api.orders.updateTracking(orderId, courierName, trackingNumber).catch(() => {});
+    showToast(`✓ Tracking assigned & Dispatch SMS sent for #${orderId}: ${courierName} (${trackingNumber})`);
   };
 
   // Download Standalone Single-File HTML

@@ -1,11 +1,11 @@
 import emailjs from '@emailjs/browser';
 import { Order, CartItem } from '../types';
 
-// EmailJS Configuration Credentials provided by User
+// EmailJS Configuration Credentials with import.meta.env best practices
 export const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_swsa8ze',
-  TEMPLATE_ID: 'template_mu6ehtm',
-  PUBLIC_KEY: 'j1SIRfDJ1hwkk72EyNhwg',
+  SERVICE_ID: (import.meta as any).env?.VITE_EMAILJS_SERVICE_ID || 'service_swsa8ze',
+  TEMPLATE_ID: (import.meta as any).env?.VITE_EMAILJS_TEMPLATE_ID || 'template_mu6ehtm',
+  PUBLIC_KEY: (import.meta as any).env?.VITE_EMAILJS_PUBLIC_KEY || 'j1SIRfDJ1hwkk72EyNhwg',
 } as const;
 
 // Initialize EmailJS with Public Key

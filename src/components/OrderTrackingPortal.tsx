@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Order, UserProfile, Product } from '../types';
 import { InvoiceModal } from './InvoiceModal';
+import { fetchLiveCourierTracking } from '../services/courierLogisticsService';
 
 export interface OrderTrackingPortalProps {
   orders: Order[];
@@ -106,10 +107,23 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
 
   const handleSimulateScan = () => {
     setIsSimulatingLiveScan(true);
-    setTimeout(() => {
-      setIsSimulatingLiveScan(false);
-      setSimulatedEtaMinutes((prev) => Math.max(12, prev - 6));
-    }, 1200);
+    if (selectedOrder) {
+      fetchLiveCourierTracking(selectedOrder)
+        .then((live) => {
+          setTimeout(() => {
+            setIsSimulatingLiveScan(false);
+            setSimulatedEtaMinutes(live.etaMinutes > 0 ? live.etaMinutes : 18);
+          }, 800);
+        })
+        .catch(() => {
+          setIsSimulatingLiveScan(false);
+        });
+    } else {
+      setTimeout(() => {
+        setIsSimulatingLiveScan(false);
+        setSimulatedEtaMinutes((prev) => Math.max(12, prev - 6));
+      }, 800);
+    }
   };
 
   // Determine Milestones and Active Progress

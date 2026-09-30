@@ -55,12 +55,13 @@ export interface NotificationLog {
   recipientPhone: string;
   recipientEmail?: string;
   type: 'sms' | 'email';
-  channel: 'GP_BULK_SMS' | 'ROBI_GATEWAY' | 'BANGLALINK_SMS' | 'AWS_SES_EMAIL' | 'SENDGRID_EMAIL';
+  channel: 'GP_BULK_SMS' | 'ROBI_GATEWAY' | 'BANGLALINK_SMS' | 'GREENWEB_SMS' | 'BULKSMS_BD' | 'ELITBUZZ_SMS' | 'SSL_WIRELESS_SMS' | 'AWS_SES_EMAIL' | 'SENDGRID_EMAIL';
   title: string;
   message: string;
   status: 'Delivered' | 'Sent' | 'Failed';
   sentAt: string;
   gatewayTrxId?: string;
+  providerResponse?: any;
 }
 
 export interface CartItem {
@@ -89,11 +90,25 @@ export interface WalletTransaction {
   description: string;
 }
 
+export type UserRole = 'customer' | 'seller' | 'admin';
+
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: 'Bearer';
+  expiresAt: number; // Unix timestamp ms
+  issuedAt: number;
+  role: UserRole;
+  email?: string;
+  phone?: string;
+}
+
 export interface UserProfile {
   isLoggedIn: boolean;
   name: string;
   email: string;
   phone: string;
+  role?: UserRole;
   walletBalance: number;
   hasReceivedBonus: boolean;
   isPhoneVerified?: boolean;
@@ -102,6 +117,7 @@ export interface UserProfile {
   address: Address;
   savedAddresses?: Address[];
   walletHistory?: WalletTransaction[];
+  session?: AuthSession;
 }
 
 export interface ReturnRequest {
@@ -275,4 +291,145 @@ export interface CatalogFilterState {
   selectedTags: string[]; // e.g., 'Best Seller', 'Trending', etc.
   selectedBrands: string[]; // Brand names or seller tags
   sortBy: SortOption;
+}
+
+// ==================== BACKEND API REQUEST / RESPONSE PAYLOADS ====================
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+  source?: 'api' | 'local_fallback';
+  timestamp?: string;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface ProductFilterParams {
+  category?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStockOnly?: boolean;
+  sortBy?: SortOption;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  count: number;
+  slug?: string;
+  icon?: string;
+}
+
+export interface CreateOrderPayload {
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  walletDeducted: number;
+  deliveryFee: number;
+  total: number;
+  paymentMethod: Order['paymentMethod'];
+  trxId?: string;
+  address: Address;
+  notes?: string;
+}
+
+export interface UpdateOrderStatusPayload {
+  orderId: string;
+  status: Order['status'];
+  paymentStatus?: Order['paymentStatus'];
+  courierName?: string;
+  trackingNumber?: string;
+}
+
+export interface CartSyncPayload {
+  userId?: string;
+  items: CartItem[];
+}
+
+export interface WalletActionPayload {
+  userId: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  description: string;
+  orderId?: string;
+}
+
+export interface WalletResponse {
+  userId: string;
+  balance: number;
+  transactions: WalletTransaction[];
+}
+
+export interface CouponValidationResponse {
+  coupon: Coupon | null;
+  discount: number;
+  valid: boolean;
+  message: string;
+}
+
+// ==================== LOGISTICS & COURIER WEBHOOK PAYLOADS ====================
+
+export interface PathaoWebhookPayload {
+  consignment_id: string;
+  merchant_order_id: string;
+  order_status: string; // e.g. "Pickup Pending", "In Transit", "Out for Delivery", "Delivered", "Returned"
+  order_status_slug: 'pickup_pending' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'returned' | string;
+  delivery_fee?: number;
+  collected_amount?: number;
+  reason?: string | null;
+  updated_at?: string;
+  rider_details?: {
+    name?: string;
+    phone?: string;
+    bike_number?: string;
+  };
+}
+
+export interface SteadfastWebhookPayload {
+  status: number;
+  notification_type: 'delivery_status' | string;
+  consignment: {
+    consignment_id: number | string;
+    invoice: string; // merchant order id e.g. PVZ-91823
+    recipient_name?: string;
+    recipient_phone?: string;
+    recipient_address?: string;
+    cod_amount?: number;
+    status: 'pending' | 'in_review' | 'delivered' | 'partial_delivered' | 'cancelled' | 'hold' | string;
+    updated_at?: string;
+  };
+}
+
+export interface CourierTrackingMilestone {
+  id: string;
+  title: string;
+  desc: string;
+  date: string;
+  completed: boolean;
+  current: boolean;
+  hub?: string;
+}
+
+export interface LiveCourierTrackingInfo {
+  orderId: string;
+  courierName: string;
+  consignmentId: string;
+  status: Order['status'];
+  statusText: string;
+  etaMinutes: number;
+  rider: CourierRiderInfo;
+  timeline: CourierTrackingMilestone[];
+  lastUpdated: string;
 }
