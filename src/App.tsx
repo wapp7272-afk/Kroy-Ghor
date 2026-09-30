@@ -70,6 +70,11 @@ import {
   checkIsAdmin,
   checkIsSeller,
 } from './services/authService';
+import {
+  isFirebaseConfigured,
+  checkGoogleRedirectResult,
+  firebaseSignOut,
+} from './lib/firebaseAuth';
 import { UserRole } from './types';
 
 // Code-split heavy secondary view modals and admin components with React.lazy
@@ -592,6 +597,28 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Check for real Google OAuth redirect result on mount (for mobile flow)
+  useEffect(() => {
+    if (isFirebaseConfigured()) {
+      checkGoogleRedirectResult()
+        .then((googleUser) => {
+          if (googleUser && !user.isLoggedIn) {
+            handleLogin(
+              googleUser.displayName,
+              googleUser.email,
+              '',
+              false,
+              'google',
+              googleUser.photoURL
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn('[App] Google redirect result check:', err);
+        });
+    }
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
@@ -1095,6 +1122,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    firebaseSignOut().catch(() => {});
     api.auth.logout().catch(() => {});
     clearStoredSession();
     setUser({
