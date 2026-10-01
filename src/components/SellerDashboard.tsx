@@ -104,7 +104,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
       const sStore = (activeSeller.storeName || '').toLowerCase().trim();
       return (
         pStore === sStore ||
-        (activeSeller.id === 'seller-1' && (pStore.includes('perfume') || pStore.includes('prime')))
+        (activeSeller.id === 'seller-1' && (pStore.includes('perfume') || pStore.includes('zeropic') || pStore.includes('prime')))
       );
     });
   }, [products, activeSeller]);
@@ -118,7 +118,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
         const sStore = (activeSeller.storeName || '').toLowerCase().trim();
         return (
           itemStore === sStore ||
-          (activeSeller.id === 'seller-1' && (itemStore.includes('perfume') || itemStore.includes('prime')))
+          (activeSeller.id === 'seller-1' && (itemStore.includes('perfume') || itemStore.includes('zeropic') || itemStore.includes('prime')))
         );
       });
     });
@@ -133,7 +133,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
         const sStore = (activeSeller?.storeName || '').toLowerCase().trim();
         if (
           itemStore === sStore ||
-          (activeSeller?.id === 'seller-1' && (itemStore.includes('perfume') || itemStore.includes('prime')))
+          (activeSeller?.id === 'seller-1' && (itemStore.includes('perfume') || itemStore.includes('zeropic') || itemStore.includes('prime')))
         ) {
           revenue += item.product.price * item.quantity;
         }
@@ -249,8 +249,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
         inStock: prodInStock,
         features: feats,
         sizes: sizes,
-        storeName: activeSeller?.storeName || 'Prime Vault Official',
-        sellerName: activeSeller?.storeName || 'Prime Vault Official',
+        storeName: activeSeller?.storeName || 'ZeropicBD Official',
+        sellerName: activeSeller?.storeName || 'ZeropicBD Official',
       });
     }
 
@@ -497,7 +497,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-white">{activeSeller?.storeName}</h2>
                 <p className="text-xs text-purple-200">
-                  {activeSeller?.description || 'Prime Vault Zone verified seller partner in Bangladesh.'}
+                  {activeSeller?.description || 'ZeropicBD verified seller partner in Bangladesh.'}
                 </p>
                 <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-gray-300">
                   <span>Owner: <strong className="text-white">{activeSeller?.ownerName}</strong></span>
@@ -954,7 +954,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                   <span className="font-bold text-gray-900 font-mono">৳{sellerFinancials.revenue.toLocaleString()}</span>
                 </div>
                 <div className="py-2 flex justify-between text-rose-600">
-                  <span>Prime Vault Zone Commission ({sellerFinancials.commissionRate}%)</span>
+                  <span>ZeropicBD Commission ({sellerFinancials.commissionRate}%)</span>
                   <span className="font-bold font-mono">-৳{sellerFinancials.platformCommission.toLocaleString()}</span>
                 </div>
                 <div className="py-2 flex justify-between font-bold text-[#5B21B6] text-sm">
@@ -1003,7 +1003,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Storefront URL Slug*</label>
                   <div className="flex items-center rounded-xl border border-gray-300 overflow-hidden bg-gray-50 px-3 py-2 text-xs">
-                    <span className="text-gray-400 font-mono">primevault.zone/store/</span>
+                    <span className="text-gray-400 font-mono">zeropicbd.com/store/</span>
                     <input
                       type="text"
                       required

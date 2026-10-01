@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="favTopBar" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C6FF" />
+      <stop offset="50%" stop-color="#007BFF" />
+      <stop offset="100%" stop-color="#7A3BFF" />
+    </linearGradient>
+    <linearGradient id="favFold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0056B3" />
+      <stop offset="100%" stop-color="#0A1B3D" />
+    </linearGradient>
+    <linearGradient id="favDiag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C6FF" />
+      <stop offset="50%" stop-color="#007BFF" />
+      <stop offset="100%" stop-color="#7A3BFF" />
+    </linearGradient>
+    <linearGradient id="favWave" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#007BFF" />
+      <stop offset="100%" stop-color="#7A3BFF" />
+    </linearGradient>
+  </defs>
+
+  <!-- High-contrast rounded background card for visibility in both dark and light browser chrome -->
+  <rect width="100" height="100" rx="22" fill="#0A1B3D" />
+
+  <g transform="translate(10, 8) scale(0.24)">
+    <!-- Back Echo Swoosh -->
+    <path
+      d="M 210 38 C 265 46, 315 80, 325 135 C 300 160, 260 185, 220 200 C 260 175, 290 145, 280 100 C 270 70, 235 50, 210 38 Z"
+      fill="#00C6FF"
+      opacity="0.85"
+    />
+
+    <!-- Main Z Top Bar -->
+    <path
+      d="M 70 48 C 65 48, 55 52, 45 60 C 90 35, 170 30, 240 38 C 295 45, 335 85, 330 140 C 325 180, 290 208, 250 220 C 280 195, 300 165, 295 130 C 290 85, 255 60, 195 55 C 150 50, 100 50, 70 48 Z"
+      fill="url(#favTopBar)"
+    />
+
+    <!-- Inner Fold -->
+    <path
+      d="M 170 54 L 140 140 C 160 110, 195 90, 230 80 C 255 72, 275 80, 270 105 C 265 125, 245 150, 210 180 L 160 220 L 130 150 L 155 75 Z"
+      fill="url(#favFold)"
+    />
+
+    <!-- Diagonal -->
+    <path
+      d="M 50 60 L 195 54 C 180 85, 150 140, 115 190 C 85 235, 55 270, 35 285 C 25 292, 35 300, 55 295 C 90 285, 140 240, 175 195 L 205 155 C 240 110, 275 75, 240 50 C 205 45, 120 50, 50 60 Z"
+      fill="url(#favDiag)"
+    />
+
+    <!-- Lower Base Wave -->
+    <path
+      d="M 35 285 C 55 280, 85 255, 125 220 C 160 190, 195 180, 230 205 C 250 220, 260 245, 235 265 C 205 285, 155 295, 95 300 C 65 302, 45 298, 35 285 Z"
+      fill="url(#favWave)"
+    />
+
+    <!-- Speed Cart in Crisp White -->
+    <g transform="translate(205, 190)">
+      <line x1="0" y1="20" x2="22" y2="20" stroke="#00C6FF" stroke-width="7" stroke-linecap="round" />
+      <line x1="6" y1="33" x2="26" y2="33" stroke="#00C6FF" stroke-width="7" stroke-linecap="round" />
+      <path
+        d="M 32 5 L 42 5 L 56 42 L 88 42 L 98 12 L 44 12"
+        stroke="#FFFFFF"
+        stroke-width="7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+      />
+      <circle cx="58" cy="58" r="8" fill="#FFFFFF" />
+      <circle cx="84" cy="58" r="8" fill="#FFFFFF" />
+    </g>
+  </g>
+</svg>

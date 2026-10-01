@@ -1,7 +1,7 @@
 import { Product } from '../types';
 
 export const PRODUCTS: Product[] = [
-  // --- Popular Luxury Perfumes (Rudro Perfume Inspired + Prime Vault Collection) ---
+  // --- Popular Luxury Perfumes (Rudro Perfume Inspired + Zeropicbd Collection) ---
   {
     id: 'p1',
     title: 'Cool Water Davidoff',

@@ -215,16 +215,78 @@ export const hasRole = (userRole: UserRole | undefined, requiredRole: UserRole):
   return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[requiredRole] || 0);
 };
 
+export const SUPER_ADMIN_EMAIL = 'wapp7272@gmail.com';
+
+export const isSuperAdminEmail = (email?: string | null): boolean => {
+  if (!email) return false;
+  return email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+};
+
+export const checkIsSuperAdmin = (user: UserProfile | null): boolean => {
+  if (!user || !user.isLoggedIn) return false;
+  return isSuperAdminEmail(user.email);
+};
+
 export const checkIsAdmin = (user: UserProfile | null): boolean => {
   if (!user || !user.isLoggedIn) return false;
   const session = getStoredSession();
   const role = user.role || session?.role;
-  return role === 'admin' || user.email.toLowerCase() === 'wapp7272@gmail.com';
+  return role === 'admin' || isSuperAdminEmail(user.email);
 };
 
 export const checkIsSeller = (user: UserProfile | null): boolean => {
   if (!user || !user.isLoggedIn) return false;
   const session = getStoredSession();
   const role = user.role || session?.role;
-  return role === 'seller' || role === 'admin' || user.email.toLowerCase() === 'wapp7272@gmail.com';
+  return role === 'seller' || role === 'admin' || isSuperAdminEmail(user.email);
 };
+
+/**
+ * Ensures wapp7272@gmail.com is seeded into registered accounts as permanent Super Admin / Owner
+ */
+export const seedSuperAdminAccount = (): void => {
+  try {
+    const key = 'zeropicbd_registered_accounts';
+    const legacyKey = 'primevault_registered_accounts';
+    const raw = localStorage.getItem(key) || localStorage.getItem(legacyKey);
+    const accounts: any[] = raw ? JSON.parse(raw) : [];
+
+    const existingIdx = accounts.findIndex(
+      (a) => a.email && a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
+    );
+
+    const ownerData = {
+      name: 'Super Admin Owner',
+      email: SUPER_ADMIN_EMAIL,
+      phone: '01883418309',
+      password: 'admin123',
+      role: 'admin',
+      isPhoneVerified: true,
+      authProvider: 'google',
+      walletBalance: 10000,
+      hasReceivedBonus: true,
+      address: {
+        fullName: 'Super Admin Owner',
+        phone: '01883418309',
+        cityDivision: 'Inside Dhaka',
+        fullAddress: 'ZeropicBD Central HQ, Dhanmondi 27, Dhaka - 1209',
+      },
+    };
+
+    if (existingIdx >= 0) {
+      accounts[existingIdx] = {
+        ...accounts[existingIdx],
+        ...ownerData,
+        role: 'admin',
+      };
+    } else {
+      accounts.unshift(ownerData);
+    }
+
+    localStorage.setItem(key, JSON.stringify(accounts));
+    localStorage.setItem(legacyKey, JSON.stringify(accounts));
+  } catch (err) {
+    console.error('Failed to seed Super Admin account:', err);
+  }
+};
+

@@ -69,6 +69,10 @@ import {
   isTokenExpiringSoon,
   checkIsAdmin,
   checkIsSeller,
+  checkIsSuperAdmin,
+  seedSuperAdminAccount,
+  SUPER_ADMIN_EMAIL,
+  isSuperAdminEmail,
 } from './services/authService';
 import {
   isFirebaseConfigured,
@@ -107,7 +111,7 @@ export default function App() {
   // State: Dynamic Platform Commission Rate (Configurable: Default 8%)
   const [commissionRate, setCommissionRate] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('primevault_commission_rate');
+      const saved = localStorage.getItem('zeropicbd_commission_rate') || localStorage.getItem('primevault_commission_rate');
       return saved ? parseFloat(saved) : 8;
     } catch {
       return 8;
@@ -116,6 +120,9 @@ export default function App() {
 
   const handleUpdateCommissionRate = (newRate: number) => {
     setCommissionRate(newRate);
+    try {
+      localStorage.setItem('zeropicbd_commission_rate', newRate.toString());
+    } catch {}
     api.settings.updateCommissionRate(newRate).catch(() => {});
     showToast(`⚡ Platform commission rate set to ${newRate}%!`);
   };
@@ -123,7 +130,7 @@ export default function App() {
   // State: System Banner & Announcement Settings
   const [bannerSettings, setBannerSettings] = useState<SystemBannerSettings>(() => {
     try {
-      const saved = localStorage.getItem('primevault_banner_settings');
+      const saved = localStorage.getItem('zeropicbd_banner_settings') || localStorage.getItem('primevault_banner_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -140,7 +147,7 @@ export default function App() {
       heroSubheadline: 'Bangladesh’s Premier Authentic Perfume & Lifestyle Marketplace. 100% genuine guaranteed with fast nationwide express delivery.',
       flashSaleTag: 'EXCLUSIVE COLLECTION',
       youtubeVideoUrl: 'https://www.youtube.com/watch?v=sU3FkmV9b70',
-      youtubeChannelUrl: 'https://www.youtube.com/@primevaultzone',
+      youtubeChannelUrl: 'https://www.youtube.com/@zeropicbd',
       youtubeSectionTitle: 'Featured YouTube Videos',
       youtubeSectionSubtitle: 'Watch authentic fragrance unboxings, batch code verification guides, and official product showcases directly from our channel.',
       promoBanners: INITIAL_PROMO_BANNERS,
@@ -149,6 +156,9 @@ export default function App() {
 
   const handleUpdateBannerSettings = (newSettings: SystemBannerSettings) => {
     setBannerSettings(newSettings);
+    try {
+      localStorage.setItem('zeropicbd_banner_settings', JSON.stringify(newSettings));
+    } catch {}
     api.settings.updateBannerSettings(newSettings).catch(() => {});
     showToast('🚀 System Banners & Global Announcements updated!');
   };
@@ -222,15 +232,15 @@ export default function App() {
   // Dynamic Document Title based on active page
   useEffect(() => {
     if (activePage === 'Store') {
-      document.title = 'Brand Storefront | PRIME VAULT ZONE';
+      document.title = 'Brand Storefront | ZeropicBD';
     } else if (activePage === 'SellerCenter') {
-      document.title = 'Merchant Seller Center | PRIME VAULT ZONE';
+      document.title = 'Merchant Seller Center | ZeropicBD';
     } else if (activePage === 'MyOrders' || activePage === 'UserProfile') {
-      document.title = 'Customer Portal & Order History | PRIME VAULT ZONE';
+      document.title = 'Customer Portal & Order History | ZeropicBD';
     } else if (activePage === 'TrackOrder') {
-      document.title = 'Live Parcel Tracker & Courier Status | PRIME VAULT ZONE';
+      document.title = 'Live Parcel Tracker & Courier Status | ZeropicBD';
     } else {
-      document.title = 'PRIME VAULT ZONE | Bangladesh Premier Lifestyle & Perfume Marketplace';
+      document.title = 'ZeropicBD - Premium Marketplace & Lifestyle BD';
     }
   }, [activePage, selectedStoreSlug]);
 
@@ -272,7 +282,7 @@ export default function App() {
   // State: Wishlist with LocalStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_wishlist');
+      const saved = localStorage.getItem('zeropicbd_wishlist') || localStorage.getItem('primevault_wishlist');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -280,6 +290,7 @@ export default function App() {
   });
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_wishlist', JSON.stringify(wishlist));
     localStorage.setItem('primevault_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
@@ -295,20 +306,11 @@ export default function App() {
   // State: Dynamic Products with LocalStorage persistence
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_products') || localStorage.getItem('zestflick_products');
+      const saved = localStorage.getItem('zeropicbd_products') || localStorage.getItem('primevault_products') || localStorage.getItem('zestflick_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((p: Product) => p.id));
-          const missingDefaults = PRODUCTS.filter((p) => !existingIds.has(p.id));
-          const synchronized = parsed.map((p: Product) => {
-            const def = PRODUCTS.find((d) => d.id === p.id);
-            if (def && ['p1', 'p2', 'p3', 'p4', 'p5'].includes(p.id)) {
-              return { ...def, ...p, title: def.title, name: def.name, image: def.image, originalPrice: def.originalPrice, discount: def.discount };
-            }
-            return p;
-          });
-          return [...missingDefaults, ...synchronized];
+        if (Array.isArray(parsed)) {
+          return parsed;
         }
       }
     } catch (e) {
@@ -325,7 +327,7 @@ export default function App() {
   // State: Dynamic Coupons with LocalStorage persistence
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_coupons') || localStorage.getItem('zestflick_coupons');
+      const saved = localStorage.getItem('zeropicbd_coupons') || localStorage.getItem('primevault_coupons') || localStorage.getItem('zestflick_coupons');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -339,7 +341,7 @@ export default function App() {
   // State: Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_cart') || localStorage.getItem('zestflick_cart');
+      const saved = localStorage.getItem('zeropicbd_cart') || localStorage.getItem('primevault_cart') || localStorage.getItem('zestflick_cart');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -355,14 +357,14 @@ export default function App() {
   // State: User Profile with LocalStorage & Tokenized Session persistence
   const [user, setUser] = useState<UserProfile>(() => {
     try {
-      const saved = localStorage.getItem('primevault_user') || localStorage.getItem('zestflick_user');
+      const saved = localStorage.getItem('zeropicbd_user') || localStorage.getItem('primevault_user') || localStorage.getItem('zestflick_user');
       const activeSession = getStoredSession();
       if (saved) {
         const parsed = JSON.parse(saved);
         const resolvedRole: UserRole =
-          activeSession?.role ||
-          parsed.role ||
-          (parsed.email?.toLowerCase() === 'wapp7272@gmail.com' ? 'admin' : 'customer');
+          isSuperAdminEmail(parsed.email)
+            ? 'admin'
+            : (activeSession?.role || parsed.role || 'customer');
 
         return {
           isLoggedIn: parsed.isLoggedIn ?? false,
@@ -547,28 +549,39 @@ export default function App() {
   // State: Toast notification
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Seed permanent Super Admin / Owner account
   useEffect(() => {
+    seedSuperAdminAccount();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('zeropicbd_user', JSON.stringify(user));
     localStorage.setItem('primevault_user', JSON.stringify(user));
   }, [user]);
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_cart', JSON.stringify(cart));
     localStorage.setItem('primevault_cart', JSON.stringify(cart));
     api.cart.save(cart).catch(() => {});
   }, [cart]);
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_orders', JSON.stringify(orders));
     localStorage.setItem('primevault_orders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_products', JSON.stringify(products));
     localStorage.setItem('primevault_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_coupons', JSON.stringify(coupons));
     localStorage.setItem('primevault_coupons', JSON.stringify(coupons));
   }, [coupons]);
 
   useEffect(() => {
+    localStorage.setItem('zeropicbd_sellers', JSON.stringify(sellers));
     localStorage.setItem('primevault_sellers', JSON.stringify(sellers));
   }, [sellers]);
 
@@ -670,6 +683,34 @@ export default function App() {
     showToast('✓ Product deleted from store.');
   };
 
+  const handleBulkDeleteProducts = (productIds: string[]) => {
+    const idSet = new Set(productIds);
+    setProducts((prev) => prev.filter((p) => !idSet.has(p.id)));
+    setCart((prev) => prev.filter((item) => !idSet.has(item.product.id)));
+    if (quickViewProduct && idSet.has(quickViewProduct.id)) {
+      setQuickViewProduct(null);
+    }
+    if (selectedProductDetail && idSet.has(selectedProductDetail.id)) {
+      setSelectedProductDetail(null);
+      setActivePage('Home');
+    }
+    productIds.forEach((id) => api.products.delete(id).catch(() => {}));
+    showToast(`✓ Removed ${productIds.length} products from catalog.`);
+  };
+
+  const handleResetDemoProducts = () => {
+    setProducts(PRODUCTS);
+    localStorage.setItem('zeropicbd_products', JSON.stringify(PRODUCTS));
+    showToast('✓ Default demo catalog restored.');
+  };
+
+  const handleUpdateOrderNotes = (orderId: string, notes: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, trackingNotes: notes } : o))
+    );
+    showToast(`✓ Order ${orderId} dispatch notes updated.`);
+  };
+
   // Coupon Management (Admin Handlers)
   const handleAddCoupon = (newCouponData: Omit<Coupon, 'id'>) => {
     const newCoupon: Coupon = {
@@ -733,11 +774,11 @@ export default function App() {
       const cat = product.category || '';
       if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
       if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-      if (cat.includes('Fashion')) return 'Prime Atelier';
+      if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
       if (cat.includes('Watches')) return 'Chronos Official';
       if (cat.includes('Beauty')) return 'Glow & Glam BD';
       if (cat.includes('Home')) return 'Nordic Living';
-      return 'Prime Vault Official';
+      return 'ZeropicBD Official';
     })();
 
     // Adjust price by size multiplier if applicable
@@ -937,7 +978,7 @@ export default function App() {
     // Lookup stored account in registered accounts
     const accounts = (() => {
       try {
-        const stored = localStorage.getItem('primevault_registered_accounts');
+        const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts');
         return stored ? JSON.parse(stored) : [];
       } catch {
         return [];
@@ -974,7 +1015,7 @@ export default function App() {
 
     const updatedUser: UserProfile = {
       isLoggedIn: true,
-      name: name || matched?.name || 'Prime Member',
+      name: name || matched?.name || 'ZeropicBD Member',
       email: email || matched?.email || '',
       phone: cleanPhone || matched?.phone || '',
       role,
@@ -1019,7 +1060,7 @@ export default function App() {
 
     const newUser: UserProfile = {
       isLoggedIn: true,
-      name: name || 'Prime Member',
+      name: name || 'ZeropicBD Member',
       email: email || '',
       phone: cleanPhone,
       role,
@@ -1041,7 +1082,7 @@ export default function App() {
     // Also persist to registered accounts
     try {
       const accounts = (() => {
-        const stored = localStorage.getItem('primevault_registered_accounts');
+        const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts');
         return stored ? JSON.parse(stored) : [];
       })();
       const idx = accounts.findIndex((a: any) => 
@@ -1053,6 +1094,7 @@ export default function App() {
       } else {
         accounts.push(newUser);
       }
+      localStorage.setItem('zeropicbd_registered_accounts', JSON.stringify(accounts));
       localStorage.setItem('primevault_registered_accounts', JSON.stringify(accounts));
     } catch (e) {
       console.error(e);
@@ -1091,7 +1133,7 @@ export default function App() {
       // Update registered accounts
       try {
         const accounts = (() => {
-          const stored = localStorage.getItem('primevault_registered_accounts');
+          const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts');
           return stored ? JSON.parse(stored) : [];
         })();
         const idx = accounts.findIndex((a: any) => 
@@ -1103,6 +1145,7 @@ export default function App() {
         } else {
           accounts.push(updated);
         }
+        localStorage.setItem('zeropicbd_registered_accounts', JSON.stringify(accounts));
         localStorage.setItem('primevault_registered_accounts', JSON.stringify(accounts));
       } catch (e) {
         console.error(e);
@@ -1176,7 +1219,7 @@ export default function App() {
         // Update stored registered accounts
         try {
           const accounts = (() => {
-            const stored = localStorage.getItem('primevault_registered_accounts');
+            const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts');
             return stored ? JSON.parse(stored) : [];
           })();
           const idx = accounts.findIndex((a: any) => 
@@ -1185,6 +1228,7 @@ export default function App() {
           );
           if (idx >= 0) {
             accounts[idx] = { ...accounts[idx], walletBalance: remaining, walletHistory: updatedHistory };
+            localStorage.setItem('zeropicbd_registered_accounts', JSON.stringify(accounts));
             localStorage.setItem('primevault_registered_accounts', JSON.stringify(accounts));
           }
         } catch (e) {
@@ -1258,7 +1302,7 @@ export default function App() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'primevault-zone-store.html';
+        a.download = 'zeropicbd-store.html';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1535,6 +1579,7 @@ export default function App() {
           onSubmitReturnRequest={handleSubmitReturnRequest}
           onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
           onTrackOrder={handleOpenTrackOrder}
+          onOpenAdmin={() => setIsAdminOpen(true)}
         />
       ) : activePage === 'TrackOrder' ? (
         <OrderTrackingPortal
@@ -2024,14 +2069,18 @@ export default function App() {
           <AdminDashboard
             isOpen={isAdminOpen}
             onClose={() => setIsAdminOpen(false)}
+            user={user}
             orders={orders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
             onUpdateOrderTracking={handleUpdateOrderTracking}
+            onUpdateOrderNotes={handleUpdateOrderNotes}
             products={products}
             onAddProduct={handleAddProduct}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
+            onBulkDeleteProducts={handleBulkDeleteProducts}
+            onResetDemoProducts={handleResetDemoProducts}
             coupons={coupons}
             onAddCoupon={handleAddCoupon}
             onUpdateCoupon={handleUpdateCoupon}

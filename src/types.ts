@@ -3,8 +3,10 @@ export interface Product {
   title: string;
   name?: string;
   category: 'Perfume' | 'Glow Lights' | 'Attar Perfumes' | 'Notebooks' | 'Bricks Toys' | string;
+  subCategory?: string;
   price: number;
   originalPrice?: number;
+  regularPrice?: number;
   discount?: string;
   rating: number;
   reviewsCount: number;
@@ -16,8 +18,11 @@ export interface Product {
   aiShowcaseVideoUrl?: string;
   description: string;
   tag?: string;
+  tags?: string[];
+  sku?: string;
   isFeatured?: boolean;
   inStock: boolean;
+  stockStatus?: 'in_stock' | 'out_of_stock' | 'pre_order';
   stockQuantity?: number;
   lowStockThreshold?: number;
   storeName?: string;
@@ -136,6 +141,8 @@ export interface ReturnRequest {
 export interface Order {
   id: string;
   date: string;
+  time?: string;
+  customerEmail?: string;
   items: CartItem[];
   subtotal: number;
   discount: number;
@@ -144,11 +151,12 @@ export interface Order {
   total: number;
   paymentMethod: 'cod' | 'bkash' | 'nagad' | 'card';
   trxId?: string;
-  paymentStatus?: 'Verified' | 'Pending Verification' | 'Paid (COD on Delivery)' | 'Failed';
+  paymentStatus?: 'Verified' | 'Pending Verification' | 'Paid (COD on Delivery)' | 'Paid' | 'Unpaid' | 'Failed';
   address: Address;
   status: 'Pending' | 'Confirmed' | 'Processing' | 'Ready for Pickup' | 'Shipped' | 'Delivered' | 'Cancelled';
   courierName?: string;
   trackingNumber?: string;
+  trackingNotes?: string;
   returnRequest?: ReturnRequest;
 }
 

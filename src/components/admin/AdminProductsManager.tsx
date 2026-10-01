@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -11,35 +11,59 @@ import {
   Sparkles,
   AlertCircle,
   Tag,
-  ToggleLeft,
-  ToggleRight,
   Eye,
   Video,
   Layers,
-  Flame,
-  Film,
   Star,
   CheckCircle2,
   Play,
   Minus,
-  AlertTriangle
+  AlertTriangle,
+  RotateCcw,
+  CheckSquare,
+  Square,
+  ExternalLink,
+  Flame,
+  ShieldCheck,
+  Hash,
+  Box,
+  SlidersHorizontal,
+  Clock
 } from 'lucide-react';
 import { Product } from '../../types';
 import { getYouTubeEmbedUrl } from '../../utils/youtube';
 
-interface AdminProductsManagerProps {
+export interface AdminProductsManagerProps {
   products: Product[];
   onAddProduct: (product: Omit<Product, 'id'>) => void;
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
+  onBulkDeleteProducts?: (productIds: string[]) => void;
+  onResetDemoProducts?: () => void;
 }
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Glow Lights',
   'Attar Perfumes',
+  'Perfume',
   'Notebooks',
   'Bricks Toys',
-  'Accessories'
+  'Accessories',
+  'Watches',
+  'Fashion Accessories',
+  'Home Decor',
+  'Electronics & Gadgets'
+];
+
+const PRESET_TAGS = [
+  'Trending',
+  'Best Seller',
+  'Hot Deal',
+  'New Arrival',
+  'Featured',
+  'Limited Edition',
+  'Flash Sale',
+  'Verified Official'
 ];
 
 export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
@@ -47,171 +71,318 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onBulkDeleteProducts,
+  onResetDemoProducts,
 }) => {
+  // Filtering & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedStockFilter, setSelectedStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock' | 'pre_order'>('all');
+  const [featuredOnlyFilter, setFeaturedOnlyFilter] = useState(false);
+
+  // Bulk Selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [dummyPurgeModalOpen, setDummyPurgeModalOpen] = useState(false);
+
+  // Modal & Edit State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form states
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState(DEFAULT_CATEGORIES[0]);
+  const [customCategory, setCustomCategory] = useState('');
+  const [subCategory, setSubCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [inStock, setInStock] = useState(true);
-  const [imageUrl, setImageUrl] = useState('');
-  const [galleryImagesText, setGalleryImagesText] = useState('');
+  const [price, setPrice] = useState(''); // Discounted / Selling price
+  const [regularPrice, setRegularPrice] = useState(''); // MSRP / Regular price
+  const [sku, setSku] = useState('');
+  const [stockQuantityInput, setStockQuantityInput] = useState('25');
+  const [stockStatus, setStockStatus] = useState<'in_stock' | 'out_of_stock' | 'pre_order'>('in_stock');
+  const [lowStockThresholdInput, setLowStockThresholdInput] = useState('5');
+  const [isFeatured, setIsFeatured] = useState(false);
+  
+  // Tags
+  const [selectedTags, setSelectedTags] = useState<string[]>(['Trending']);
+  const [customTagInput, setCustomTagInput] = useState('');
+
+  // Media (Images & Video)
+  const [primaryImage, setPrimaryImage] = useState('');
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [newImageUrlInput, setNewImageUrlInput] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [videoPoster, setVideoPoster] = useState('');
-  const [sampleVideoUrl, setSampleVideoUrl] = useState('');
-  const [aiShowcaseVideoUrl, setAiShowcaseVideoUrl] = useState('');
-  const [fragranceTop, setFragranceTop] = useState('');
-  const [fragranceHeart, setFragranceHeart] = useState('');
-  const [fragranceBase, setFragranceBase] = useState('');
-  const [tag, setTag] = useState('');
   const [featuresText, setFeaturesText] = useState('');
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [stockQuantityInput, setStockQuantityInput] = useState('20');
-  const [lowStockThresholdInput, setLowStockThresholdInput] = useState('5');
-  const [imagePreviewError, setImagePreviewError] = useState(false);
+
+  // Form Error
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Helper to get stock quantity with safe fallback
+  // Extract all categories dynamically from existing products + defaults
+  const allCategories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_CATEGORIES);
+    products.forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set);
+  }, [products]);
+
+  // Identify dummy products (demo items seeded originally)
+  const dummyProductIds = useMemo(() => {
+    return products
+      .filter((p) => {
+        const id = p.id.toLowerCase();
+        return (
+          id.startsWith('p') && !isNaN(Number(id.slice(1))) ||
+          id.startsWith('glow-') ||
+          id.startsWith('attar-') ||
+          id.startsWith('note-') ||
+          id.startsWith('brick-') ||
+          id.startsWith('acc-') ||
+          id.startsWith('tech-') ||
+          id.startsWith('demo-')
+        );
+      })
+      .map((p) => p.id);
+  }, [products]);
+
+  // Helper to determine accurate stock quantity
   const getProductStock = (product: Product): number => {
     if (product.stockQuantity !== undefined) return product.stockQuantity;
     if (product.inStock === false) return 0;
-    if (product.id === 'p3') return 3;
-    if (product.id === 'p5') return 2;
-    if (product.id === 'glow-3' || product.id === 'tech-2') return 4;
     const hash = product.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    return 12 + (hash % 18);
+    return 15 + (hash % 20);
   };
 
-  // Adjust stock quantity
-  const handleAdjustProductStock = (product: Product, delta: number) => {
+  // Helper to determine stock status
+  const getProductStockStatus = (product: Product): 'in_stock' | 'out_of_stock' | 'pre_order' => {
+    if (product.stockStatus) return product.stockStatus;
+    if (product.inStock === false || getProductStock(product) <= 0) return 'out_of_stock';
+    return 'in_stock';
+  };
+
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      // Category filter
+      if (selectedCategory !== 'All' && p.category !== selectedCategory) return false;
+
+      // Stock filter
+      if (selectedStockFilter !== 'all') {
+        const status = getProductStockStatus(p);
+        if (status !== selectedStockFilter) return false;
+      }
+
+      // Featured filter
+      if (featuredOnlyFilter && !p.isFeatured) return false;
+
+      // Search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesTitle = p.title.toLowerCase().includes(q);
+        const matchesDesc = (p.description || '').toLowerCase().includes(q);
+        const matchesCategory = (p.category || '').toLowerCase().includes(q);
+        const matchesSku = (p.sku || p.id).toLowerCase().includes(q);
+        const matchesTag = p.tag?.toLowerCase().includes(q) || (p.tags && p.tags.some(t => t.toLowerCase().includes(q)));
+        return matchesTitle || matchesDesc || matchesCategory || matchesSku || matchesTag;
+      }
+
+      return true;
+    });
+  }, [products, selectedCategory, selectedStockFilter, featuredOnlyFilter, searchQuery]);
+
+  // Bulk Selection Handlers
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === filteredProducts.length && filteredProducts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map((p) => p.id)));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  // Bulk Delete
+  const handleConfirmBulkDelete = () => {
+    const idsToDelete = Array.from(selectedIds);
+    if (onBulkDeleteProducts) {
+      onBulkDeleteProducts(idsToDelete);
+    } else {
+      idsToDelete.forEach((id) => onDeleteProduct(id));
+    }
+    setSelectedIds(new Set());
+    setBulkDeleteModalOpen(false);
+  };
+
+  // Purge All Dummy Products
+  const handleConfirmPurgeDummy = () => {
+    if (dummyProductIds.length === 0) return;
+    if (onBulkDeleteProducts) {
+      onBulkDeleteProducts(dummyProductIds);
+    } else {
+      dummyProductIds.forEach((id) => onDeleteProduct(id));
+    }
+    // Remove purged from selection
+    const next = new Set(selectedIds);
+    dummyProductIds.forEach((id) => next.delete(id));
+    setSelectedIds(next);
+    setDummyPurgeModalOpen(false);
+  };
+
+  // Quick Inline Adjustments
+  const handleInlineStockDelta = (product: Product, delta: number) => {
     const current = getProductStock(product);
     const updated = Math.max(0, current + delta);
     onUpdateProduct({
       ...product,
       stockQuantity: updated,
       inStock: updated > 0,
+      stockStatus: updated > 0 ? (product.stockStatus === 'pre_order' ? 'pre_order' : 'in_stock') : 'out_of_stock'
     });
   };
 
-  // Open Add modal
+  const handleInlineToggleStatus = (product: Product, nextStatus: 'in_stock' | 'out_of_stock' | 'pre_order') => {
+    onUpdateProduct({
+      ...product,
+      stockStatus: nextStatus,
+      inStock: nextStatus !== 'out_of_stock',
+      stockQuantity: nextStatus === 'out_of_stock' ? 0 : (product.stockQuantity || 10)
+    });
+  };
+
+  const handleInlineToggleFeatured = (product: Product) => {
+    onUpdateProduct({
+      ...product,
+      isFeatured: !product.isFeatured,
+      tag: !product.isFeatured ? 'Featured' : (product.tag === 'Featured' ? 'Trending' : product.tag)
+    });
+  };
+
+  // Open Add Modal
   const handleOpenAddModal = () => {
     setEditingProduct(null);
     setTitle('');
+    setCategory(DEFAULT_CATEGORIES[0]);
+    setCustomCategory('');
+    setSubCategory('');
     setDescription('');
     setPrice('');
-    setOriginalPrice('');
-    setCategory(CATEGORIES[0]);
-    setInStock(true);
-    setStockQuantityInput('20');
+    setRegularPrice('');
+    setSku(`ZPBD-${Math.floor(1000 + Math.random() * 9000)}`);
+    setStockQuantityInput('30');
+    setStockStatus('in_stock');
     setLowStockThresholdInput('5');
-    setImageUrl('https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=800');
-    setGalleryImagesText('https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=800\nhttps://images.unsplash.com/photo-1615397349754-cfa2066a298e?auto=format&fit=crop&q=80&w=800');
+    setIsFeatured(false);
+    setSelectedTags(['Trending', 'Verified Official']);
+    setCustomTagInput('');
+    setPrimaryImage('https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=800');
+    setGalleryImages([
+      'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=800',
+      'https://images.unsplash.com/photo-1615397349754-cfa2066a298e?auto=format&fit=crop&q=80&w=800'
+    ]);
+    setNewImageUrlInput('');
     setVideoUrl('');
     setVideoPoster('');
-    setSampleVideoUrl('');
-    setAiShowcaseVideoUrl('');
-    setFragranceTop('Sea Water, Mint, Green Notes, Lavender');
-    setFragranceHeart('Sandalwood, Jasmine, Neroli, Geranium');
-    setFragranceBase('Musk, Oakmoss, Cedar, Tobacco, Amber');
-    setTag('Trending');
-    setIsFeatured(false);
-    setFeaturesText('Premium Luxury Quality, 100% Authentic, Long Lasting');
-    setImagePreviewError(false);
+    setFeaturesText('Premium Verified Quality, Nationwide Delivery, 7-Day Guarantee');
     setFormError(null);
     setIsModalOpen(true);
   };
 
-  // Open Edit modal
+  // Open Edit Modal
   const handleOpenEditModal = (product: Product) => {
     setEditingProduct(product);
     setTitle(product.title);
+    setCategory(product.category || DEFAULT_CATEGORIES[0]);
+    setCustomCategory('');
+    setSubCategory(product.subCategory || '');
     setDescription(product.description || '');
     setPrice(product.price.toString());
-    setOriginalPrice(product.originalPrice ? product.originalPrice.toString() : '');
-    setCategory(product.category || CATEGORIES[0]);
-    setInStock(product.inStock ?? true);
+    setRegularPrice(product.regularPrice ? product.regularPrice.toString() : (product.originalPrice ? product.originalPrice.toString() : ''));
+    setSku(product.sku || product.id);
     setStockQuantityInput(getProductStock(product).toString());
+    setStockStatus(getProductStockStatus(product));
     setLowStockThresholdInput((product.lowStockThreshold || 5).toString());
-    setImageUrl(product.image);
-    setGalleryImagesText(
-      product.images && product.images.length > 0
-        ? product.images.filter((img) => img !== product.image).join('\n')
-        : ''
+    setIsFeatured(Boolean(product.isFeatured));
+    setSelectedTags(
+      product.tags && product.tags.length > 0 
+        ? product.tags 
+        : (product.tag ? [product.tag] : ['Trending'])
     );
+    setCustomTagInput('');
+    setPrimaryImage(product.image || '');
+    setGalleryImages(product.images ? product.images.filter((img) => img !== product.image) : []);
+    setNewImageUrlInput('');
     setVideoUrl(product.videoUrl || '');
     setVideoPoster(product.videoPoster || '');
-    setSampleVideoUrl(product.sampleVideoUrl || '');
-    setAiShowcaseVideoUrl(product.aiShowcaseVideoUrl || '');
-    setFragranceTop(product.fragranceNotes?.top || '');
-    setFragranceHeart(product.fragranceNotes?.heart || '');
-    setFragranceBase(product.fragranceNotes?.base || '');
-    setTag(product.tag || '');
-    setIsFeatured(product.isFeatured ?? (product.tag === 'Featured' || product.tag === 'Hot Deal'));
     setFeaturesText(product.features ? product.features.join(', ') : '');
-    setImagePreviewError(false);
     setFormError(null);
     setIsModalOpen(true);
   };
 
-  // Handle local image file upload converting to DataURL
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Image Upload File
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isPrimary: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      setFormError('Image file is larger than 3MB. Please select a smaller image or use an image URL.');
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError('Image size exceeds 5MB limit. Please compress or provide an image URL.');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
-      setImageUrl(dataUrl);
-      setImagePreviewError(false);
+      if (isPrimary) {
+        setPrimaryImage(dataUrl);
+      } else {
+        setGalleryImages((prev) => [...prev, dataUrl]);
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  // Handle local sample video file upload
-  const handleSampleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 25 * 1024 * 1024) {
-      setFormError('Video file exceeds 25MB limit. Please provide a YouTube link or hosted video URL.');
-      return;
+  // Add Image from URL
+  const handleAddGalleryImageUrl = () => {
+    if (!newImageUrlInput.trim()) return;
+    const url = newImageUrlInput.trim();
+    if (!galleryImages.includes(url) && url !== primaryImage) {
+      setGalleryImages((prev) => [...prev, url]);
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      setSampleVideoUrl(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    setNewImageUrlInput('');
   };
 
-  // Handle local AI showcase video file upload
-  const handleAiVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 25 * 1024 * 1024) {
-      setFormError('Video file exceeds 25MB limit. Please provide a YouTube link or hosted video URL.');
-      return;
+  // Remove Gallery Image
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Toggle Tag
+  const handleToggleTag = (t: string) => {
+    setSelectedTags((prev) => 
+      prev.includes(t) ? prev.filter((item) => item !== t) : [...prev, t]
+    );
+  };
+
+  // Add Custom Tag
+  const handleAddCustomTag = () => {
+    if (!customTagInput.trim()) return;
+    const tagClean = customTagInput.trim();
+    if (!selectedTags.includes(tagClean)) {
+      setSelectedTags((prev) => [...prev, tagClean]);
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      setAiShowcaseVideoUrl(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    setCustomTagInput('');
   };
 
-  // Save product (Add or Edit)
+  // Save Form
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -225,964 +396,1050 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
       setFormError('Please provide a valid price (greater than 0).');
       return;
     }
-    if (!imageUrl.trim()) {
-      setFormError('Please enter an image URL or upload an image file.');
+    if (!primaryImage.trim()) {
+      setFormError('Primary product image is required.');
       return;
     }
 
-    const parsedOriginalPrice = originalPrice ? parseFloat(originalPrice) : undefined;
+    const resolvedCategory = category === 'CUSTOM' ? (customCategory.trim() || 'General') : category;
+    const parsedRegular = regularPrice ? parseFloat(regularPrice) : undefined;
+    const parsedStock = Math.max(0, parseInt(stockQuantityInput) || 0);
+    const parsedLowStock = Math.max(1, parseInt(lowStockThresholdInput) || 5);
+
+    const computedDiscount =
+      parsedRegular && parsedRegular > parsedPrice
+        ? `-${Math.round(((parsedRegular - parsedPrice) / parsedRegular) * 100)}%`
+        : undefined;
+
+    const allImages = [primaryImage.trim(), ...galleryImages.filter((img) => img !== primaryImage.trim())];
+
     const featuresArray = featuresText
       .split(/,|\n/)
       .map((f) => f.trim())
       .filter((f) => f.length > 0);
 
-    const galleryLines = galleryImagesText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    const finalImages = [imageUrl.trim(), ...galleryLines.filter((url) => url !== imageUrl.trim())];
-
-    const fragranceNotes =
-      fragranceTop.trim() || fragranceHeart.trim() || fragranceBase.trim()
-        ? {
-            top: fragranceTop.trim(),
-            heart: fragranceHeart.trim(),
-            base: fragranceBase.trim(),
-          }
-        : undefined;
-
-    const computedDiscount =
-      parsedOriginalPrice && parsedOriginalPrice > parsedPrice
-        ? `-${Math.round(((parsedOriginalPrice - parsedPrice) / parsedOriginalPrice) * 100)}%`
-        : undefined;
-
-    const parsedStock = Math.max(0, parseInt(stockQuantityInput) || 0);
-    const parsedThreshold = Math.max(1, parseInt(lowStockThresholdInput) || 5);
-    const finalInStock = parsedStock > 0 && inStock;
+    const productPayload = {
+      title: title.trim(),
+      name: title.trim(),
+      category: resolvedCategory,
+      subCategory: subCategory.trim() || undefined,
+      description: description.trim() || 'Verified quality product from ZeropicBD marketplace.',
+      price: parsedPrice,
+      regularPrice: parsedRegular,
+      originalPrice: parsedRegular,
+      discount: computedDiscount,
+      rating: editingProduct?.rating ?? 5.0,
+      reviewsCount: editingProduct?.reviewsCount ?? 12,
+      image: primaryImage.trim(),
+      images: allImages,
+      videoUrl: videoUrl.trim() || undefined,
+      videoPoster: videoPoster.trim() || undefined,
+      sku: sku.trim() || `ZPBD-${Math.floor(1000 + Math.random() * 9000)}`,
+      tag: selectedTags[0] || 'Trending',
+      tags: selectedTags,
+      isFeatured: isFeatured,
+      inStock: stockStatus !== 'out_of_stock' && (stockStatus === 'pre_order' || parsedStock > 0),
+      stockStatus: stockStatus,
+      stockQuantity: parsedStock,
+      lowStockThreshold: parsedLowStock,
+      features: featuresArray.length > 0 ? featuresArray : ['100% Authentic Quality', 'Cash on Delivery Nationwide'],
+      storeName: editingProduct?.storeName || 'ZeropicBD Official',
+      sellerName: editingProduct?.sellerName || 'ZeropicBD Official',
+    };
 
     if (editingProduct) {
-      // Update
-      const updated: Product = {
+      onUpdateProduct({
         ...editingProduct,
-        title: title.trim(),
-        description: description.trim(),
-        price: parsedPrice,
-        originalPrice: parsedOriginalPrice,
-        discount: computedDiscount,
-        category,
-        inStock: finalInStock,
-        stockQuantity: parsedStock,
-        lowStockThreshold: parsedThreshold,
-        image: imageUrl.trim(),
-        images: finalImages,
-        videoUrl: videoUrl.trim() || undefined,
-        videoPoster: videoPoster.trim() || undefined,
-        sampleVideoUrl: sampleVideoUrl.trim() || undefined,
-        aiShowcaseVideoUrl: aiShowcaseVideoUrl.trim() || undefined,
-        fragranceNotes,
-        tag: tag.trim() || undefined,
-        isFeatured,
-        features: featuresArray.length > 0 ? featuresArray : ['High quality material', 'Original product'],
-      };
-      onUpdateProduct(updated);
-    } else {
-      // Add
-      onAddProduct({
-        title: title.trim(),
-        description: description.trim(),
-        price: parsedPrice,
-        originalPrice: parsedOriginalPrice,
-        discount: computedDiscount,
-        category,
-        rating: 4.9,
-        reviewsCount: 1,
-        inStock: finalInStock,
-        stockQuantity: parsedStock,
-        lowStockThreshold: parsedThreshold,
-        image: imageUrl.trim(),
-        images: finalImages,
-        videoUrl: videoUrl.trim() || undefined,
-        videoPoster: videoPoster.trim() || undefined,
-        sampleVideoUrl: sampleVideoUrl.trim() || undefined,
-        aiShowcaseVideoUrl: aiShowcaseVideoUrl.trim() || undefined,
-        fragranceNotes,
-        tag: tag.trim() || undefined,
-        isFeatured,
-        features: featuresArray.length > 0 ? featuresArray : ['High quality material', 'Original product'],
+        ...productPayload,
       });
+    } else {
+      onAddProduct(productPayload);
     }
 
     setIsModalOpen(false);
   };
 
-  // Toggle Featured status quickly
-  const handleToggleFeatured = (product: Product) => {
-    onUpdateProduct({
-      ...product,
-      isFeatured: !product.isFeatured,
-    });
-  };
-
-  // Toggle stock quickly
-  const handleQuickToggleStock = (product: Product) => {
-    onUpdateProduct({
-      ...product,
-      inStock: !product.inStock,
-    });
-  };
-
-  // Filter products
-  const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-    const q = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      p.title.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.description && p.description.toLowerCase().includes(q));
-    return matchesCategory && matchesSearch;
-  });
-
   return (
-    <div className="space-y-4">
-      {/* Action and Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-xl border border-white/5">
-        <div className="flex flex-col sm:flex-row gap-3 flex-1">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+    <div className="space-y-6 animate-fadeIn text-slate-800">
+      {/* ================= 1. HEADER & KPI STATS (Light ZeropicBD Theme) ================= */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#007BFF] animate-pulse" />
+              <h3 className="text-xl font-black text-[#0A1B3D]">
+                Product Catalog & Inventory Management
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-[#007BFF] border border-blue-200">
+                {products.length} Products
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Add new products, upload images/videos, manage stock levels, and organize homepage featured items.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {dummyProductIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setDummyPurgeModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Remove demo dummy products in one click"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Delete {dummyProductIds.length} Demo Products</span>
+              </button>
+            )}
+
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm animate-bounce [animation-duration:3s]"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Selected ({selectedIds.size})</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="px-4 py-2.5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Product</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Filter Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input
-              id="admin-search-products-input"
               type="text"
+              placeholder="Search by title, SKU, tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products by title, category..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#007BFF] focus:bg-white transition-all placeholder:text-slate-400"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Category Filter */}
-          <select
-            id="admin-category-filter-select"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-400"
-          >
-            <option value="All">All Categories ({products.length})</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Add Product Button */}
-        <button
-          id="admin-add-product-btn"
-          onClick={handleOpenAddModal}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-1.5 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </button>
-      </div>
-
-      {/* Products Stats Pill */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-        <span>Showing <strong>{filteredProducts.length}</strong> of {products.length} products</span>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            In Stock: {products.filter((p) => p.inStock).length}
-          </span>
-          <span className="flex items-center gap-1.5 text-rose-400">
-            <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-            Out of Stock: {products.filter((p) => !p.inStock).length}
-          </span>
-        </div>
-      </div>
-
-      {/* Product List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filteredProducts.length === 0 ? (
-          <div className="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-dashed border-slate-800 text-slate-500">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-600" />
-            <p className="text-sm font-semibold">No products found</p>
-            <p className="text-xs text-slate-500 mt-1">Try changing your search keywords or click "Add New Product".</p>
-          </div>
-        ) : (
-          filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/30 transition-all flex gap-3 items-start justify-between group"
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-none focus:border-[#007BFF] focus:bg-white transition-all cursor-pointer"
             >
-              {/* Product Thumbnail */}
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-slate-950 shrink-0 border border-white/5">
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-full object-cover object-center"
-                />
-                {!product.inStock && (
-                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-tighter text-center px-1">
-                      Out of Stock
-                    </span>
-                  </div>
-                )}
-              </div>
+              <option value="All">All Categories ({products.length})</option>
+              {allCategories.map((cat) => {
+                const count = products.filter((p) => p.category === cat).length;
+                return (
+                  <option key={cat} value={cat}>
+                    {cat} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0 pr-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
-                    {product.category}
-                  </span>
-                  {product.tag && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-950/60 text-pink-300 border border-pink-500/30">
-                      {product.tag}
-                    </span>
-                  )}
-                  {product.originalPrice && product.originalPrice > product.price && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-500/30 font-mono">
-                      -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                    </span>
-                  )}
-                  {product.sampleVideoUrl && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-                      <Video className="w-2.5 h-2.5" />
-                      <span>Sample Video</span>
-                    </span>
-                  )}
-                  {(product.aiShowcaseVideoUrl || product.videoUrl) && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                      <Film className="w-2.5 h-2.5" />
-                      <span>AI Showcase</span>
-                    </span>
-                  )}
-                </div>
+          {/* Stock Filter */}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedStockFilter}
+              onChange={(e) => setSelectedStockFilter(e.target.value as any)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-none focus:border-[#007BFF] focus:bg-white transition-all cursor-pointer"
+            >
+              <option value="all">All Stock Statuses</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+              <option value="pre_order">Pre-Order</option>
+            </select>
+          </div>
 
-                <h4 className="text-xs sm:text-sm font-bold text-white truncate mt-1">
-                  {product.title}
-                </h4>
+          {/* Featured Toggle */}
+          <button
+            type="button"
+            onClick={() => setFeaturedOnlyFilter(!featuredOnlyFilter)}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              featuredOnlyFilter
+                ? 'bg-amber-50 border-amber-300 text-amber-800 shadow-2xs'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${featuredOnlyFilter ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+            <span>Featured on Home ({products.filter((p) => p.isFeatured).length})</span>
+          </button>
+        </div>
+      </div>
 
-                <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                  {product.description}
-                </p>
+      {/* ================= 2. BULK SELECTION ACTION STRIP ================= */}
+      {filteredProducts.length > 0 && (
+        <div className="flex items-center justify-between px-3 py-2 bg-[#F3F7FF] rounded-xl border border-blue-100 text-xs">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleToggleSelectAll}
+              className="flex items-center gap-2 text-slate-700 font-bold hover:text-[#007BFF] cursor-pointer"
+            >
+              {selectedIds.size === filteredProducts.length && filteredProducts.length > 0 ? (
+                <CheckSquare className="w-4 h-4 text-[#007BFF]" />
+              ) : (
+                <Square className="w-4 h-4 text-slate-400" />
+              )}
+              <span>Select All Visible ({filteredProducts.length})</span>
+            </button>
 
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="text-xs font-mono font-bold text-cyan-400">
-                    ৳{product.price}
-                    {product.originalPrice && (
-                      <span className="text-[10px] line-through text-slate-500 ml-1 font-normal">
-                        ৳{product.originalPrice}
+            {selectedIds.size > 0 && (
+              <span className="font-semibold text-[#007BFF]">
+                {selectedIds.size} product{selectedIds.size > 1 ? 's' : ''} selected
+              </span>
+            )}
+          </div>
+
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-[11px] text-slate-500 hover:text-slate-700 font-medium underline cursor-pointer"
+              >
+                Clear Selection
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[11px] shadow-2xs cursor-pointer flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= 3. PRODUCTS LISTING GRID / CARDS ================= */}
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 space-y-3 shadow-xs">
+          <Box className="w-12 h-12 text-slate-300 mx-auto" />
+          <h4 className="text-base font-bold text-slate-800">No Products Found</h4>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            No products match your current search and filters. Try resetting filters or add a new product.
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSelectedStockFilter('all');
+                setFeaturedOnlyFilter(false);
+              }}
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              Reset Filters
+            </button>
+            <button
+              onClick={handleOpenAddModal}
+              className="px-4 py-1.5 rounded-xl bg-[#007BFF] text-white text-xs font-bold hover:bg-[#0056B3] cursor-pointer"
+            >
+              Add New Product
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredProducts.map((product) => {
+            const isSelected = selectedIds.has(product.id);
+            const stock = getProductStock(product);
+            const status = getProductStockStatus(product);
+            const isDummy = dummyProductIds.includes(product.id);
+
+            return (
+              <div
+                key={product.id}
+                className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col overflow-hidden shadow-xs hover:shadow-md ${
+                  isSelected
+                    ? 'border-[#007BFF] ring-2 ring-blue-100 bg-blue-50/20'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                {/* Card Top Strip with Checkbox, Category, Badges */}
+                <div className="p-3.5 pb-2 flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSelectOne(product.id)}
+                      className="cursor-pointer shrink-0 text-slate-400 hover:text-[#007BFF]"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-4 h-4 text-[#007BFF]" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                    <span className="text-[11px] font-bold text-[#007BFF] truncate max-w-[130px]">
+                      {product.category}
+                    </span>
+                    {product.subCategory && (
+                      <span className="text-[10px] text-slate-400 truncate max-w-[100px]">
+                        • {product.subCategory}
                       </span>
                     )}
                   </div>
 
-                  {/* Quick Stock Adjustment Steppers & Live Indicator */}
-                  {(() => {
-                    const currentStock = getProductStock(product);
-                    const isLow = currentStock <= 5 && currentStock > 0;
-                    const isOut = currentStock === 0 || !product.inStock;
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Featured Star Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => handleInlineToggleFeatured(product)}
+                      className={`p-1 rounded-md transition-colors cursor-pointer ${
+                        product.isFeatured
+                          ? 'text-amber-500 hover:bg-amber-50'
+                          : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'
+                      }`}
+                      title={product.isFeatured ? 'Featured on Home Page (Click to unfeature)' : 'Mark as Featured on Home'}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${product.isFeatured ? 'fill-amber-400' : ''}`} />
+                    </button>
 
-                    return (
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
-                          <button
-                            type="button"
-                            onClick={() => handleAdjustProductStock(product, -1)}
-                            disabled={currentStock <= 0}
-                            className="w-5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-bold disabled:opacity-30 cursor-pointer"
-                            title="Decrease stock (-1 unit)"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className={`text-[11px] font-mono font-black px-1 ${
-                            isOut ? 'text-rose-400' : isLow ? 'text-amber-400' : 'text-cyan-300'
-                          }`}>
-                            {currentStock}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleAdjustProductStock(product, 1)}
-                            className="w-5 h-5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-bold cursor-pointer"
-                            title="Increase stock (+1 unit)"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
+                    {isDummy && (
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-semibold">
+                        DEMO
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-                        {/* Stock status pill & low-stock warning alert */}
-                        {isOut ? (
-                          <button
-                            type="button"
-                            onClick={() => handleQuickToggleStock(product)}
-                            className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-950/80 text-rose-400 border border-rose-500/30 flex items-center gap-1 cursor-pointer hover:bg-rose-900"
-                            title="Out of stock - Click to toggle"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                            <span>Out of Stock</span>
-                          </button>
-                        ) : isLow ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-950/80 text-amber-300 border border-amber-500/50 flex items-center gap-1 animate-pulse" title="Critical low inventory alert">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
-                            <span>Low Stock ({currentStock} left)</span>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleQuickToggleStock(product)}
-                            className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 cursor-pointer hover:bg-emerald-900"
-                            title="In stock - Click to toggle"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>In Stock</span>
-                          </button>
-                        )}
+                {/* Card Middle: Image + Details */}
+                <div className="p-3.5 flex gap-3.5 flex-1">
+                  {/* Thumbnail with Video Indicator */}
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&q=80&w=800';
+                      }}
+                    />
+                    {product.videoUrl && (
+                      <div className="absolute bottom-1 right-1 p-1 bg-black/70 rounded-full text-cyan-400">
+                        <Play className="w-2.5 h-2.5 fill-cyan-400" />
                       </div>
-                    );
-                  })()}
+                    )}
+                    {product.images && product.images.length > 1 && (
+                      <div className="absolute top-1 left-1 px-1 py-0.2 rounded bg-black/60 text-white font-mono text-[9px] font-bold">
+                        +{product.images.length}
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Featured toggle switch */}
-                  <button
-                    onClick={() => handleToggleFeatured(product)}
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors flex items-center gap-1 ${
-                      product.isFeatured
-                        ? 'bg-amber-950/80 text-amber-300 border border-amber-500/40 hover:bg-amber-900/80'
-                        : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:text-slate-200'
-                    }`}
-                    title="Toggle Homepage Featured Spotlight"
-                  >
-                    <Star className={`w-3 h-3 ${product.isFeatured ? 'fill-amber-400 text-amber-400' : 'text-slate-500'}`} />
-                    <span>{product.isFeatured ? 'Featured' : 'Normal'}</span>
-                  </button>
-                </div>
-              </div>
+                  {/* Title & Pricing */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-[#0A1B3D] line-clamp-1 hover:text-[#007BFF] transition-colors" title={product.title}>
+                        {product.title}
+                      </h4>
+                      <p className="text-[11px] font-mono text-slate-400">
+                        SKU: {product.sku || product.id}
+                      </p>
+                    </div>
 
-              {/* Action Buttons */}
-              <div className="flex sm:flex-col gap-1.5 shrink-0">
-                <button
-                  id={`edit-product-${product.id}`}
-                  onClick={() => handleOpenEditModal(product)}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/5 hover:border-cyan-500/30 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold"
-                  title="Edit Product"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Edit</span>
-                </button>
-
-                <button
-                  id={`delete-product-${product.id}`}
-                  onClick={() => setDeleteConfirmId(product.id)}
-                  className="px-2.5 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/60 transition-all flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer"
-                  title="Delete Product from store"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Delete Confirmation Alert Modal */}
-      {deleteConfirmId && (() => {
-        const prodToDelete = products.find((p) => p.id === deleteConfirmId);
-        return (
-          <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <div className="w-full max-w-md bg-slate-900 border border-rose-500/50 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4">
-              <div className="flex items-center gap-3 text-rose-400 border-b border-rose-500/20 pb-3">
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Delete Product from Store</h3>
-                  <p className="text-[11px] text-slate-400">Safety Verification Confirmation</p>
-                </div>
-              </div>
-
-              {prodToDelete && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
-                  <img
-                    src={prodToDelete.image}
-                    alt={prodToDelete.title}
-                    className="w-14 h-14 rounded-lg object-cover bg-slate-900 border border-slate-700 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1 text-xs">
-                    <h4 className="font-bold text-white truncate">{prodToDelete.title}</h4>
-                    <p className="text-slate-400 text-[11px] mt-0.5">Category: {prodToDelete.category}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="font-mono font-bold text-cyan-400">৳{prodToDelete.price}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">SKU: {prodToDelete.id}</span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-base font-black font-mono text-[#007BFF]">
+                        ৳{product.price.toLocaleString()}
+                      </span>
+                      {product.originalPrice && product.originalPrice > product.price && (
+                        <span className="text-xs font-mono text-slate-400 line-through">
+                          ৳{product.originalPrice.toLocaleString()}
+                        </span>
+                      )}
+                      {product.discount && (
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1 rounded">
+                          {product.discount}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
 
-              <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/30 text-xs text-rose-300 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-rose-200">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>Are you sure you want to permanently delete this product?</span>
-                </p>
-                <p className="text-[11px] text-slate-400 leading-relaxed pl-5">
-                  This item will immediately be removed from the storefront catalog, active buyer carts, category grids, and live search queries across all devices without needing a hard reload.
-                </p>
+                {/* Card Lower Strip: Stock Status & Quantity Controls */}
+                <div className="px-3.5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                  {/* Stock Status Selector */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={status}
+                      onChange={(e) => handleInlineToggleStatus(product, e.target.value as any)}
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border cursor-pointer focus:outline-none ${
+                        status === 'in_stock'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : status === 'pre_order'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      <option value="in_stock">In Stock</option>
+                      <option value="out_of_stock">Out of Stock</option>
+                      <option value="pre_order">Pre-Order</option>
+                    </select>
+
+                    {/* Stock Counter Stepper */}
+                    <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => handleInlineStockDelta(product, -1)}
+                        className="px-1.5 py-0.5 text-slate-500 hover:bg-slate-100 cursor-pointer"
+                        title="Decrease stock by 1"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="px-2 font-mono text-[11px] font-bold text-slate-700">
+                        {stock}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleInlineStockDelta(product, 1)}
+                        className="px-1.5 py-0.5 text-slate-500 hover:bg-slate-100 cursor-pointer"
+                        title="Increase stock by 1"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions (Edit / Delete) */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(product)}
+                      className="p-1.5 rounded-lg text-slate-600 hover:text-[#007BFF] hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Edit Product"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmId(product.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Delete Product"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
-                <button
-                  id="admin-cancel-delete-btn"
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  id="admin-confirm-delete-btn"
-                  onClick={() => {
-                    onDeleteProduct(deleteConfirmId);
-                    setDeleteConfirmId(null);
-                  }}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Yes, Delete Product</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Add / Edit Product Modal */}
+      {/* ================= 4. ADD / EDIT PRODUCT MODAL ================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-[#0d1020] rounded-2xl border border-cyan-500/40 p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-black text-white">
-                  {editingProduct ? 'Edit Product Details' : 'Add New Product to Store'}
-                </h3>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 text-[#007BFF] flex items-center justify-center">
+                  {editingProduct ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#0A1B3D]">
+                    {editingProduct ? `Edit Product: ${editingProduct.title}` : 'Add New Marketplace Product'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Full product specifications, pricing, stock control, and rich media assets.
+                  </p>
+                </div>
               </div>
+
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {formError && (
-              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
-              {/* Title */}
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Product Title*</label>
-                <input
-                  id="product-form-title"
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Lumina Crystal Galaxy Lamp"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              {/* Category & Tag */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Category*</label>
-                  <select
-                    id="product-form-category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-400"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+            {/* Modal Form Body */}
+            <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+              {formError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">Tag / Badge (Optional)</label>
-                  <input
-                    id="product-form-tag"
-                    type="text"
-                    value={tag}
-                    onChange={(e) => setTag(e.target.value)}
-                    placeholder="e.g. Bestseller, New, Trending"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-
-              {/* Price & Original Price */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">
-                    Selling Price (৳)*
-                    <span className="text-[10px] font-normal text-slate-400 block">Actual price customer pays</span>
-                  </label>
-                  <input
-                    id="product-form-price"
-                    type="number"
-                    required
-                    min="1"
-                    step="any"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="e.g. 950"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-300 mb-1">
-                    Original Price (৳) (Optional)
-                    <span className="text-[10px] font-normal text-slate-400 block">MRP / Regular price before discount</span>
-                  </label>
-                  <input
-                    id="product-form-original-price"
-                    type="number"
-                    min="1"
-                    step="any"
-                    value={originalPrice}
-                    onChange={(e) => setOriginalPrice(e.target.value)}
-                    placeholder="e.g. 1200"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-
-              {/* Dynamic Discount Calculator Preview */}
-              {parseFloat(price) > 0 && parseFloat(originalPrice) > parseFloat(price) ? (
-                <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    Computed Discount: -{Math.round(((parseFloat(originalPrice) - parseFloat(price)) / parseFloat(originalPrice)) * 100)}% OFF
-                  </span>
-                  <span className="font-mono text-emerald-200 font-bold">
-                    Saves ৳{(parseFloat(originalPrice) - parseFloat(price)).toLocaleString()}
-                  </span>
-                </div>
-              ) : originalPrice && parseFloat(originalPrice) <= parseFloat(price) ? (
-                <div className="p-2 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[11px]">
-                  ⚠️ Note: Original Price is ≤ Sale Price. No discount badge will be displayed on this product.
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-400 px-1">
-                  💡 Discounts are strictly computed when Original Price is greater than Sale Price.
-                </p>
               )}
 
-              {/* Stock Quantity & Threshold Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Physical Units in Stock*
-                    <span className="text-[10px] text-slate-500 font-normal block">Total available warehouse quantity</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={stockQuantityInput}
-                    onChange={(e) => {
-                      setStockQuantityInput(e.target.value);
-                      if (parseInt(e.target.value) === 0) {
-                        setInStock(false);
-                      } else if (parseInt(e.target.value) > 0 && !inStock) {
-                        setInStock(true);
-                      }
-                    }}
-                    placeholder="e.g. 20"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  1. Basic Product Information
+                </h4>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Low-Stock Alert Threshold
-                    <span className="text-[10px] text-slate-500 font-normal block">Triggers low-stock warning alert when ≤ this level</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={lowStockThresholdInput}
-                    onChange={(e) => setLowStockThresholdInput(e.target.value)}
-                    placeholder="e.g. 5"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-
-              {/* Stock Status Selector */}
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-white block">Stock Availability Status*</span>
-                  <span className="text-[11px] text-slate-400">
-                    {inStock ? 'Item will be displayed as available for purchase' : 'Item will display "Out of Stock" and purchase disabled'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  id="product-form-stock-toggle"
-                  onClick={() => setInStock(!inStock)}
-                  className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                    inStock
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                  }`}
-                >
-                  {inStock ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5 text-rose-400" />}
-                  <span>{inStock ? 'In Stock' : 'Out of Stock'}</span>
-                </button>
-              </div>
-
-              {/* Homepage Featured Spotlight Selector */}
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="font-semibold text-white flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span>Featured on Homepage Spotlight</span>
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    Promote this item in Hero Highlights and Flash Sale showcase
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  id="product-form-featured-toggle"
-                  onClick={() => setIsFeatured(!isFeatured)}
-                  className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                    isFeatured
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700'
-                  }`}
-                >
-                  {isFeatured ? <ToggleRight className="w-5 h-5 text-amber-400" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
-                  <span>{isFeatured ? '★ Featured' : 'Standard'}</span>
-                </button>
-              </div>
-
-              {/* Image URL & File Upload */}
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Product Image (URL or Upload)*</label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Title */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Product Title *
+                    </label>
                     <input
-                      id="product-form-image-url"
                       type="text"
                       required
-                      value={imageUrl}
-                      onChange={(e) => {
-                        setImageUrl(e.target.value);
-                        setImagePreviewError(false);
-                      }}
-                      placeholder="Paste image URL (https://...)"
-                      className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono text-[11px]"
+                      placeholder="e.g. Luxury Velvet Oud Perfume (100ml)"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF] transition-all"
                     />
-                    <label className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Upload</span>
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-medium focus:outline-none focus:border-[#007BFF] cursor-pointer"
+                    >
+                      {allCategories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                      <option value="CUSTOM">+ Add Custom Category</option>
+                    </select>
+                  </div>
+
+                  {/* Sub-Category or Custom Category Input */}
+                  <div>
+                    {category === 'CUSTOM' ? (
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1">
+                          Enter Custom Category Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Leather Crafts"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1">
+                          Sub-Category (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Eau De Parfum / LED Desk Lamp / Building Set"
+                          value={subCategory}
+                          onChange={(e) => setSubCategory(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SKU / Code */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      SKU / Product Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ZPBD-9821"
+                      value={sku}
+                      onChange={(e) => setSku(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+
+                  {/* Featured on Home Page Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <div>
+                      <span className="font-bold text-slate-800 block">Featured on Home Page</span>
+                      <span className="text-[10px] text-slate-500">Showcases in the prominent Home grid</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsFeatured(!isFeatured)}
+                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
+                        isFeatured ? 'bg-[#007BFF]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 left-0.5 shadow-sm ${
+                          isFeatured ? 'translate-x-6' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Product Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe the product quality, dimensions, materials, benefits..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                  />
+                </div>
+              </div>
+
+              {/* Pricing & Stock Management */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  2. Pricing & Stock Inventory
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Selling Price */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Sale Price (৳ BDT) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="any"
+                      placeholder="e.g. 1450"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono font-bold text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+
+                  {/* Regular Price (MSRP) */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Regular Price / MSRP (৳ BDT)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 1800 (for discount strikethrough)"
+                      value={regularPrice}
+                      onChange={(e) => setRegularPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+
+                  {/* Stock Quantity */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Stock Quantity (Units)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 25"
+                      value={stockQuantityInput}
+                      onChange={(e) => setStockQuantityInput(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+
+                  {/* Stock Status Selector */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Stock Status *
+                    </label>
+                    <select
+                      value={stockStatus}
+                      onChange={(e) => setStockStatus(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs font-semibold focus:outline-none focus:border-[#007BFF]"
+                    >
+                      <option value="in_stock">In Stock (Available immediately)</option>
+                      <option value="out_of_stock">Out of Stock (Mark as unavailable)</option>
+                      <option value="pre_order">Pre-Order (Book in advance)</option>
+                    </select>
+                  </div>
+
+                  {/* Low Stock Warning Threshold */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Low Stock Alert Threshold
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 5"
+                      value={lowStockThresholdInput}
+                      onChange={(e) => setLowStockThresholdInput(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+
+                  {/* Features / Highlights */}
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Key Highlights (Comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 100% Original, Waterproof, Gift Pack"
+                      value={featuresText}
+                      onChange={(e) => setFeaturesText(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                  </div>
+                </div>
+
+                {/* Product Tags */}
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1.5">
+                    Product Tags (Select or add custom)
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    {PRESET_TAGS.map((t) => {
+                      const isSelected = selectedTags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => handleToggleTag(t)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#007BFF] text-white shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Tag Input */}
+                  <div className="flex items-center gap-2 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder="Add another tag..."
+                      value={customTagInput}
+                      onChange={(e) => setCustomTagInput(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomTag}
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 cursor-pointer"
+                    >
+                      Add Tag
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Media Management (Multiple Images & Video) */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  3. Product Images & Video Assets
+                </h4>
+
+                {/* Primary Thumbnail Image */}
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Primary Thumbnail Image URL *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://images.unsplash.com/..."
+                      value={primaryImage}
+                      onChange={(e) => setPrimaryImage(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                    <label className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <Upload className="w-3.5 h-3.5 text-[#007BFF]" />
+                      <span>Upload File</span>
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={handleImageFileUpload}
+                        onChange={(e) => handleFileUpload(e, true)}
                         className="hidden"
                       />
                     </label>
                   </div>
 
-                  {/* Live Image Preview */}
-                  {imageUrl && (
-                    <div className="flex items-center gap-3 p-2 bg-slate-950 rounded-xl border border-slate-800">
-                      <img
-                        src={imageUrl}
-                        alt="Preview"
-                        onError={() => setImagePreviewError(true)}
-                        className="w-12 h-12 rounded-lg object-cover bg-slate-900 border border-white/10 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0 text-[11px]">
-                        <span className="text-slate-300 font-medium block">Live Image Preview</span>
-                        <span className="text-slate-500 truncate block">
-                          {imagePreviewError ? '⚠️ Image could not be loaded, check URL' : '✓ Image ready to render'}
-                        </span>
+                  {primaryImage && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 shrink-0">
+                        <img src={primaryImage} alt="Preview" className="w-full h-full object-cover" />
                       </div>
+                      <span className="text-[11px] text-slate-500">
+                        ✓ Primary catalog thumbnail loaded
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Multiple Photos Gallery (Daraz-style) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-300 flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Daraz-Style Multiple Gallery Photos (One URL per line)</span>
-                  </label>
-                  <label className="text-[10px] text-cyan-400 font-mono flex items-center gap-1 cursor-pointer hover:underline">
-                    <Upload className="w-3 h-3" />
-                    <span>Upload Extra Photos</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => {
-                        const files = e.target.files;
-                        if (!files || files.length === 0) return;
-                        Array.from(files).forEach((file) => {
-                          if (file.size <= 3 * 1024 * 1024) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              const dataUrl = event.target?.result as string;
-                              setGalleryImagesText((prev) => (prev ? `${prev}\n${dataUrl}` : dataUrl));
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        });
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <textarea
-                  id="product-form-gallery-images"
-                  rows={2}
-                  value={galleryImagesText}
-                  onChange={(e) => setGalleryImagesText(e.target.value)}
-                  placeholder="https://example.com/photo2.jpg&#10;https://example.com/photo3.jpg"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono text-[11px] leading-relaxed"
-                />
-              </div>
-
-              {/* Enhanced Media Support: Product Sample Video */}
-              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-cyan-400 font-semibold text-xs">
-                    <Video className="w-4 h-4 text-cyan-400" />
-                    <span>Product Sample Video (Live Unboxing / Demonstration)</span>
-                  </div>
-                  <label className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer flex items-center gap-1 text-[10px] font-bold transition-colors">
-                    <Upload className="w-3 h-3 text-cyan-400" />
-                    <span>Upload Video File</span>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleSampleVideoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+                {/* Additional Gallery Images */}
                 <div>
-                  <input
-                    id="product-form-sample-video-url"
-                    type="text"
-                    value={sampleVideoUrl}
-                    onChange={(e) => setSampleVideoUrl(e.target.value)}
-                    placeholder="Enter Sample Video URL (MP4, WebM or YouTube link: https://youtube.com/watch?v=...)"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-[11px] placeholder-slate-600 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-
-                {/* Sample Video Live Preview */}
-                {sampleVideoUrl && (
-                  <div className="mt-2 rounded-xl overflow-hidden bg-black border border-cyan-500/20 aspect-video relative">
-                    {getYouTubeEmbedUrl(sampleVideoUrl) ? (
-                      <iframe
-                        src={getYouTubeEmbedUrl(sampleVideoUrl)}
-                        title="Sample Video Preview"
-                        className="w-full h-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video
-                        src={sampleVideoUrl}
-                        controls
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
-                      ✓ Live Sample Video Preview
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Enhanced Media Support: AI Showcase Video */}
-              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-purple-500/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-xs">
-                    <Film className="w-4 h-4 text-purple-400" />
-                    <span>AI Showcase Video (3D CGI Render / AI Cinematic Trailer)</span>
-                  </div>
-                  <label className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 cursor-pointer flex items-center gap-1 text-[10px] font-bold transition-colors">
-                    <Upload className="w-3 h-3 text-purple-400" />
-                    <span>Upload AI Video</span>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleAiVideoUpload}
-                      className="hidden"
-                    />
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Additional Gallery Images (Multi-Image Support)
                   </label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">Video Stream / YouTube Link</label>
+                  <div className="flex items-center gap-2">
                     <input
-                      id="product-form-video-url"
-                      type="text"
-                      value={aiShowcaseVideoUrl || videoUrl}
-                      onChange={(e) => {
-                        setAiShowcaseVideoUrl(e.target.value);
-                        setVideoUrl(e.target.value);
-                      }}
-                      placeholder="https://example.com/ai-video.mp4 or YouTube link"
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-[11px] placeholder-slate-600 focus:outline-none focus:border-purple-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">Video Poster Thumbnail (Optional)</label>
-                    <input
-                      id="product-form-video-poster"
                       type="url"
+                      placeholder="Enter extra gallery image URL..."
+                      value={newImageUrlInput}
+                      onChange={(e) => setNewImageUrlInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddGalleryImageUrl}
+                      className="px-3 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-700 cursor-pointer shrink-0"
+                    >
+                      + Add URL
+                    </button>
+                    <label className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, false)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Gallery Thumbnails List */}
+                  {galleryImages.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2.5">
+                      {galleryImages.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className="relative group w-18 h-18 rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
+                        >
+                          <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-80 group-hover:opacity-100 cursor-pointer shadow-xs"
+                            title="Remove this image"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Video (YouTube embed or MP4 direct link) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Product Video URL (YouTube or Direct MP4 link)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://www.youtube.com/watch?v=M7lc1UVf-VE"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Supports YouTube embed URLs or direct MP4/WebM video links.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Video Poster / Cover Image URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://..."
                       value={videoPoster}
                       onChange={(e) => setVideoPoster(e.target.value)}
-                      placeholder="https://example.com/poster.jpg"
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white font-mono text-[11px] placeholder-slate-600 focus:outline-none focus:border-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-[#007BFF]"
                     />
                   </div>
                 </div>
 
-                {/* AI Video Live Preview */}
-                {(aiShowcaseVideoUrl || videoUrl) && (
-                  <div className="mt-2 rounded-xl overflow-hidden bg-black border border-purple-500/20 aspect-video relative">
-                    {getYouTubeEmbedUrl(aiShowcaseVideoUrl || videoUrl) ? (
-                      <iframe
-                        src={getYouTubeEmbedUrl(aiShowcaseVideoUrl || videoUrl)}
-                        title="AI Showcase Video Preview"
-                        className="w-full h-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                {/* Video Preview if present */}
+                {videoUrl && (
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-xs font-bold text-slate-600 block mb-2">
+                      Video Live Preview:
+                    </span>
+                    {videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be') ? (
+                      <div className="aspect-video w-full max-w-sm rounded-lg overflow-hidden bg-black">
+                        <iframe
+                          src={getYouTubeEmbedUrl(videoUrl)}
+                          title="Preview"
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      </div>
                     ) : (
                       <video
-                        src={aiShowcaseVideoUrl || videoUrl}
-                        poster={videoPoster}
+                        src={videoUrl}
                         controls
-                        className="w-full h-full object-cover"
+                        className="aspect-video w-full max-w-sm rounded-lg overflow-hidden bg-black"
                       />
                     )}
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 text-purple-300 text-[10px] font-bold border border-purple-500/30">
-                      ✓ Live AI Showcase Video Preview
-                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Fragrance Notes (Top, Heart, Base) */}
-              <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/20 space-y-2">
-                <div className="flex items-center gap-1.5 text-amber-300 font-semibold">
-                  <Flame className="w-4 h-4 text-[#fbbf24]" />
-                  <span>Fragrance Olfactory Pyramid (Top, Heart & Base Notes)</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Top Notes (0-15m)</label>
-                    <input
-                      id="product-form-fragrance-top"
-                      type="text"
-                      value={fragranceTop}
-                      onChange={(e) => setFragranceTop(e.target.value)}
-                      placeholder="e.g. Sea Water, Mint, Lavender"
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-[11px] placeholder-slate-600 focus:outline-none focus:border-[#fbbf24]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Heart Notes (2-4h)</label>
-                    <input
-                      id="product-form-fragrance-heart"
-                      type="text"
-                      value={fragranceHeart}
-                      onChange={(e) => setFragranceHeart(e.target.value)}
-                      placeholder="e.g. Sandalwood, Jasmine, Neroli"
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-[11px] placeholder-slate-600 focus:outline-none focus:border-[#fbbf24]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Base Notes (6-16h)</label>
-                    <input
-                      id="product-form-fragrance-base"
-                      type="text"
-                      value={fragranceBase}
-                      onChange={(e) => setFragranceBase(e.target.value)}
-                      placeholder="e.g. Musk, Cedar, Amber, Tobacco"
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-[11px] placeholder-slate-600 focus:outline-none focus:border-[#fbbf24]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Description*</label>
-                <textarea
-                  id="product-form-description"
-                  required
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detailed aesthetic description of the product..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
-                />
-              </div>
-
-              {/* Features (Comma separated) */}
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">Key Features (Comma separated)</label>
-                <input
-                  id="product-form-features"
-                  type="text"
-                  value={featuresText}
-                  onChange={(e) => setFeaturesText(e.target.value)}
-                  placeholder="e.g. Touch Dimmer, USB Rechargeable, 12h Battery"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              {/* Submit / Cancel buttons */}
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  id="save-product-submit-btn"
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white text-xs font-black shadow-[0_0_15px_rgba(6,182,212,0.4)] flex items-center gap-1.5"
+                  className="px-6 py-2.5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-sm cursor-pointer active:scale-95"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{editingProduct ? 'Save Changes' : 'Create Product'}</span>
+                  {editingProduct ? 'Save Product Changes' : 'Publish Product to Store'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 5. SINGLE DELETE CONFIRMATION MODAL ================= */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-black text-[#0A1B3D]">
+                Delete Product Permanently?
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to delete this product? It will be removed permanently from the marketplace catalog.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteProduct(deleteConfirmId);
+                  setDeleteConfirmId(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Yes, Delete Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 6. BULK DELETE MODAL ================= */}
+      {bulkDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-black text-[#0A1B3D]">
+                Bulk Delete {selectedIds.size} Selected Products?
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                This action will permanently delete all {selectedIds.size} selected products from the database and store catalog.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setBulkDeleteModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkDelete}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Yes, Delete {selectedIds.size} Products
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= 7. DUMMY PRODUCTS PURGE MODAL ================= */}
+      {dummyPurgeModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-black text-[#0A1B3D]">
+                Purge All Demo Dummy Products?
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Found <strong>{dummyProductIds.length}</strong> dummy/demo products in the database. Deleting them will clean the marketplace so only your authentic real products remain.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDummyPurgeModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPurgeDummy}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Purge All {dummyProductIds.length} Demo Products
+              </button>
+            </div>
           </div>
         </div>
       )}

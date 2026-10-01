@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, Address, WalletTransaction } from '../types';
 import { isFirebaseConfigured, signInWithGoogle } from '../lib/firebaseAuth';
+import { BrandLogo } from './BrandLogo';
 
 export interface AuthModalProps {
   isOpen: boolean;
@@ -116,7 +117,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Retrieve accounts permanently from localStorage
   const getRegisteredAccounts = (): any[] => {
     try {
-      const stored = localStorage.getItem('primevault_registered_accounts') || localStorage.getItem('zestflick_registered_accounts');
+      const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts') || localStorage.getItem('zestflick_registered_accounts');
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -284,15 +285,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     ];
 
     const accountData = {
-      name: name || 'Prime Member',
-      email: email.trim().toLowerCase() || `${cleanPhone}@primevault.zone`,
+      name: name || 'ZeropicBD Member',
+      email: email.trim().toLowerCase() || `${cleanPhone}@zeropicbd.com`,
       phone: cleanPhone,
       password: regPassword || 'google-auth-verified',
       isPhoneVerified: true,
       authProvider: authProvider,
       avatar: userAvatar,
       address: {
-        fullName: name || 'Prime Member',
+        fullName: name || 'ZeropicBD Member',
         phone: cleanPhone,
         cityDivision,
         fullAddress,
@@ -309,16 +310,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } else {
       accounts.push(accountData);
     }
+    localStorage.setItem('zeropicbd_registered_accounts', JSON.stringify(accounts));
     localStorage.setItem('primevault_registered_accounts', JSON.stringify(accounts));
 
     const newAddress: Address = {
-      fullName: name || 'Prime Member',
+      fullName: name || 'ZeropicBD Member',
       phone: cleanPhone,
       cityDivision,
       fullAddress,
     };
 
-    onSignup(name || 'Prime Member', email, cleanPhone, newAddress, true, authProvider, userAvatar);
+    onSignup(name || 'ZeropicBD Member', email, cleanPhone, newAddress, true, authProvider, userAvatar);
 
     if (onVerifyPhoneSuccess) {
       onVerifyPhoneSuccess(cleanPhone);
@@ -330,7 +332,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setRewardCelebration({
       amount: 20,
       phone: cleanPhone,
-      accountName: name || 'Prime Member',
+      accountName: name || 'ZeropicBD Member',
     });
   };
 
@@ -379,28 +381,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-fadeIn">
         <div 
           id="auth-modal"
-          className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-[#0d1020] rounded-3xl border border-purple-500/40 p-5 sm:p-7 shadow-2xl text-[#f8fafc]"
+          className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-2xl text-slate-900"
         >
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 p-2 rounded-xl bg-slate-100 text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
             aria-label="Close auth modal"
           >
             <X className="w-5 h-5" />
           </button>
 
           {/* Modal Header */}
-          <div className="text-center mb-5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-[#5B21B6] p-[1px] mx-auto mb-3 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-              <div className="w-full h-full bg-[#0d0f22] rounded-[15px] flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-purple-400" />
-              </div>
+          <div className="text-center mb-5 flex flex-col items-center">
+            <div className="mb-2">
+              <BrandLogo size="md" />
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-white">
-              {user.isLoggedIn ? 'Customer Profile & Wallet' : 'PRIME VAULT ZONE Member Club'}
+            <h2 className="text-lg sm:text-xl font-black text-[#0A1B3D]">
+              {user.isLoggedIn ? 'Customer Profile & Wallet' : 'ZeropicBD Member Club'}
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {user.isLoggedIn 
                 ? 'লাইভ ওয়ালেট ব্যালেন্স ও ডেলিভারি ঠিকানা ম্যানেজ করুন'
                 : 'Google Sign-In ও মোবাইল ভেরিফিকেশনে পাচ্ছেন ৳২০ ইনস্ট্যান্ট ওয়েলকাম বোনাস!'}
@@ -409,11 +409,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Simulated Live SMS Alert Toast Banner */}
           {smsToast && (
-            <div className="mb-4 p-3.5 rounded-xl bg-purple-950/90 border border-purple-400 text-purple-200 text-xs shadow-lg flex items-start gap-2.5 animate-slideDown">
-              <Smartphone className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+            <div className="mb-4 p-3.5 rounded-xl bg-[#F3F7FF] border border-blue-200 text-blue-900 text-xs shadow-sm flex items-start gap-2.5 animate-slideDown">
+              <Smartphone className="w-5 h-5 text-[#007BFF] shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-white uppercase text-[10px] tracking-wider">
+                  <span className="font-bold text-[#0A1B3D] uppercase text-[10px] tracking-wider">
                     💬 SMS Delivery Simulation (Instant)
                   </span>
                   <button
@@ -421,19 +421,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onClick={() => {
                       setOtpDigits(smsToast.code.split(''));
                     }}
-                    className="text-[10px] bg-white text-purple-950 font-bold px-1.5 py-0.5 rounded hover:bg-purple-100"
+                    className="text-[10px] bg-[#007BFF] text-white font-bold px-2 py-0.5 rounded hover:bg-[#0056B3] cursor-pointer"
                   >
                     Auto Fill
                   </button>
                 </div>
-                <p className="text-[11px] text-purple-100 mt-0.5">
-                  Prime Vault Verification OTP for <strong className="font-mono text-white">{smsToast.phone}</strong> is:
+                <p className="text-[11px] text-blue-800 mt-0.5">
+                  ZeropicBD Verification OTP for <strong className="font-mono text-[#0A1B3D]">{smsToast.phone}</strong> is:
                 </p>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded bg-purple-900 border border-purple-400 font-mono font-black text-white text-base tracking-widest">
+                  <span className="px-2.5 py-0.5 rounded bg-white border border-blue-300 font-mono font-black text-[#007BFF] text-base tracking-widest">
                     {smsToast.code}
                   </span>
-                  <span className="text-[10px] text-slate-300">Valid for 5 minutes</span>
+                  <span className="text-[10px] text-slate-500">Valid for 5 minutes</span>
                 </div>
               </div>
             </div>
@@ -441,13 +441,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Navigation Tabs (Only if not logged in) */}
           {!user.isLoggedIn && tab !== 'otp' && tab !== 'phone_verify' && (
-            <div className="flex rounded-xl bg-slate-900/90 p-1 border border-white/5 mb-5">
+            <div className="flex rounded-xl bg-[#F3F7FF] p-1 border border-slate-200 mb-5">
               <button
                 onClick={() => setTab('signup')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   tab === 'signup'
-                    ? 'bg-[#5B21B6] text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#0A1B3D] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-[#0A1B3D]'
                 }`}
               >
                 Sign Up (+৳20 Bonus)
@@ -456,8 +456,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onClick={() => setTab('login')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   tab === 'login'
-                    ? 'bg-[#5B21B6] text-white shadow'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#0A1B3D] text-white shadow-xs'
+                    : 'text-slate-600 hover:text-[#0A1B3D]'
                 }`}
               >
                 Log In
@@ -467,21 +467,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Error Alert */}
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Success Alert */}
           {successMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+            <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMsg}</span>
             </div>
           )}
 
-          {/* ================= 1. GOOGLE SIGN-IN HERO BUTTON ================= */}
+          {/* ================= 1. PROMINENT GOOGLE / GMAIL SIGN-IN BUTTON ================= */}
           {!user.isLoggedIn && (tab === 'signup' || tab === 'login') && (
             <div className="mb-5 space-y-3">
               <button
@@ -489,12 +489,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 id="google-signin-btn"
                 disabled={isGoogleLoading}
                 onClick={handleGoogleSignInClick}
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 disabled:opacity-75 text-[#1f2937] font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 border border-gray-200 cursor-pointer active:scale-98"
+                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-75 text-[#3c4043] font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-3 border border-slate-300 cursor-pointer active:scale-98"
               >
                 {isGoogleLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin text-purple-700" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
                 ) : (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -519,10 +519,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </span>
               </button>
 
-              <div className="flex items-center gap-3 text-slate-500 text-xs">
-                <div className="flex-1 h-px bg-slate-800" />
-                <span>or sign in with phone</span>
-                <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex items-center gap-3 text-slate-400 text-xs">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span>or continue with phone</span>
+                <div className="flex-1 h-px bg-slate-200" />
               </div>
             </div>
           )}
@@ -531,28 +531,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {!user.isLoggedIn && tab === 'signup' && (
             <form onSubmit={handleSignUpSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   আপনার পূর্ণ নাম (Full Name)*
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="যেমন: তানভীর আহমেদ"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   বাংলাদেশি মোবাইল নম্বর (01XXXXXXXXX)*
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="tel"
                     maxLength={11}
@@ -560,50 +560,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="01XXXXXXXXX (11 digits)"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono font-bold"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600 font-mono font-bold"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-500 mt-1">
                   মোবাইল নম্বর ভেরিফিকেশনের সাথে সাথেই আপনার ওয়ালেটে ৳২০ জমা হবে।
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   ইমেইল অ্যাড্রেস (Email Address - Optional)
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@gmail.com"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   পাসওয়ার্ড (Password)*
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="password"
                     required
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl font-bold text-xs bg-[#5B21B6] hover:bg-[#4C1D95] text-white shadow-lg transition-all mt-4 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                className="w-full py-3 rounded-xl font-bold text-xs bg-[#007BFF] hover:bg-[#0056B3] text-white shadow-md transition-all mt-4 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
               >
                 <span>পরবর্তী: OTP কোড পাঠান (+৳২০ বোনাস)</span>
                 <ArrowRight className="w-4 h-4" />
@@ -614,26 +614,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* ================= 3. PHONE VERIFICATION STEP ================= */}
           {!user.isLoggedIn && tab === 'phone_verify' && (
             <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-purple-900/30 border border-purple-500/30 text-xs text-purple-200">
+              <div className="p-3 rounded-xl bg-[#F3F7FF] border border-blue-200 text-xs text-blue-900">
                 <p className="font-bold">Google অ্যাকাউন্টের সাথে মোবাইল নম্বর সংযুক্ত করুন</p>
-                <p className="text-[11px] text-slate-300 mt-0.5">
+                <p className="text-[11px] text-slate-600 mt-0.5">
                   আপনার ওয়ালেটে ৳২০ ওয়েলকাম বোনাস সক্রিয় করার জন্য ১১ ডিজিটের মোবাইল নম্বরটি ভেরিফাই করুন।
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   ১১ ডিজিটের মোবাইল নম্বর (Phone Number)*
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="tel"
                     maxLength={11}
                     value={verificationPhone}
                     onChange={(e) => setVerificationPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="01XXXXXXXXX"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400 font-mono font-bold"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 font-mono font-bold"
                   />
                 </div>
               </div>
@@ -641,7 +641,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={() => triggerSendOtp(verificationPhone, name)}
-                className="w-full py-3 rounded-xl font-bold text-xs bg-[#5B21B6] hover:bg-[#4C1D95] text-white shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl font-bold text-xs bg-[#007BFF] hover:bg-[#0056B3] text-white shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>ভেরিফিকেশন OTP কোড পাঠান</span>
                 <ArrowRight className="w-4 h-4" />
@@ -652,14 +652,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* ================= 4. OTP INPUT SCREEN ================= */}
           {!user.isLoggedIn && tab === 'otp' && (
             <div className="space-y-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-purple-500/10 border border-purple-400 mx-auto flex items-center justify-center text-2xl">
+              <div className="w-14 h-14 rounded-full bg-[#F3F7FF] border border-blue-200 mx-auto flex items-center justify-center text-2xl">
                 📱
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Mobile SMS OTP Verification</h3>
-                <p className="text-xs text-slate-300 mt-1">
+                <h3 className="text-base font-bold text-[#0A1B3D]">Mobile SMS OTP Verification</h3>
+                <p className="text-xs text-slate-500 mt-1">
                   ৪-সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে:<br />
-                  <span className="text-purple-400 font-mono font-bold">{verificationPhone}</span>
+                  <span className="text-[#007BFF] font-mono font-bold">{verificationPhone}</span>
                 </p>
               </div>
 
@@ -673,7 +673,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-12 h-14 text-center text-2xl font-black text-purple-300 bg-slate-900 border-2 border-purple-500/40 rounded-xl focus:outline-none focus:border-purple-400 font-mono"
+                    className="w-12 h-14 text-center text-2xl font-black text-[#007BFF] bg-slate-50 border-2 border-slate-300 rounded-xl focus:outline-none focus:bg-white focus:border-[#007BFF] font-mono"
                   />
                 ))}
               </div>
@@ -681,7 +681,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="button"
                 onClick={handleVerifyOtp}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-[#5B21B6] hover:bg-[#4C1D95] text-white shadow-lg transition-all cursor-pointer"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-[#007BFF] hover:bg-[#0056B3] text-white shadow-md transition-all cursor-pointer"
               >
                 Verify Code & Activate ৳20 Bonus
               </button>
@@ -692,7 +692,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   disabled={resendTimer > 0}
                   onClick={() => triggerSendOtp(verificationPhone, name)}
                   className={`text-xs flex items-center gap-1 cursor-pointer ${
-                    resendTimer > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white'
+                    resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600 hover:text-[#0A1B3D] font-medium'
                   }`}
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -701,7 +701,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setTab(authProvider === 'google' ? 'phone_verify' : 'signup')}
-                  className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                  className="text-xs text-slate-600 hover:text-[#0A1B3D] font-medium cursor-pointer"
                 >
                   ← Edit Number
                 </button>
@@ -713,11 +713,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {!user.isLoggedIn && tab === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   রেজিস্টার্ড মোবাইল নম্বর (Phone Number)*
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     id="login-phone"
                     type="tel"
@@ -726,15 +726,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="01XXXXXXXXX"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono font-bold"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600 font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">পাসওয়ার্ড (Password)*</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">পাসওয়ার্ড (Password)*</label>
                 <div className="relative">
-                  <Key className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     id="login-password"
                     type="password"
@@ -742,7 +742,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-600"
                   />
                 </div>
               </div>
@@ -750,7 +750,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 id="login-submit-btn"
                 type="submit"
-                className="w-full py-3 rounded-xl font-bold text-sm bg-[#5B21B6] hover:bg-[#4C1D95] text-white shadow-lg transition-all mt-4 cursor-pointer"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-[#007BFF] hover:bg-[#0056B3] text-white shadow-md transition-all mt-4 cursor-pointer"
               >
                 লগইন করুন (Log In)
               </button>
@@ -761,12 +761,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {user.isLoggedIn && (
             <div className="space-y-5">
               {/* Wallet Card */}
-              <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1b1238] via-[#0f172a] to-[#171717] border border-purple-500/40 shadow-lg">
+              <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#0A1B3D] via-[#050D20] to-[#0A1B3D] border border-slate-800 shadow-md text-white">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] uppercase tracking-wider text-purple-300 font-bold">
-                        Prime Vault Wallet
+                      <span className="text-[11px] uppercase tracking-wider text-[#00C6FF] font-bold">
+                        ZeropicBD Wallet
                       </span>
                       {user.isPhoneVerified && (
                         <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-0.5">
@@ -776,21 +776,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       )}
                     </div>
                     <h3 className="text-lg font-black text-white mt-1">{user.name}</h3>
-                    <p className="text-xs text-slate-400 font-mono">{user.phone || user.email}</p>
+                    <p className="text-xs text-slate-300 font-mono">{user.phone || user.email}</p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <div className="p-2.5 rounded-xl bg-white/10 text-white border border-white/20">
                     <Coins className="w-5 h-5 text-amber-300" />
                   </div>
                 </div>
 
                 <div className="flex items-baseline justify-between border-t border-white/10 pt-3">
                   <div>
-                    <span className="text-xs text-slate-400 block">বর্তমান লাইভ ওয়ালেট ব্যালেন্স</span>
+                    <span className="text-xs text-slate-300 block">বর্তমান লাইভ ওয়ালেট ব্যালেন্স</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-purple-300 font-mono">
+                      <span className="text-3xl font-black text-white font-mono">
                         ৳{user.walletBalance || 0}
                       </span>
-                      <span className="text-xs text-slate-400">BDT</span>
+                      <span className="text-xs text-slate-300">BDT</span>
                     </div>
                   </div>
 
@@ -809,29 +809,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onClose();
                     onOpenCustomerPortal();
                   }}
-                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-gray-100 text-gray-900 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-[#F3F7FF] hover:bg-blue-50 text-[#0A1B3D] font-bold text-xs flex items-center justify-center gap-2 border border-blue-200/60 shadow-xs transition-all cursor-pointer"
                 >
-                  <User className="w-4 h-4 text-[#5B21B6]" />
+                  <User className="w-4 h-4 text-[#007BFF]" />
                   <span>Open Full Customer Account & Order History Portal</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </button>
               )}
 
               {/* Saved Address in LocalStorage */}
               <form onSubmit={handleSaveAddressOnly} className="space-y-3 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" />
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#007BFF]" />
                     সংরক্ষিত ডেলিভারি ঠিকানা
                   </span>
-                  <span className="text-[10px] text-slate-400">চেকআউটে অটো-ফিল হবে</span>
+                  <span className="text-[10px] text-slate-500">চেকআউটে অটো-ফিল হবে</span>
                 </div>
 
                 <div>
                   <select
                     value={cityDivision}
                     onChange={(e) => setCityDivision(e.target.value as 'Inside Dhaka' | 'Outside Dhaka')}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-[#007BFF]"
                   >
                     <option value="Inside Dhaka">ঢাকার ভিতরে (Inside Dhaka - Delivery ৳60)</option>
                     <option value="Outside Dhaka">ঢাকার বাইরে (Outside Dhaka - Delivery ৳120)</option>
@@ -843,20 +843,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={fullAddress}
                   onChange={(e) => setFullAddress(e.target.value)}
                   placeholder="বাসা নম্বর, রোড নম্বর, এলাকা, থানা..."
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 resize-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#007BFF] resize-none"
                 />
 
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="flex-1 py-2.5 bg-[#007BFF] hover:bg-[#0056B3] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                   >
                     ঠিকানা আপডেট করুন
                   </button>
                   <button
                     type="button"
                     onClick={onLogout}
-                    className="px-4 py-2.5 bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                     title="Logout"
                   >
                     <LogOut className="w-3.5 h-3.5" />

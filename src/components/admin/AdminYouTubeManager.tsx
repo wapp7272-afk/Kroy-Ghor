@@ -58,7 +58,7 @@ export const AdminYouTubeManager: React.FC<AdminYouTubeManagerProps> = ({
       },
       {
         id: 'yt-3',
-        title: 'Prime Vault Zone Studio Unboxing & Lifestyle Haul',
+        title: 'Zeropicbd Studio Unboxing & Lifestyle Haul',
         urlOrId: 'M7lc1UVf-VE',
         description: 'Unboxing our viral squishy silicone night lamps, luxury leather accessories, and collector building sets.',
         badge: 'Store Spotlight'
@@ -86,7 +86,7 @@ export const AdminYouTubeManager: React.FC<AdminYouTubeManagerProps> = ({
       setSectionSubtitle('Real reviews of luxury perfumes, authentic batch checks, and designer scent breakdowns.');
     } else if (type === 'gadgets') {
       setVideoUrl('https://www.youtube.com/watch?v=M7lc1UVf-VE');
-      setSectionTitle('Prime Lifestyle & Tech Showcase');
+      setSectionTitle('Zeropicbd Lifestyle & Tech Showcase');
       setSectionSubtitle('Demos of ambient silicone glow lamps, Japanese building sets, and luxury accessories.');
     } else {
       setVideoUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');

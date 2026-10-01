@@ -74,7 +74,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
     const newReview: CustomerReview = {
       id: `rev-${Date.now()}`,
       productId: product.id,
-      name: name.trim() || 'Verified Prime Customer',
+      name: name.trim() || 'Verified ZeropicBD Customer',
       location: location.trim() || 'Dhaka, Bangladesh',
       rating,
       date: 'Just now',

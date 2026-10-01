@@ -25,8 +25,8 @@ export async function sendOtpEmail(toEmail: string, toName: string, otpCode: str
       user_name: toName,
       otp_code: otpCode,
       code: otpCode,
-      message: `Your PRIME VAULT ZONE 4-digit verification code is: ${otpCode}. It will expire in 10 minutes.`,
-      subject: `[PRIME VAULT ZONE] Your Security Verification OTP: ${otpCode}`,
+      message: `Your Zeropicbd 4-digit verification code is: ${otpCode}. It will expire in 10 minutes.`,
+      subject: `[Zeropicbd] Your Security Verification OTP: ${otpCode}`,
     };
 
     const response = await emailjs.send(
@@ -53,7 +53,7 @@ export async function sendOrderEmail(order: Order, customerEmail?: string): Prom
       .map((item: CartItem) => `${item.product.title} (x${item.quantity}) - ৳${item.product.price * item.quantity}`)
       .join('\n');
 
-    const targetEmail = customerEmail || (order.address as any).email || 'customer@primevaultzone.com';
+    const targetEmail = customerEmail || (order.address as any).email || 'customer@zeropicbd.com';
 
     const templateParams = {
       to_email: targetEmail,
@@ -67,7 +67,7 @@ export async function sendOrderEmail(order: Order, customerEmail?: string): Prom
       delivery_address: `${order.address.fullAddress} (${order.address.cityDivision})`,
       customer_phone: order.address.phone,
       message: `New Order Confirmed (#${order.id})! Total: ৳${order.total}. Items:\n${itemsSummary}`,
-      subject: `[PRIME VAULT ZONE] Order Confirmation - #${order.id}`,
+      subject: `[Zeropicbd] Order Confirmation - #${order.id}`,
     };
 
     const response = await emailjs.send(

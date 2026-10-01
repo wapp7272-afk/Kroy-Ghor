@@ -34,6 +34,7 @@ import {
 import { CartItem, UserProfile, Order, Coupon, Address } from '../types';
 import { sendOrderEmail } from '../lib/emailService';
 import { InvoiceModal } from './InvoiceModal';
+import { BrandLogo } from './BrandLogo';
 import { findBestAutoCoupon } from '../utils/smartCouponService';
 import { verifyOrderAndPayment } from '../services/paymentVerificationService';
 
@@ -238,11 +239,11 @@ export const Checkout: React.FC<CheckoutProps> = ({
         const cat = item.product.category || '';
         if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
         if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-        if (cat.includes('Fashion')) return 'Prime Atelier';
+        if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
         if (cat.includes('Watches')) return 'Chronos Official';
         if (cat.includes('Beauty')) return 'Glow & Glam BD';
         if (cat.includes('Home')) return 'Nordic Living';
-        return 'Prime Vault Official';
+        return 'ZeropicBD Official';
       })();
 
       if (!groups[storeName]) {
@@ -470,9 +471,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
           {/* Top Bar Header */}
           <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-[#E5E7EB] flex items-center justify-between bg-white sticky top-0 z-20">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-[#EDE9FE] text-[#5B21B6] border border-purple-200">
-                <Truck className="w-5 h-5" />
-              </div>
+              <BrandLogo size="sm" />
+              <div className="hidden sm:block h-6 w-px bg-slate-200" />
               <div>
                 <h3 className="font-extrabold text-[#171717] text-base sm:text-lg flex items-center gap-2">
                   <span>Express Checkout</span>
@@ -501,7 +501,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <Smartphone className="w-4 h-4 animate-bounce shrink-0" />
                 <span className="break-all sm:break-normal">
-                  [DEMO SMS to {checkoutSmsToast.phone}]: Your Prime Vault Verification OTP is <strong>{checkoutSmsToast.code}</strong>
+                  [DEMO SMS to {checkoutSmsToast.phone}]: Your ZeropicBD Verification OTP is <strong>{checkoutSmsToast.code}</strong>
                 </span>
               </div>
               <button
@@ -600,17 +600,17 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 </div>
 
                 {/* Direct Live Parcel Tracking Link Card */}
-                <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-[10px] text-gray-500 font-bold uppercase block">Direct Live Parcel Tracking Link</span>
-                    <span className="font-mono text-xs font-bold text-[#5B21B6] break-all">
-                      https://primevault.bd/track/{completedOrder.id.replace('#', '')}
+                    <span className="font-mono text-xs font-bold text-blue-700 break-all">
+                      https://zeropicbd.com/track/{completedOrder.id.replace('#', '')}
                     </span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`https://primevault.bd/track/${completedOrder.id.replace('#', '')}`)}
-                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-purple-100 text-[#5B21B6] border border-purple-200 font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
+                    onClick={() => copyToClipboard(`https://zeropicbd.com/track/${completedOrder.id.replace('#', '')}`)}
+                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>{copiedNumber ? 'Copied!' : 'Copy Tracking Link'}</span>
@@ -1360,7 +1360,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            placeholder="কুপন কোড (যেমন: PRIME10)"
+                            placeholder="কুপন কোড (যেমন: ZERO10)"
                             value={inputCouponCode}
                             onChange={(e) => setInputCouponCode(e.target.value)}
                             className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-xs uppercase font-mono tracking-wider focus:outline-none focus:border-[#5B21B6]"

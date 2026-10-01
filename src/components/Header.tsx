@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, SystemBannerSettings, Product } from '../types';
 import { VaultLogo } from './VaultLogo';
+import { checkIsAdmin, checkIsSuperAdmin } from '../services/authService';
 
 interface HeaderProps {
   searchQuery: string;
@@ -146,6 +147,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
   
+  const isUserAdmin = checkIsAdmin(user);
+  const isUserSuperAdmin = checkIsSuperAdmin(user);
+
   // Multi-Category Search states
   const [searchCategory, setSearchCategory] = useState<string>(selectedCategory || 'All');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -180,7 +184,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   // Recent Search History with LocalStorage persistence
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_recent_searches');
+      const saved = localStorage.getItem('zeropicbd_recent_searches') || localStorage.getItem('primevault_recent_searches');
       return saved ? JSON.parse(saved) : ['Cool Water', 'Bleu De Chanel', 'Attar Mukhallat'];
     } catch {
       return ['Cool Water', 'Bleu De Chanel', 'Attar Mukhallat'];
@@ -194,7 +198,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
       const updated = [trimmed, ...filtered].slice(0, 8);
       try {
-        localStorage.setItem('primevault_recent_searches', JSON.stringify(updated));
+        localStorage.setItem('zeropicbd_recent_searches', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -205,7 +209,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     setRecentSearches((prev) => {
       const updated = prev.filter((s) => s !== item);
       try {
-        localStorage.setItem('primevault_recent_searches', JSON.stringify(updated));
+        localStorage.setItem('zeropicbd_recent_searches', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -215,6 +219,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     e.stopPropagation();
     setRecentSearches([]);
     try {
+      localStorage.removeItem('zeropicbd_recent_searches');
       localStorage.removeItem('primevault_recent_searches');
     } catch {}
   };
@@ -400,8 +405,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 <span>Helpline: {bannerSettings?.helplineNumber || '01883-418309'}</span>
               </a>
               <span className="text-slate-600">|</span>
-              <span className="bg-slate-800 px-2 py-0.5 rounded text-[#F59E0B] font-mono text-[11px] font-semibold">
-                Code: VAULT10
+              <span className="bg-slate-800 px-2 py-0.5 rounded text-[#00C6FF] font-mono text-[11px] font-semibold">
+                Code: ZEROPIC10
               </span>
             </div>
           </div>
@@ -413,10 +418,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <div className="flex items-center gap-2 shrink-0 min-w-0">
             <button 
               onClick={handleLogoOrHomeClick}
-              className="flex items-center text-left focus:outline-none cursor-pointer"
-              aria-label="Prime Vault Zone Home"
+              className="flex items-center text-left focus:outline-none cursor-pointer shrink-0"
+              aria-label="ZeropicBD Home"
             >
-              <VaultLogo size="sm" />
+              <VaultLogo size="md" />
             </button>
           </div>
 
@@ -684,10 +689,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             <button
               id="header-wallet-btn"
               onClick={onOpenAuth}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-[#4F46E5] text-xs font-semibold transition-colors cursor-pointer active:scale-98 shrink-0"
-              title="Prime Vault Wallet Balance"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#F3F7FF] hover:bg-blue-50 border border-blue-200/80 text-[#007BFF] text-xs font-semibold transition-colors cursor-pointer active:scale-98 shrink-0"
+              title="ZeropicBD Wallet Balance"
             >
-              <Wallet className="w-3.5 h-3.5 text-[#4F46E5] shrink-0" />
+              <Wallet className="w-3.5 h-3.5 text-[#007BFF] shrink-0" />
               <span className="font-mono text-xs font-bold">৳{user.walletBalance}</span>
             </button>
 
@@ -696,7 +701,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <button
                 id="header-orders-btn"
                 onClick={onOpenOrders}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-[#4F46E5] hover:bg-slate-50 border border-transparent text-xs font-medium transition-colors cursor-pointer"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-[#007BFF] hover:bg-[#F3F7FF] border border-transparent text-xs font-medium transition-colors cursor-pointer"
                 title="My Orders & Live Tracking"
               >
                 <Package className="w-4 h-4 text-slate-500" />
@@ -709,31 +714,52 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               </button>
             )}
 
+            {/* Super Admin Dashboard Button (Dynamic & Prominent for Owner/Admin) */}
+            {isUserAdmin && onOpenAdmin && (
+              <button
+                id="header-super-admin-btn"
+                onClick={onOpenAdmin}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-[#7A3BFF] to-[#007BFF] hover:opacity-95 text-white text-xs font-black shadow-sm hover:shadow-md transition-all hover:scale-105 cursor-pointer shrink-0"
+                title={isUserSuperAdmin ? "Super Admin & Owner Control Panel (wapp7272@gmail.com)" : "Admin Dashboard"}
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-200" />
+                <span className="hidden md:inline">
+                  {isUserSuperAdmin ? 'Super Admin Panel' : 'Admin Panel'}
+                </span>
+                <span className="md:hidden">Admin</span>
+                {isUserSuperAdmin && (
+                  <span className="text-[10px] px-1.5 py-0.2 bg-white/20 rounded font-mono font-bold">
+                    OWNER
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* User Account Button (Desktop) */}
             <button
               id="header-profile-btn"
               onClick={user.isLoggedIn && onOpenUserProfile ? onOpenUserProfile : onOpenAuth}
-              className="hidden sm:flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[#0F172A] hover:bg-slate-50 border border-slate-200 text-xs font-medium transition-colors cursor-pointer shrink-0"
+              className="hidden sm:flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[#0A1B3D] hover:bg-[#F3F7FF] border border-slate-200 text-xs font-medium transition-colors cursor-pointer shrink-0"
               title="Account & Profile Settings"
             >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xs font-bold">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#007BFF] text-white flex items-center justify-center text-xs font-bold">
                 {user.isLoggedIn ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5 text-white" />}
               </div>
               <div className="hidden lg:flex flex-col text-left">
                 <span className="text-[10px] text-slate-400 leading-none">
                   {user.isLoggedIn ? 'Hello,' : 'Sign in'}
                 </span>
-                <span className="font-semibold text-xs text-[#0F172A] truncate max-w-[85px] leading-tight">
+                <span className="font-semibold text-xs text-[#0A1B3D] truncate max-w-[85px] leading-tight">
                   {user.isLoggedIn ? user.name : 'Account'}
                 </span>
               </div>
             </button>
 
-            {/* Shopping Cart Button with Live Badge */}
+            {/* Shopping Cart Button with Live Badge (Matches HEADER PREVIEW) */}
             <button
               id="header-cart-btn"
               onClick={onOpenCart}
-              className="relative px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="relative px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95"
               aria-label={`Shopping Cart (${cartCount} items)`}
             >
               <ShoppingBag className="w-4 h-4 text-white" />
@@ -741,7 +767,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               {cartCount > 0 && (
                 <span 
                   id="header-cart-badge-count"
-                  className="min-w-[18px] h-4.5 px-1 bg-[#F59E0B] text-[#0F172A] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs"
+                  className="min-w-[18px] h-4.5 px-1 bg-[#00C6FF] text-[#0A1B3D] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs"
                 >
                   {cartCount}
                 </span>
@@ -814,7 +840,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             {/* Search Action Button */}
             <button
               type="submit"
-              className="h-10 min-h-[40px] px-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 cursor-pointer shadow-xs"
+              className="h-10 min-h-[40px] px-3 bg-[#007BFF] hover:bg-[#0056B3] text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 cursor-pointer shadow-xs"
               aria-label="Search"
             >
               <Search className="w-4 h-4" />
@@ -831,8 +857,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   onClick={() => handleCategoryPillClick(cat.name)}
                   className={`px-3 py-1.5 min-h-[38px] rounded-full text-xs font-medium flex items-center gap-1.5 transition-all shrink-0 cursor-pointer active:scale-95 ${
                     isActive
-                      ? 'bg-[#4F46E5] text-white font-semibold shadow-xs'
-                      : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
+                      ? 'bg-[#007BFF] text-white font-semibold shadow-xs'
+                      : 'bg-[#F3F7FF] hover:bg-slate-200 text-slate-700'
                   }`}
                 >
                   <span>{cat.icon}</span>
@@ -853,8 +879,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 onClick={handleLogoOrHomeClick}
                 className={`relative px-3 py-1.5 rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                   activeNav === 'Home' && activeFilterTab === 'All' && selectedCategory === 'All'
-                    ? 'text-[#4F46E5] font-semibold bg-indigo-50/80'
-                    : 'hover:text-slate-900 hover:bg-slate-50'
+                    ? 'text-[#007BFF] font-semibold bg-[#F3F7FF]'
+                    : 'hover:text-[#0A1B3D] hover:bg-[#F3F7FF]'
                 }`}
               >
                 <span>Home</span>
@@ -867,15 +893,15 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
                   className={`relative px-3 py-1.5 rounded-md transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                     categoriesDropdownOpen || (selectedCategory && selectedCategory !== 'All')
-                      ? 'text-[#4F46E5] font-semibold bg-indigo-50/80'
-                      : 'hover:text-slate-900 hover:bg-slate-50'
+                      ? 'text-[#007BFF] font-semibold bg-[#F3F7FF]'
+                      : 'hover:text-[#0A1B3D] hover:bg-[#F3F7FF]'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5 text-slate-500" />
                   <span>
                     {selectedCategory && selectedCategory !== 'All' ? selectedCategory : 'All Categories'}
                   </span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${categoriesDropdownOpen ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${categoriesDropdownOpen ? 'rotate-180 text-[#007BFF]' : 'text-slate-400'}`} />
                 </button>
 
                 {/* Categories Dropdown Menu */}
@@ -1055,7 +1081,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-[#0F172A]">
-                      {user.isLoggedIn ? user.name : 'Welcome to Prime Vault'}
+                      {user.isLoggedIn ? user.name : 'Welcome to ZeropicBD'}
                     </p>
                     <p className="text-[10px] text-slate-500 font-mono">
                       {user.isLoggedIn ? (user.phone || user.email) : 'Sign in to unlock ৳20 bonus'}
@@ -1088,7 +1114,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                      Prime Vault Wallet
+                      ZeropicBD Wallet
                     </span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-base font-bold font-mono text-[#0F172A]">
@@ -1249,10 +1275,21 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     setMobileMenuOpen(false);
                     onOpenAdmin();
                   }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-slate-900 text-amber-300 hover:text-white transition-colors text-left font-semibold"
+                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl transition-all text-left font-bold ${
+                    isUserAdmin
+                      ? 'bg-gradient-to-r from-amber-500 via-[#7A3BFF] to-[#007BFF] text-white shadow-md'
+                      : 'bg-slate-900 text-amber-300 hover:text-white'
+                  }`}
                 >
-                  <span>Admin Portal 🛡️ (এডমিন ড্যাশবোর্ড)</span>
-                  <span>🛡️</span>
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className={`w-4 h-4 ${isUserAdmin ? 'text-amber-200' : 'text-amber-400'}`} />
+                    <span>{isUserSuperAdmin ? 'Super Admin Panel (মালিক প্যানেল)' : 'Admin Portal 🛡️ (এডমিন ড্যাশবোর্ড)'}</span>
+                  </span>
+                  {isUserSuperAdmin && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white/20 font-mono font-black">
+                      OWNER
+                    </span>
+                  )}
                 </button>
               )}
             </div>

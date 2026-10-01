@@ -186,7 +186,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
   const [reviewsList, setReviewsList] = useState<CustomerReview[]>(() => {
     try {
-      const saved = localStorage.getItem(`primevault_reviews_${product.id}`);
+      const saved = localStorage.getItem(`zeropicbd_reviews_${product.id}`) || localStorage.getItem(`primevault_reviews_${product.id}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -201,6 +201,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     setReviewsList((prev) => {
       const updated = [newReview, ...prev];
       try {
+        localStorage.setItem(`zeropicbd_reviews_${product.id}`, JSON.stringify(updated));
         localStorage.setItem(`primevault_reviews_${product.id}`, JSON.stringify(updated));
       } catch {}
       return updated;
@@ -329,11 +330,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const storeName = product.storeName || product.sellerName || (() => {
     if (product.category.includes('Perfume') || product.category === 'Attar Perfumes') return 'PerfumeVault BD';
     if (product.category.includes('Gadgets') || product.category === 'Glow Lights') return 'Apex Tech BD';
-    if (product.category.includes('Fashion')) return 'Prime Atelier';
+    if (product.category.includes('Fashion')) return 'ZeropicBD Atelier';
     if (product.category.includes('Watches')) return 'Chronos Official';
     if (product.category.includes('Beauty')) return 'Glow & Glam BD';
     if (product.category.includes('Home')) return 'Nordic Living';
-    return 'Prime Vault Official';
+    return 'ZeropicBD Official';
   })();
 
   // Calculate or retrieve sold count
@@ -1047,11 +1048,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <h4 className="font-extrabold text-sm text-[#171717] group-hover:text-[#5B21B6] transition-colors truncate">
                         {storeName}
                       </h4>
-                      <span title="Prime Vault Verified Official Seller">
+                      <span title="ZeropicBD Verified Official Seller">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 truncate">Prime Vault Certified Official Partner</p>
+                    <p className="text-[11px] text-gray-500 truncate">ZeropicBD Certified Official Partner</p>
                   </div>
                 </div>
 
@@ -1250,7 +1251,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <h3 className="text-base font-bold text-slate-900 mb-2">Overview & Experience</h3>
                 <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
                   {product.description ||
-                    'Experience unmatched craftsmanship and luxury with Prime Vault Zone. This product undergoes stringent quality verification to guarantee authenticity, durability, and customer satisfaction.'}
+                    'Experience unmatched craftsmanship and luxury with ZeropicBD. This product undergoes stringent quality verification to guarantee authenticity, durability, and customer satisfaction.'}
                 </p>
               </div>
 
@@ -1356,7 +1357,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <UserCheck className="w-4 h-4 text-emerald-600" />
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">Prime Vault Certified Official Partner</p>
+                    <p className="text-xs text-slate-500">ZeropicBD Certified Official Partner</p>
                   </div>
                 </div>
 

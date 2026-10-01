@@ -125,7 +125,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
   const getOrderSellers = (order: Order): string[] => {
     const stores = new Set<string>();
     order.items.forEach((item) => {
-      const store = item.storeName || item.product.storeName || item.product.sellerName || 'Prime Vault Official';
+      const store = item.storeName || item.product.storeName || item.product.sellerName || 'ZeropicBD Official';
       stores.add(store);
     });
     return Array.from(stores);
@@ -196,7 +196,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                     </>
                   )}
                   <span>•</span>
-                  <span className="text-[#5B21B6] font-semibold">Prime Vault Zone Shopper</span>
+                  <span className="text-[#5B21B6] font-semibold">ZeropicBD Shopper</span>
                 </p>
 
                 <p className="text-[11px] text-[#525252] flex items-center gap-1.5 pt-1">
@@ -566,12 +566,12 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                           <div className="relative">
                             <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-[#5B21B6]" />
                             <p className="font-bold text-[#171717]">Parcel Received at Courier Sorting Facility</p>
-                            <p className="text-[11px] text-gray-500">Dispatched from Prime Vault Central Warehouse</p>
+                            <p className="text-[11px] text-gray-500">Dispatched from ZeropicBD Central Warehouse</p>
                           </div>
                           <div className="relative">
                             <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-emerald-600" />
                             <p className="font-bold text-[#171717]">Order Verified & Packed</p>
-                            <p className="text-[11px] text-gray-500">Quality checked by Vault Inspection Team</p>
+                            <p className="text-[11px] text-gray-500">Quality checked by ZeropicBD Inspection Team</p>
                           </div>
                         </div>
                       </div>
@@ -587,7 +587,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
 
                     <div className="space-y-2.5">
                       {order.items.map((item, idx) => {
-                        const itemStore = item.storeName || item.product.storeName || item.product.sellerName || 'Prime Vault Official';
+                        const itemStore = item.storeName || item.product.storeName || item.product.sellerName || 'ZeropicBD Official';
                         return (
                           <div
                             key={idx}

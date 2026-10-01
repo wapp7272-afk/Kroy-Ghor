@@ -22,6 +22,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { CartItem, UserProfile, Coupon } from '../types';
+import { BrandLogo } from './BrandLogo';
 
 export interface CartProps {
   isOpen?: boolean;
@@ -105,11 +106,11 @@ export const Cart: React.FC<CartProps> = React.memo(({
         const cat = item.product.category || '';
         if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
         if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-        if (cat.includes('Fashion')) return 'Prime Atelier';
+        if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
         if (cat.includes('Watches')) return 'Chronos Official';
         if (cat.includes('Beauty')) return 'Glow & Glam BD';
         if (cat.includes('Home')) return 'Nordic Living';
-        return 'Prime Vault Official';
+        return 'ZeropicBD Official';
       })();
 
       if (!groups[storeName]) {
@@ -124,7 +125,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
 
   // Quick preset coupons for effortless application
   const popularCoupons = [
-    { code: 'PRIME10', label: '10% OFF Storewide', min: 0 },
+    { code: 'ZERO10', label: '10% OFF Storewide', min: 0 },
     { code: 'VAULT20', label: '৳200 OFF on ৳1,500+', min: 1500 },
     { code: 'EID500', label: '৳500 OFF on ৳3,000+', min: 3000 },
   ];
@@ -171,7 +172,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
             <p className="text-xs text-[#525252]">
               {vendorCount > 1 
                 ? `Multi-Vendor Checkout (${vendorCount} Verified Stores)` 
-                : 'Prime Vault Zone Bangladesh Official'}
+                : 'ZeropicBD Bangladesh Official'}
             </p>
           </div>
         </div>
@@ -234,14 +235,17 @@ export const Cart: React.FC<CartProps> = React.memo(({
       {/* Main Body / Items List */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
         {items.length === 0 ? (
-          <div className="text-center py-16 space-y-5">
-            <div className="w-20 h-20 rounded-2xl bg-[#EDE9FE] text-[#5B21B6] flex items-center justify-center mx-auto border border-purple-200 shadow-sm">
-              <ShoppingBag className="w-10 h-10 stroke-[1.5]" />
+          <div className="text-center py-12 space-y-4">
+            <div className="flex justify-center mb-2">
+              <BrandLogo size="md" />
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-[#EDE9FE] text-[#5B21B6] flex items-center justify-center mx-auto border border-purple-200 shadow-xs">
+              <ShoppingBag className="w-8 h-8 stroke-[1.5]" />
             </div>
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#171717] text-base">আপনার শপিং কার্ট খালি আছে</h4>
               <p className="text-xs text-[#525252] max-w-xs mx-auto">
-                আমাদের প্রিমিয়াম নিস পারফিউম, অরিজিনাল আতর এবং ট্রেন্ডিং ইলেকট্রনিক কালেকশন ঘুরে দেখুন।
+                ZeropicBD-এর লাইফস্টাইল, ফ্যাশন এক্সেসরিজ, লাইটিং, জুয়েলারি ও ট্রেন্ডিং কালেকশন ঘুরে দেখুন।
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
@@ -543,7 +547,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-[#171717]">Prime Wallet Bonus</span>
+                      <span className="font-bold text-[#171717]">ZeropicBD Wallet Bonus</span>
                       <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-[#EDE9FE] text-[#5B21B6]">
                         ব্যালেন্স: ৳{user.walletBalance || 0}
                       </span>

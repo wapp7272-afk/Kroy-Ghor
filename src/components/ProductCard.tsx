@@ -51,11 +51,11 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   const storeName = product.storeName || product.sellerName || (() => {
     if (product.category.includes('Perfume') || product.category === 'Attar Perfumes') return 'PerfumeVault BD';
     if (product.category.includes('Gadgets') || product.category === 'Glow Lights') return 'Apex Tech BD';
-    if (product.category.includes('Fashion')) return 'Prime Atelier';
+    if (product.category.includes('Fashion')) return 'ZeropicBD Atelier';
     if (product.category.includes('Watches')) return 'Chronos Official';
     if (product.category.includes('Beauty')) return 'Glow & Glam BD';
     if (product.category.includes('Home')) return 'Nordic Living';
-    return 'Prime Vault Official';
+    return 'ZeropicBD Official';
   })();
 
   // Discount is calculated only when an explicit Original Price is present and greater than Sale Price

@@ -1,5 +1,5 @@
 /**
- * YouTube Utility Helpers for Prime Vault Zone
+ * YouTube Utility Helpers for Zeropicbd
  * Parses various YouTube URL formats (standard, short, embed, shorts) and bare IDs.
  */
 

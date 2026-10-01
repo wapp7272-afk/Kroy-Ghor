@@ -60,13 +60,14 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ showToast })
       localStorage.setItem('primevault_pwa_dismissed', 'true');
     } catch {}
     if (showToast) {
-      showToast('🎉 PRIME VAULT ZONE installed to home screen!');
+      showToast('🎉 ZeropicBD installed to home screen!');
     }
   };
 
   const handleDismiss = () => {
     setIsDismissed(true);
     try {
+      localStorage.setItem('zeropicbd_pwa_dismissed', 'true');
       localStorage.setItem('primevault_pwa_dismissed', 'true');
     } catch {}
   };
@@ -75,6 +76,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ showToast })
     const next = !notificationsEnabled;
     setNotificationsEnabled(next);
     try {
+      localStorage.setItem('zeropicbd_notifications', next ? 'true' : 'false');
       localStorage.setItem('primevault_notifications', next ? 'true' : 'false');
     } catch {}
     if (showToast) {
@@ -99,19 +101,19 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ showToast })
       {/* Floating PWA Install & Push Notification Banner */}
       {!isDismissed && !isInstalled && (
         <aside 
-          aria-label="Install PRIME VAULT Mobile App"
+          aria-label="Install ZeropicBD Mobile App"
           className="fixed bottom-20 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-40 bg-slate-950/95 text-white backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom duration-300"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#7C3AED] flex items-center justify-center shadow-md shrink-0 border border-white/20">
-                <VaultLogo className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#00C6FF] to-[#007BFF] flex items-center justify-center shadow-md shrink-0 border border-white/20 p-1">
+                <VaultLogo size="sm" variant="dark" />
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-extrabold text-white">
-                    PRIME VAULT App
+                    ZeropicBD App
                   </h4>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     Faster

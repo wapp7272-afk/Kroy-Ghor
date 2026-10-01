@@ -27,7 +27,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoaded }) => {
 
   return (
     <div
-      id="prime-vault-loading-screen"
+      id="zeropicbd-loading-screen"
       className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0f19] transition-opacity duration-500 ${
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
@@ -38,32 +38,21 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoaded }) => {
 
       {/* Main Brand Container */}
       <div className="relative flex flex-col items-center z-10 px-4 text-center">
-        {/* Luxury Rotating Orbit Rings around the Hexagonal Vault Logo */}
-        <div className="relative mb-6 flex items-center justify-center">
+        {/* Luxury Rotating Orbit Rings around the ZeropicBD Logo */}
+        <div className="relative mb-6 flex items-center justify-center p-4">
           {/* Outer Electric Sky Spin Ring */}
           <div className="absolute -inset-4 sm:-inset-6 rounded-full border border-[#38bdf8]/30 border-t-[#38bdf8] border-r-[#38bdf8] animate-spin [animation-duration:3s]" />
           
           {/* Inner Warm Gold Counter Spin Ring */}
           <div className="absolute -inset-2 sm:-inset-3 rounded-full border border-[#fbbf24]/20 border-b-[#fbbf24] border-l-[#fbbf24] animate-spin [animation-direction:reverse] [animation-duration:2s]" />
 
-          {/* High-Resolution Pulsing Vault Logo */}
+          {/* High-Resolution Pulsing Official ZeropicBD Logo */}
           <VaultLogo
             size="xl"
-            showText={false}
             isPulsing={true}
             className="transform hover:scale-105 transition-transform"
           />
         </div>
-
-        {/* Crisp White & Gold Typography */}
-        <h1 className="font-['Space_Grotesk'] text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-wider bg-gradient-to-r from-[#38bdf8] via-[#f8fafc] to-[#fbbf24] bg-clip-text text-transparent mb-2">
-          PRIME VAULT ZONE
-        </h1>
-
-        {/* Subtitle Tag */}
-        <p className="font-['Plus_Jakarta_Sans'] text-xs sm:text-sm tracking-[0.25em] text-[#94a3b8] uppercase font-semibold">
-          Unlocking Premium Excellence...
-        </p>
 
         {/* Sleek Loading Progress Bar */}
         <div className="w-56 h-1.5 bg-[#151c2c] rounded-full mt-6 overflow-hidden border border-[#1e293b] relative shadow-[0_0_15px_rgba(56,189,248,0.25)]">

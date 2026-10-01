@@ -84,7 +84,7 @@ export const CURATED_BRANDS = [
   'Gucci',
   'Calvin Klein',
   'AeroChronos',
-  'Prime Atelier',
+  'ZeropicBD Atelier',
   'Cyberpunk Lab',
   'Royal Oudh'
 ];

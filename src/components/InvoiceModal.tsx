@@ -85,7 +85,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 Official Invoice & Money Receipt
               </h3>
               <p className="text-[11px] text-[#525252]">
-                Order {order.id} • Prime Vault Zone Bangladesh
+                Order {order.id} • ZeropicBD Bangladesh
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 Premium Lifestyle & Multi-Vendor Marketplace
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Dhaka, Bangladesh • Hotline: 01883418309 • support@primevaultzone.com
+                Dhaka, Bangladesh • Hotline: 01883418309 • support@zeropicbd.com
               </p>
             </div>
 
@@ -195,7 +195,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {order.items.map((item, idx) => {
-                  const storeName = item.storeName || item.product.storeName || item.product.sellerName || 'Prime Vault Official';
+                  const storeName = item.storeName || item.product.storeName || item.product.sellerName || 'ZeropicBD Official';
                   return (
                     <tr key={idx} className="hover:bg-gray-50/50">
                       <td className="py-3 px-3">
@@ -246,7 +246,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   <span>Authorized Merchant Guarantee</span>
                 </div>
                 <p className="text-[11px] text-gray-600 leading-relaxed">
-                  Thank you for shopping with Prime Vault Zone. All items are verified for 100% authenticity. You are entitled to 7 days replacement guarantee for manufacturing issues.
+                  Thank you for shopping with ZeropicBD. All items are verified for 100% authenticity. You are entitled to 7 days replacement guarantee for manufacturing issues.
                 </p>
               </div>
 
@@ -304,7 +304,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* ================= Footer Signature / Notice ================= */}
           <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-400 gap-2">
             <span>This is a computer generated invoice and requires no physical signature.</span>
-            <span className="font-mono text-gray-500">Prime Vault Zone BD • www.primevaultzone.com</span>
+            <span className="font-mono text-gray-500">ZeropicBD • www.zeropicbd.com</span>
           </div>
         </div>
       </div>

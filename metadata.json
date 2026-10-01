@@ -1,6 +1,6 @@
 {
-  "name": "PRIME VAULT ZONE",
-  "description": "Unlock Premium Excellence - Luxury scents, popular perfumes, and curated lifestyle collections with bKash/Nagad checkout and Admin portal.",
+  "name": "ZeropicBD",
+  "description": "ZeropicBD - Bangladesh's Premier Verified Lifestyle and Marketplace with instant bKash/Nagad checkout and fast nationwide courier delivery.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

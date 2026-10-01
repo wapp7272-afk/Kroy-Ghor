@@ -53,15 +53,15 @@ export const interpolateSmsTemplate = (
  */
 export const BD_SMS_TEMPLATES = {
   placed:
-    '[PRIME VAULT] Dear {customerName}, Order #{orderId} of {total} is received! Courier: {courierName}. Track live: {trackingUrl}. Helpline: {helpline}',
+    '[Zeropicbd] Dear {customerName}, Order #{orderId} of {total} is received! Courier: {courierName}. Track live: {trackingUrl}. Helpline: {helpline}',
   confirmed:
-    '[PRIME VAULT] Order #{orderId} is confirmed! Packed with 100% genuine seal. Handing to {courierName}. Track live: {trackingUrl}',
+    '[Zeropicbd] Order #{orderId} is confirmed! Packed with 100% genuine seal. Handing to {courierName}. Track live: {trackingUrl}',
   shipped:
-    '[PRIME VAULT] Parcel #{orderId} dispatched via {courierName}! Consignment: {trackingNumber}. Live route: {trackingUrl}',
+    '[Zeropicbd] Parcel #{orderId} dispatched via {courierName}! Consignment: {trackingNumber}. Live route: {trackingUrl}',
   out_for_delivery:
-    '[PRIME VAULT] Order #{orderId} is OUT FOR DELIVERY via {courierName} rider. Amount payable: {total}. Please keep cash ready.',
+    '[Zeropicbd] Order #{orderId} is OUT FOR DELIVERY via {courierName} rider. Amount payable: {total}. Please keep cash ready.',
   delivered:
-    '[PRIME VAULT] Order #{orderId} delivered! Thank you for choosing PRIME VAULT ZONE. Review to earn ৳20 wallet bonus: {trackingUrl}',
+    '[Zeropicbd] Order #{orderId} delivered! Thank you for choosing Zeropicbd. Review to earn ৳20 wallet bonus: {trackingUrl}',
 };
 
 /**

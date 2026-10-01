@@ -29,7 +29,7 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     {
       id: '1',
       sender: 'assistant',
-      text: 'আসসালামু আলাইকুম! PRIME VAULT ZONE-এ আপনাকে স্বাগতম। ✨\nআমি আপনার শপিং সহকারী। আমাদের লাক্সারি পারফিউম, ডেলিভারি, বিকাশ/নগদ পেমেন্ট, কুপন বা ৭ দিনের রিটার্ন পলিসি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
+      text: 'আসসালামু আলাইকুম! ZeropicBD-এ আপনাকে স্বাগতম। ✨\nআমি আপনার শপিং সহকারী। আমাদের লাক্সারি পারফিউম, ডেলিভারি, বিকাশ/নগদ পেমেন্ট, কুপন বা ৭ দিনের রিটার্ন পলিসি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
       time: 'এখন',
       quickOptions: [
         '✨ সেরা লাক্সারি পারফিউম কোনগুলো?',
@@ -56,7 +56,7 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     const q = query.toLowerCase();
 
     if (q.includes('ডেলিভারি') || q.includes('সময়') || q.includes('চার্জ') || q.includes('delivery')) {
-      return `🚚 **PRIME VAULT ZONE ডেলিভারি সংক্রান্ত তথ্য:**\n• **ঢাকার ভিতরে:** চার্জ মাত্র ৳৬০, সময় ২৪ থেকে ৪৮ ঘণ্টা।\n• **ঢাকার বাইরে:** চার্জ ৳১২০, সময় ২ থেকে ৪ দিন।\n• ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম চার্জ ছাড়াই পণ্য গ্রহণ করতে পারবেন!`;
+      return `🚚 **ZeropicBD ডেলিভারি সংক্রান্ত তথ্য:**\n• **ঢাকার ভিতরে:** চার্জ মাত্র ৳৬০, সময় ২৪ থেকে ৪৮ ঘণ্টা।\n• **ঢাকার বাইরে:** চার্জ ৳১২০, সময় ২ থেকে ৪ দিন।\n• ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম চার্জ ছাড়াই পণ্য গ্রহণ করতে পারবেন!`;
     }
 
     if (q.includes('বিকাশ') || q.includes('নগদ') || q.includes('পেমেন্ট') || q.includes('bkash') || q.includes('nagad') || q.includes('trx')) {
@@ -68,7 +68,7 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     }
 
     if (q.includes('বোনাস') || q.includes('bonus') || q.includes('wallet') || q.includes('ওয়ালেট') || q.includes('২০')) {
-      return `🎁 **৳২০ ওয়ালেট সাইনআপ বোনাস:**\nPRIME VAULT ZONE-এ প্রথমবার একাউন্ট খুললেই আপনার ওয়ালেটে সাথে সাথে ৳২০ বোনাস ক্রেডিট হয়ে যাবে। কার্ট ওপেন করে 'Apply ৳20 Wallet Bonus' বক্সে টিক চিহ্ন দিলেই আপনার বিল থেকে সরাসরি ৳২০ মাইনাস হয়ে যাবে!`;
+      return `🎁 **৳২০ ওয়ালেট সাইনআপ বোনাস:**\nZeropicBD-এ প্রথমবার একাউন্ট খুললেই আপনার ওয়ালেটে সাথে সাথে ৳২০ বোনাস ক্রেডিট হয়ে যাবে। কার্ট ওপেন করে 'Apply ৳20 Wallet Bonus' বক্সে টিক চিহ্ন দিলেই আপনার বিল থেকে সরাসরি ৳২০ মাইনাস হয়ে যাবে!`;
     }
 
     if (q.includes('রিটার্ন') || q.includes('পরিবর্তন') || q.includes('পলিসি') || q.includes('return') || q.includes('refund')) {
@@ -276,7 +276,7 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  PRIME VAULT ZONE AI
+                  ZeropicBD AI
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
                     বাংলা
                   </span>

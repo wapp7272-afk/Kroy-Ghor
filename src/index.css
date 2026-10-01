@@ -3,11 +3,16 @@
 @layer base {
   :root {
     --bg-main: #FFFFFF;
-    --bg-surface: #F9FAFB;
-    --brand-primary: #4F46E5;
-    --brand-primary-hover: #4338CA;
-    --brand-accent: #F59E0B;
-    --text-dark: #0F172A;
+    --bg-surface: #F3F7FF;
+    --brand-cyan: #00C6FF;
+    --brand-electric-blue: #007BFF;
+    --brand-dark-navy: #0A1B3D;
+    --brand-purple: #7A3BFF;
+    --brand-neutral: #F3F7FF;
+    --brand-primary: #007BFF;
+    --brand-primary-hover: #0056B3;
+    --brand-accent: #00C6FF;
+    --text-dark: #0A1B3D;
     --text-muted: #64748B;
     --border-light: #E2E8F0;
   }
@@ -21,8 +26,8 @@
   }
 
   body {
-    background-color: #F9FAFB;
-    color: #0F172A;
+    background-color: #FFFFFF;
+    color: #0A1B3D;
     font-family: 'Plus Jakarta Sans', sans-serif;
     overflow-x: hidden;
     width: 100%;

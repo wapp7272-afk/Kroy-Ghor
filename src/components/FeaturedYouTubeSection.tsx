@@ -40,7 +40,7 @@ const DEFAULT_PLAYLIST: YouTubeVideo[] = [
   },
   {
     id: 'yt-3',
-    title: 'Prime Vault Zone Studio Unboxing & Lifestyle Haul',
+    title: 'ZeropicBD Studio Unboxing & Lifestyle Haul',
     urlOrId: 'M7lc1UVf-VE',
     description: 'Unboxing our viral squishy silicone night lamps, luxury leather accessories, and collector building sets.',
     badge: 'Store Spotlight'
@@ -54,7 +54,7 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
 }) => {
   // Configured primary video or first in playlist or fallback
   const primaryVideoUrlOrId = settings?.youtubeVideoUrl || 'sU3FkmV9b70';
-  const channelUrl = settings?.youtubeChannelUrl || 'https://www.youtube.com/@primevaultzone';
+  const channelUrl = settings?.youtubeChannelUrl || 'https://www.youtube.com/@zeropicbd';
   const sectionTitle = settings?.youtubeSectionTitle || 'Featured YouTube Videos';
   const sectionSubtitle = settings?.youtubeSectionSubtitle || 
     'Watch authentic fragrance unboxings, batch code verification guides, and official product showcases directly from our channel.';
@@ -174,7 +174,7 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
                 <iframe
                   id="youtube-embedded-player-frame"
                   src={activeVideoEmbedUrl}
-                  title="Prime Vault Zone Featured YouTube Video Player"
+                  title="ZeropicBD Featured YouTube Video Player"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="w-full h-full border-0 absolute inset-0"
@@ -202,7 +202,7 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
                   )}
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-white leading-snug">
-                  {activeMeta?.title || 'Featured Prime Vault Video Spotlight'}
+                  {activeMeta?.title || 'Featured ZeropicBD Video Spotlight'}
                 </h3>
                 {activeMeta?.description && (
                   <p className="text-xs text-slate-400 line-clamp-2">
@@ -223,7 +223,7 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
                   <span>Subscribe Channel</span>
                 </a>
                 <span className="text-[10px] text-slate-500 font-mono">
-                  @primevaultzone
+                  @zeropicbd
                 </span>
               </div>
             </div>
@@ -310,7 +310,7 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
             <div className="p-3.5 rounded-xl bg-gradient-to-r from-red-950/30 to-purple-950/30 border border-red-500/20 text-xs text-slate-300 space-y-2">
               <div className="flex items-center gap-2 font-bold text-white">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Verified Official Prime Vault Content</span>
+                <span>Verified Official ZeropicBD Content</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
                 All fragrances showcased are verified authentic batch imported units. Subscribe to catch daily unboxings and discount drops!

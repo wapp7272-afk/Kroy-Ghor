@@ -261,7 +261,7 @@ export const CinematicVideoShowcase: React.FC<CinematicVideoShowcaseProps> = ({
                 <div className="w-full h-full">
                   <iframe
                     src={youtubeEmbedUrl}
-                    title="Prime Vault YouTube Showcase"
+                    title="ZeropicBD YouTube Showcase"
                     className="w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen

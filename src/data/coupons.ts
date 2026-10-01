@@ -2,6 +2,17 @@ import { Coupon } from '../types';
 
 export const INITIAL_COUPONS: Coupon[] = [
   {
+    id: 'coup-zeropic10',
+    code: 'ZEROPIC10',
+    discountType: 'percentage',
+    discountValue: 10,
+    minOrderAmount: 0,
+    expiryDate: '2026-12-31',
+    isActive: true,
+    usageCount: 198,
+    description: 'ZeropicBD Exclusive 10% Off on all orders with code ZEROPIC10',
+  },
+  {
     id: 'coup-prime10',
     code: 'PRIME10',
     discountType: 'percentage',

@@ -39,6 +39,7 @@ import {
 import { UserProfile as UserProfileType, Order, Product, Address, WalletTransaction, ReturnRequest } from '../types';
 import { InvoiceModal } from './InvoiceModal';
 import { ReturnRequestModal } from './ReturnRequestModal';
+import { BrandLogo } from './BrandLogo';
 
 export interface UserProfileProps {
   user: UserProfileType;
@@ -58,6 +59,7 @@ export interface UserProfileProps {
   onSubmitReturnRequest?: (orderId: string, returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>) => void;
   onOpenReturnPolicy?: () => void;
   onTrackOrder?: (orderId: string) => void;
+  onOpenAdmin?: () => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -78,6 +80,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onSubmitReturnRequest,
   onOpenReturnPolicy,
   onTrackOrder,
+  onOpenAdmin,
 }) => {
   // Navigation tabs in Customer Portal
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'wallet' | 'wishlist' | 'addresses'>(initialTab);
@@ -228,7 +231,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     // Also persist to localStorage registered accounts
     try {
       const accounts = (() => {
-        const stored = localStorage.getItem('primevault_registered_accounts');
+        const stored = localStorage.getItem('zeropicbd_registered_accounts') || localStorage.getItem('primevault_registered_accounts');
         return stored ? JSON.parse(stored) : [];
       })();
       const cleanPhone = (user.phone || '').replace(/[^0-9]/g, '');
@@ -241,6 +244,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         if (addressForm.isDefault) {
           accounts[idx].address = addressForm;
         }
+        localStorage.setItem('zeropicbd_registered_accounts', JSON.stringify(accounts));
         localStorage.setItem('primevault_registered_accounts', JSON.stringify(accounts));
       }
     } catch {}
@@ -256,8 +260,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     return (
       <div className="min-h-[75vh] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl border border-[#E5E7EB] shadow-xl p-8 text-center space-y-5 animate-fadeIn">
-          <div className="w-18 h-18 rounded-2xl bg-[#EDE9FE] text-[#5B21B6] flex items-center justify-center mx-auto border border-purple-200">
-            <User className="w-9 h-9" />
+          <div className="flex justify-center mb-2">
+            <BrandLogo size="lg" />
           </div>
           <div>
             <h2 className="text-xl font-black text-[#171717]">
@@ -342,7 +346,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-2xl" />
                   ) : (
-                    user.name ? user.name.charAt(0).toUpperCase() : 'P'
+                    user.name ? user.name.charAt(0).toUpperCase() : 'Z'
                   )}
                 </div>
                 {user.isPhoneVerified && (
@@ -365,7 +369,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                       : 'bg-[#EDE9FE] text-[#5B21B6] border-purple-200'
                   }`}>
-                    {user.role === 'admin' ? '🛡️ Super Admin' : user.role === 'seller' ? '🏪 Verified Seller' : 'Prime Member'}
+                    {user.role === 'admin' ? '🛡️ Super Admin' : user.role === 'seller' ? '🏪 Verified Seller' : 'ZeropicBD Member'}
                   </span>
                   {user.session?.accessToken && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
@@ -413,7 +417,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               <div>
                 <div className="flex items-center gap-1.5 text-xs text-purple-300 font-bold uppercase tracking-wider">
                   <Wallet className="w-4 h-4 text-purple-400" />
-                  <span>Prime Vault Wallet</span>
+                  <span>ZeropicBD Wallet</span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl sm:text-3xl font-black font-mono text-white">
@@ -430,6 +434,28 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 <Coins className="w-5 h-5" />
               </div>
             </div>
+
+            {/* Super Admin Quick Launch Widget */}
+            {onOpenAdmin && (user.role === 'admin' || user.email?.toLowerCase() === 'wapp7272@gmail.com') && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500 via-[#7A3BFF] to-[#007BFF] text-white shadow-md flex items-center justify-between gap-4 md:min-w-[260px]">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-amber-200 font-bold uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4 text-amber-200" />
+                    <span>Super Admin Access</span>
+                  </div>
+                  <h3 className="text-base font-black text-white mt-1">Owner Control Panel</h3>
+                  <button
+                    onClick={onOpenAdmin}
+                    className="mt-2 px-3.5 py-1.5 rounded-lg bg-white text-[#0A1B3D] text-xs font-black hover:bg-amber-50 transition-all shadow-sm cursor-pointer active:scale-95"
+                  >
+                    Open Super Admin Portal →
+                  </button>
+                </div>
+                <span className="px-2 py-1 rounded bg-black/30 font-mono text-[11px] font-black">
+                  OWNER
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Quick Metrics Bar */}
@@ -983,7 +1009,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               <div className="relative space-y-4 max-w-lg">
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-500/20 text-purple-300 border border-purple-400/30 uppercase tracking-widest">
-                    Prime Vault Digital Wallet
+                    ZeropicBD Digital Wallet
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                     Live Active

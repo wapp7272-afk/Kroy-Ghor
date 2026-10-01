@@ -43,7 +43,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
   const [isTestModalOpen, setIsTestModalOpen] = useState<boolean>(false);
   const [testPhone, setTestPhone] = useState<string>('01883418309');
   const [testMessage, setTestMessage] = useState<string>(
-    '[PRIME VAULT TEST] Gateway handshake check: SMS gateway is operational.'
+    '[Zeropicbd TEST] Gateway handshake check: SMS gateway is operational.'
   );
   const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
 
@@ -55,27 +55,27 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       const sampleLogs: NotificationLog[] = [
         {
           id: 'notif-seed-1',
-          orderId: orders[0]?.id || 'PVZ-91823',
+          orderId: orders[0]?.id || 'ZBD-91823',
           recipientName: orders[0]?.address.fullName || 'Arifur Rahman',
           recipientPhone: orders[0]?.address.phone || '01712345678',
           type: 'sms',
           channel: 'GP_BULK_SMS',
-          title: `SMS Dispatch: Order #${orders[0]?.id || 'PVZ-91823'} (CONFIRMED)`,
-          message: `[PRIME VAULT] Dear Customer, your Order #${orders[0]?.id || 'PVZ-91823'} is confirmed! Track live: https://primevault.bd/track/${orders[0]?.id || 'PVZ-91823'}. Helpline: 01883418309`,
+          title: `SMS Dispatch: Order #${orders[0]?.id || 'ZBD-91823'} (CONFIRMED)`,
+          message: `[Zeropicbd] Dear Customer, your Order #${orders[0]?.id || 'ZBD-91823'} is confirmed! Track live: https://zeropicbd.com/track/${orders[0]?.id || 'ZBD-91823'}. Helpline: 01883418309`,
           status: 'Delivered',
           sentAt: '28 Sep 2026, 14:35',
           gatewayTrxId: 'GP-883912A',
         },
         {
           id: 'notif-seed-2',
-          orderId: orders[0]?.id || 'PVZ-91823',
+          orderId: orders[0]?.id || 'ZBD-91823',
           recipientName: orders[0]?.address.fullName || 'Arifur Rahman',
           recipientPhone: orders[0]?.address.phone || '01712345678',
           recipientEmail: 'customer@example.com',
           type: 'email',
           channel: 'SENDGRID_EMAIL',
-          title: `Order Confirmation: #${orders[0]?.id || 'PVZ-91823'} — PRIME VAULT ZONE 🇧🇩`,
-          message: `<div style="font-family: sans-serif; padding: 20px;"><h3>Order Confirmation #${orders[0]?.id || 'PVZ-91823'}</h3><p>Your order has been verified and packed for express dispatch.</p></div>`,
+          title: `Order Confirmation: #${orders[0]?.id || 'ZBD-91823'} — Zeropicbd 🇧🇩`,
+          message: `<div style="font-family: sans-serif; padding: 20px;"><h3>Order Confirmation #${orders[0]?.id || 'ZBD-91823'}</h3><p>Your order has been verified and packed for express dispatch.</p></div>`,
           status: 'Delivered',
           sentAt: '28 Sep 2026, 14:35',
           gatewayTrxId: 'SG-9018442',

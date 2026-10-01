@@ -79,7 +79,7 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
         const idToken = await user.getIdToken().catch(() => undefined);
         return {
           uid: user.uid,
-          displayName: user.displayName || user.email?.split('@')[0] || 'Prime Member',
+          displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
           email: user.email || '',
           photoURL: user.photoURL || undefined,
           idToken,
@@ -99,7 +99,7 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       const idToken = await user.getIdToken().catch(() => undefined);
       return {
         uid: user.uid,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Prime Member',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
         email: user.email || '',
         photoURL: user.photoURL || undefined,
         idToken,
@@ -141,7 +141,7 @@ export const checkGoogleRedirectResult = async (): Promise<GoogleAuthResult | nu
       const idToken = await user.getIdToken().catch(() => undefined);
       return {
         uid: user.uid,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Prime Member',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
         email: user.email || '',
         photoURL: user.photoURL || undefined,
         idToken,

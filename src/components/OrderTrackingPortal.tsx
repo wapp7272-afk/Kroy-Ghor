@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Order, UserProfile, Product } from '../types';
 import { InvoiceModal } from './InvoiceModal';
+import { BrandLogo } from './BrandLogo';
 import { fetchLiveCourierTracking } from '../services/courierLogisticsService';
 
 export interface OrderTrackingPortalProps {
@@ -139,7 +140,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
       {
         id: 'placed',
         title: 'Order Placed & Verified',
-        desc: `Order received and logged in PRIME VAULT ZONE platform ledger.`,
+        desc: `Order received and logged in ZeropicBD platform ledger.`,
         date: orderDate,
         completed: true,
         current: false,
@@ -513,7 +514,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                           <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                             <span>Qty: {item.quantity}</span>
                             {item.selectedSize && <span>• Size: {item.selectedSize}</span>}
-                            <span>• Sold by {item.storeName || item.product.storeName || 'Prime Vault Official'}</span>
+                            <span>• Sold by {item.storeName || item.product.storeName || 'ZeropicBD Official'}</span>
                           </div>
                         </div>
                       </div>
@@ -598,7 +599,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                       <span>Call Rider</span>
                     </a>
                     <a
-                      href={`https://wa.me/8801883418309?text=Hello%20Rider%2C%20regarding%20PRIME%20VAULT%20Order%20${selectedOrder.id}`}
+                      href={`https://wa.me/8801883418309?text=Hello%20Rider%2C%20regarding%20ZeropicBD%20Order%20${selectedOrder.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="py-2 px-3 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
@@ -699,13 +700,16 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-2xs">
+            <div className="flex justify-center mb-1">
+              <BrandLogo size="md" />
+            </div>
             <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <Package className="w-8 h-8" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900">No Order Found</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-                We couldn't locate a consignment for "{searchInput}". Please double check your Order ID (e.g. PVZ-91823) or phone number.
+                We couldn't locate a consignment for "{searchInput}". Please double check your Order ID (e.g. ZBD-91823) or phone number.
               </p>
             </div>
             <button
