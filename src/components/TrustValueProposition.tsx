@@ -6,7 +6,8 @@ import {
   Headphones, 
   CheckCircle2, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 
 interface TrustValuePropositionProps {
@@ -18,33 +19,33 @@ export const TrustValueProposition: React.FC<TrustValuePropositionProps> = () =>
     {
       id: 'feature-auth',
       icon: ShieldCheck,
-      title: '100% Authentic Products',
-      description: 'Guaranteed genuine items sourced directly from verified global & local sellers.',
-      highlight: 'Zero Counterfeits',
+      title: '100% Authentic Guarantee',
+      description: 'Zero counterfeit tolerance. Verified original batch codes direct from brand authorized importers.',
+      highlight: '100% Genuine',
       badgeColor: 'bg-emerald-100 text-emerald-800'
-    },
-    {
-      id: 'feature-delivery',
-      icon: Truck,
-      title: 'Express Nationwide Delivery',
-      description: 'Fast shipping across Dhaka (24-48 hrs) and all 64 districts with real-time tracking.',
-      highlight: 'Dhaka & 64 Districts',
-      badgeColor: 'bg-blue-100 text-blue-800'
     },
     {
       id: 'feature-cod',
       icon: Banknote,
-      title: 'Cash on Delivery & Easy Refunds',
-      description: 'Check your package at doorstep. Enjoy instant bKash/Nagad and 7-day hassle-free returns.',
+      title: 'Cash on Delivery Nationwide',
+      description: 'Check your package at your doorstep before payment across Dhaka and all 64 districts.',
       highlight: 'Check Before Pay',
       badgeColor: 'bg-amber-100 text-amber-800'
     },
     {
-      id: 'feature-support',
-      icon: Headphones,
-      title: '24/7 Dedicated Support',
-      description: 'Round-the-clock live chat and direct phone assistance in both Bangla & English.',
-      highlight: 'Bangla & English',
+      id: 'feature-delivery',
+      icon: Truck,
+      title: 'Express Courier Delivery',
+      description: 'Super-fast 24-48 hour fulfillment with real-time Steadfast, Pathao & RedX tracking updates.',
+      highlight: 'Fast 24-48h',
+      badgeColor: 'bg-blue-100 text-blue-800'
+    },
+    {
+      id: 'feature-returns',
+      icon: RotateCcw,
+      title: '7-Day Easy Returns',
+      description: 'Hassle-free replacement guarantee or instant wallet/bKash refund if you are not 100% satisfied.',
+      highlight: 'Hassle-Free',
       badgeColor: 'bg-purple-100 text-purple-800'
     }
   ];

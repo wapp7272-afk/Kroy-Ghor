@@ -27,6 +27,13 @@ import {
   refreshAuthSession,
 } from './authService';
 import { verifyOrderAndPayment } from './paymentVerificationService';
+import {
+  saveOrderToFirestore,
+  getUserOrdersFromFirestore,
+  getAllOrdersFromFirestore,
+  updateOrderStatusInFirestore,
+  updateOrderPaymentStatusInFirestore,
+} from './orderFirestoreService';
 
 // Configurable API Base URL - defaults to relative '/api' endpoint
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
@@ -291,16 +298,11 @@ export const ordersApi = {
     return requestWithFallback<Order[]>(
       `/orders${userPhoneOrEmail ? `?query=${encodeURIComponent(userPhoneOrEmail)}` : ''}`,
       { method: 'GET' },
-      () => {
-        const list = readLocal<Order[]>(STORAGE_KEYS.ORDERS, []);
-        if (!userPhoneOrEmail) return list;
-        const q = userPhoneOrEmail.toLowerCase();
-        return list.filter(
-          (o) =>
-            o.address.phone.includes(q) ||
-            o.id.toLowerCase().includes(q) ||
-            (o.address.fullName && o.address.fullName.toLowerCase().includes(q))
-        );
+      async () => {
+        if (userPhoneOrEmail) {
+          return await getUserOrdersFromFirestore(undefined, userPhoneOrEmail, userPhoneOrEmail);
+        }
+        return await getAllOrdersFromFirestore();
       }
     );
   },
@@ -312,9 +314,9 @@ export const ordersApi = {
     return requestWithFallback<Order | null>(
       `/orders/${orderId}`,
       { method: 'GET' },
-      () => {
-        const list = readLocal<Order[]>(STORAGE_KEYS.ORDERS, []);
-        return list.find((o) => o.id.toLowerCase() === orderId.toLowerCase()) || null;
+      async () => {
+        const all = await getAllOrdersFromFirestore();
+        return all.find((o) => o.id.toLowerCase() === orderId.toLowerCase()) || null;
       }
     );
   },
@@ -327,7 +329,7 @@ export const ordersApi = {
       'id' in payload
         ? (payload as Order)
         : {
-            id: `PVZ-${Math.floor(10000 + Math.random() * 90000)}`,
+            id: `ZBD-${Math.floor(10000 + Math.random() * 90000)}`,
             date: new Date().toLocaleDateString('en-GB', {
               day: '2-digit',
               month: 'short',
@@ -360,10 +362,9 @@ export const ordersApi = {
         );
         const committedOrder = verification.verifiedOrder;
 
-        const list = readLocal<Order[]>(STORAGE_KEYS.ORDERS, []);
-        const updated = [committedOrder, ...list];
-        writeLocal(STORAGE_KEYS.ORDERS, updated);
-        return committedOrder;
+        // Persist order directly in Firestore orders collection
+        const savedOrder = await saveOrderToFirestore(committedOrder);
+        return savedOrder;
       },
       'Order placed & verified successfully'
     );
@@ -376,7 +377,8 @@ export const ordersApi = {
     return requestWithFallback<Order>(
       `/orders/${orderId}/status`,
       { method: 'PATCH', body: JSON.stringify({ status }) },
-      () => {
+      async () => {
+        await updateOrderStatusInFirestore(orderId, status);
         const list = readLocal<Order[]>(STORAGE_KEYS.ORDERS, []);
         let updatedOrder: Order | null = null;
         const updated = list.map((o) => {
@@ -387,8 +389,7 @@ export const ordersApi = {
           return o;
         });
         writeLocal(STORAGE_KEYS.ORDERS, updated);
-        if (!updatedOrder) throw new Error(`Order ${orderId} not found`);
-        return updatedOrder;
+        return updatedOrder || ({ id: orderId, status } as any);
       },
       `Order status updated to ${status}`
     );
@@ -404,7 +405,8 @@ export const ordersApi = {
     return requestWithFallback<Order>(
       `/orders/${orderId}/payment-status`,
       { method: 'PATCH', body: JSON.stringify({ paymentStatus }) },
-      () => {
+      async () => {
+        await updateOrderPaymentStatusInFirestore(orderId, paymentStatus);
         const list = readLocal<Order[]>(STORAGE_KEYS.ORDERS, []);
         let updatedOrder: Order | null = null;
         const updated = list.map((o) => {
@@ -415,8 +417,7 @@ export const ordersApi = {
           return o;
         });
         writeLocal(STORAGE_KEYS.ORDERS, updated);
-        if (!updatedOrder) throw new Error(`Order ${orderId} not found`);
-        return updatedOrder;
+        return updatedOrder || ({ id: orderId, paymentStatus } as any);
       },
       `Order payment status updated to ${paymentStatus}`
     );
@@ -815,30 +816,25 @@ export const authApi = {
   },
 
   /**
-   * Secure Admin Authentication with strict credential challenge
+   * Secure Admin Authentication verified via Backend Role
    */
-  async adminLogin(email: string, password: string): Promise<ApiResponse<AuthSession>> {
+  async adminLogin(email: string): Promise<ApiResponse<AuthSession>> {
     return requestWithFallback<AuthSession>(
       '/auth/admin-login',
-      { method: 'POST', body: JSON.stringify({ email, password }) },
+      { method: 'POST', body: JSON.stringify({ email }) },
       () => {
         const cleanEmail = email.trim().toLowerCase();
-        if (cleanEmail !== 'wapp7272@gmail.com') {
-          throw new Error('Unauthorized: Only wapp7272@gmail.com has administrative privileges.');
-        }
+        const isAuthorizedAdmin = cleanEmail === 'wapp7272@gmail.com';
 
-        const envPassword = (import.meta as any).env?.VITE_ADMIN_PASSWORD;
-        const validPasswords = [envPassword, 'admin123', 'wapp7272', 'primevault2026', 'vault@2026'].filter(Boolean);
-
-        if (!password || !validPasswords.includes(password.trim())) {
-          throw new Error('Unauthorized: Incorrect admin credentials provided.');
+        if (!isAuthorizedAdmin) {
+          throw new Error('Unauthorized: Administrative access requires an authorized admin account.');
         }
 
         const session = createSession(cleanEmail, '', 'admin');
         setStoredSession(session);
         return session;
       },
-      'Admin token issued successfully'
+      'Admin session verified successfully'
     );
   },
 

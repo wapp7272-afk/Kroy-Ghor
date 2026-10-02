@@ -2,6 +2,7 @@ export interface Product {
   id: string;
   title: string;
   name?: string;
+  subtitle?: string;
   category: 'Perfume' | 'Glow Lights' | 'Attar Perfumes' | 'Notebooks' | 'Bricks Toys' | string;
   subCategory?: string;
   price: number;
@@ -19,8 +20,10 @@ export interface Product {
   description: string;
   tag?: string;
   tags?: string[];
+  badge?: 'Featured' | 'Best Seller' | 'New Arrival' | 'On Sale' | string;
   sku?: string;
   isFeatured?: boolean;
+  isActive?: boolean;
   inStock: boolean;
   stockStatus?: 'in_stock' | 'out_of_stock' | 'pre_order';
   stockQuantity?: number;
@@ -36,6 +39,7 @@ export interface Product {
     base?: string;
   };
   sizes?: string[];
+  variants?: { size: string; price: number; stock?: number }[];
 }
 
 export interface Coupon {
@@ -95,7 +99,7 @@ export interface WalletTransaction {
   description: string;
 }
 
-export type UserRole = 'customer' | 'seller' | 'admin';
+export type UserRole = 'customer' | 'seller' | 'admin' | 'super_admin';
 
 export interface AuthSession {
   accessToken: string;
@@ -113,9 +117,11 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  role?: UserRole;
+  role: UserRole;
   walletBalance: number;
   hasReceivedBonus: boolean;
+  hasClaimedYouTubeBonus?: boolean;
+  youtubeHandle?: string;
   isPhoneVerified?: boolean;
   authProvider?: 'google' | 'phone' | 'email';
   avatar?: string;
@@ -123,6 +129,19 @@ export interface UserProfile {
   savedAddresses?: Address[];
   walletHistory?: WalletTransaction[];
   session?: AuthSession;
+}
+
+export interface YouTubeBonusClaim {
+  id: string;
+  uid: string;
+  userName: string;
+  userEmail: string;
+  youtubeHandle: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  adminNotes?: string;
 }
 
 export interface ReturnRequest {
@@ -140,6 +159,9 @@ export interface ReturnRequest {
 
 export interface Order {
   id: string;
+  userId?: string;
+  customerName?: string;
+  customerPhone?: string;
   date: string;
   time?: string;
   customerEmail?: string;
@@ -257,6 +279,19 @@ export interface PromoBanner {
   accentColor?: string;
 }
 
+export interface CampaignBannerConfig {
+  isEnabled: boolean;
+  title: string;
+  subtitle: string;
+  promoCode?: string;
+  bgColor?: string;
+  bgImageUrl?: string;
+  buttonText: string;
+  linkTarget: string; // e.g. '#explore', '/checkout', 'Flash Sale', or category
+  badgeText?: string;
+  updatedAt?: any;
+}
+
 export interface SystemBannerSettings {
   announcementText: string;
   announcementBadge: string;
@@ -265,6 +300,7 @@ export interface SystemBannerSettings {
   heroSubheadline: string;
   heroBannerImage?: string;
   flashSaleTag: string;
+  campaignBanner?: CampaignBannerConfig;
   // YouTube Video & Channel Integration
   youtubeVideoUrl?: string; // Featured video URL or Video ID
   youtubeChannelUrl?: string; // Official YouTube channel URL

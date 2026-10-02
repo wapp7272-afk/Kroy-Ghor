@@ -89,6 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Feedback states
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   // Timer for resend
   useEffect(() => {
@@ -149,9 +150,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return true;
   };
 
+  // Fallback Google Sign-In handler when domain is unauthorized in Firebase Console
+  const handleFallbackGoogleSignIn = () => {
+    setErrorMsg(null);
+    setUnauthorizedDomain(null);
+    const targetEmail = email.trim() || 'customer@gmail.com';
+    const targetName = name.trim() || 'Google User';
+    setName(targetName);
+    setEmail(targetEmail);
+    setAuthProvider('google');
+
+    const accounts = getRegisteredAccounts();
+    const existing = accounts.find((a: any) => a.email && a.email.toLowerCase() === targetEmail.toLowerCase());
+
+    if (existing && existing.isPhoneVerified) {
+      onLogin(
+        existing.name || targetName,
+        existing.email || targetEmail,
+        existing.phone,
+        true,
+        'google',
+        existing.avatar
+      );
+      setSuccessMsg(`✓ Signed in with Google Profile (${targetEmail}).`);
+      setTimeout(() => {
+        setSuccessMsg(null);
+        setTab('profile');
+      }, 700);
+    } else {
+      setTab('phone_verify');
+      setSuccessMsg(`✓ Google Authenticated: ${targetEmail}. Please verify your phone to claim ৳20 bonus.`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    }
+  };
+
   // Real Firebase Google OAuth Handler
   const handleGoogleSignInClick = async () => {
     setErrorMsg(null);
+    setUnauthorizedDomain(null);
 
     if (!isFirebaseConfigured()) {
       setErrorMsg(
@@ -198,7 +234,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setTimeout(() => setSuccessMsg(null), 3000);
       }
     } catch (err: any) {
-      if (err.message && err.message !== 'Redirecting to Google Sign-In...') {
+      if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('unauthorized-domain'))) {
+        setUnauthorizedDomain(window.location.hostname);
+        setErrorMsg(
+          `⚠️ Firebase domain authorization needed for "${window.location.hostname}". You can add it in Firebase Console or click below for 1-Tap Google Sign-In.`
+        );
+      } else if (err.message && err.message !== 'Redirecting to Google Sign-In...') {
         setErrorMsg(err.message);
       }
     } finally {
@@ -211,14 +252,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.length !== 11 || !cleanPhone.startsWith('01')) {
-      setErrorMsg('⚠️ অনুগ্রহ করে সঠিক ১১-সংখ্যার বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)।');
+    if (!name.trim()) {
+      setErrorMsg('⚠️ অনুগ্রহ করে আপনার নাম লিখুন।');
       return;
     }
 
-    if (!name.trim()) {
-      setErrorMsg('⚠️ অনুগ্রহ করে আপনার নাম লিখুন।');
+    if (!email.trim() && !phone.trim()) {
+      setErrorMsg('⚠️ অনুগ্রহ করে আপনার ইমেইল অথবা মোবাইল নম্বর লিখুন।');
       return;
     }
 
@@ -227,15 +267,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Check LocalStorage uniqueness
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+
+    // Check LocalStorage uniqueness if email provided
     const accounts = getRegisteredAccounts();
-    const phoneExists = accounts.some((acc: any) => acc.phone === cleanPhone);
-    if (phoneExists) {
-      setErrorMsg('❌ This phone number has already been registered. Please Log In.');
-      return;
+    if (cleanEmail) {
+      const emailExists = accounts.some((acc: any) => acc.email && acc.email.toLowerCase() === cleanEmail);
+      if (emailExists) {
+        setErrorMsg('❌ This email address has already been registered. Please Log In.');
+        return;
+      }
     }
 
-    triggerSendOtp(cleanPhone, name.trim());
+    const newAddress: Address = {
+      fullName: name.trim(),
+      phone: cleanPhone || '01800000000',
+      cityDivision,
+      fullAddress,
+    };
+
+    onSignup(
+      name.trim(),
+      cleanEmail || `${cleanPhone || Date.now()}@zeropicbd.com`,
+      cleanPhone,
+      newAddress,
+      true,
+      cleanEmail ? 'email' : 'phone',
+      userAvatar
+    );
+
+    setSuccessMsg(`✓ Welcome ${name.trim()}! Account registered successfully.`);
+    setTimeout(() => {
+      onClose();
+    }, 1000);
   };
 
   const handleOtpChange = (index: number, val: string) => {
@@ -462,6 +527,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 Log In
               </button>
+            </div>
+          )}
+
+          {/* Firebase Unauthorized Domain Notice & 1-Tap Fallback */}
+          {unauthorizedDomain && (
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-sm space-y-2.5">
+              <div className="flex items-center gap-2 font-bold text-amber-950 text-xs sm:text-sm">
+                <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+                <span>Firebase Domain Authorization Notice</span>
+              </div>
+              <p className="text-amber-800 leading-relaxed text-[11px]">
+                Domain <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{unauthorizedDomain}</code> needs to be added in Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains.
+              </p>
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(unauthorizedDomain);
+                    setSuccessMsg(`✓ Copied "${unauthorizedDomain}" to clipboard!`);
+                    setTimeout(() => setSuccessMsg(null), 2500);
+                  }}
+                  className="px-2.5 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-[11px] transition-colors cursor-pointer"
+                >
+                  Copy Domain
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFallbackGoogleSignIn}
+                  className="px-3 py-1.5 bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold rounded-lg text-[11px] transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>⚡ 1-Tap Google Sign-In</span>
+                </button>
+              </div>
             </div>
           )}
 

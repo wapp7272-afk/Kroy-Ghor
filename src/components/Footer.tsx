@@ -109,8 +109,21 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 pb-10 border-b border-slate-800">
           {/* Col 1: Brand & Contact Info (Matches Brand Sheet) */}
           <div className="lg:col-span-2 space-y-3.5">
-            <button onClick={onGoHome} className="focus:outline-none cursor-pointer">
-              <VaultLogo size="md" variant="dark" showDivider={false} />
+            <button onClick={onGoHome} className="focus:outline-none cursor-pointer block text-left group">
+              <div className="bg-white/95 hover:bg-white rounded-2xl px-3.5 py-2 inline-flex items-center shadow-md transition-all group-hover:scale-[1.02]">
+                <img
+                  src="/logo.png"
+                  alt="ZeropicBD"
+                  className="h-10 sm:h-11 w-auto object-contain"
+                  style={{ objectFit: 'contain' }}
+                  loading="lazy"
+                />
+              </div>
+              <div className="text-[10.5px] font-black text-[#00C6FF] tracking-[0.25em] mt-2 uppercase flex items-center gap-1.5">
+                <span>SHOP SMART</span>
+                <span className="text-white/60">•</span>
+                <span>LIVE BETTER</span>
+              </div>
             </button>
             <p className="text-xs text-slate-300 leading-relaxed max-w-sm">
               <strong className="text-white">ZeropicBD</strong> is Bangladesh's premier verified lifestyle and marketplace. Discover curated authentic collections, premium essentials, and seamless shopping with bKash, Nagad, and Cash on Delivery nationwide.

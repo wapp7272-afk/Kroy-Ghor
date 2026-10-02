@@ -10,11 +10,30 @@ import {
   User as FirebaseUser,
   Auth,
 } from 'firebase/auth';
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  setLogLevel, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  serverTimestamp, 
+  Firestore 
+} from 'firebase/firestore';
 
 // Read Firebase configuration from environment variables with import.meta.env
+const getAuthDomain = () => {
+  const envDomain = (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN;
+  if (envDomain) return envDomain;
+  const projectId = (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID;
+  if (projectId) return `${projectId}.firebaseapp.com`;
+  return 'zeropic-bd.vercel.app';
+};
+
 const firebaseConfig = {
   apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || '',
-  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || 'zeropic-bd.vercel.app',
+  authDomain: getAuthDomain(),
   projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '',
   storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
@@ -25,26 +44,232 @@ const firebaseConfig = {
  * Checks if Firebase environment variables are provided
  */
 export const isFirebaseConfigured = (): boolean => {
-  return Boolean(firebaseConfig.apiKey && (firebaseConfig.projectId || firebaseConfig.authDomain));
+  return Boolean(
+    firebaseConfig.apiKey && 
+    firebaseConfig.apiKey !== 'undefined' && 
+    firebaseConfig.projectId && 
+    firebaseConfig.projectId !== 'undefined'
+  );
 };
 
 // Initialize Firebase App singleton
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 
 if (isFirebaseConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
+    
+    try {
+      setLogLevel('silent');
+    } catch {}
+
+    try {
+      db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
+      });
+    } catch {
+      try {
+        db = initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true,
+          ignoreUndefinedProperties: true,
+        });
+      } catch {
+        db = getFirestore(app);
+      }
+    }
+
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
       prompt: 'select_account',
     });
   } catch (error) {
-    console.error('[FirebaseAuth] Initialization error:', error);
+    console.warn('[FirebaseAuth] Initialization notice:', error);
   }
 }
+
+export { app, auth, db };
+
+/**
+ * Syncs user document in Firestore (`users/{uid}`) upon login/signup
+ * Creates permanent doc with default fields if new user, or updates lastLoginAt if existing user
+ */
+export const syncUserDocumentInFirestore = async (
+  fUser: { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }
+): Promise<{
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL: string;
+  role: 'customer' | 'seller' | 'admin' | 'super_admin';
+  walletBalance: number;
+  hasClaimedYouTubeBonus: boolean;
+}> => {
+  const uid = fUser.uid;
+  const email = (fUser.email || '').trim();
+  const displayName = fUser.displayName || (email ? email.split('@')[0] : 'ZeropicBD Member');
+  const photoURL = fUser.photoURL || '';
+
+  const isOwner = email.toLowerCase() === 'wapp7272@gmail.com';
+  const defaultRole = isOwner ? 'super_admin' : 'customer';
+
+  const defaultResult = {
+    uid,
+    email,
+    displayName,
+    photoURL,
+    role: defaultRole as 'customer' | 'seller' | 'admin' | 'super_admin',
+    walletBalance: 0,
+    hasClaimedYouTubeBonus: false,
+  };
+
+  if (!db || !uid) {
+    return defaultResult;
+  }
+
+  try {
+    const userDocRef = doc(db, 'users', uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+
+      // Document exists: Update lastLoginAt without overwriting existing walletBalance, role, or hasClaimedYouTubeBonus
+      await updateDoc(userDocRef, {
+        lastLoginAt: serverTimestamp(),
+        ...(displayName && !data.displayName ? { displayName } : {}),
+        ...(photoURL && !data.photoURL ? { photoURL } : {}),
+      }).catch(async () => {
+        await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
+      });
+
+      const role = (data.role || defaultRole) as 'customer' | 'seller' | 'admin' | 'super_admin';
+      const walletBalance = typeof data.walletBalance === 'number' ? data.walletBalance : 0;
+      const hasClaimedYouTubeBonus = Boolean(data.hasClaimedYouTubeBonus || data.hasReceivedBonus);
+
+      return {
+        uid,
+        email: data.email || email,
+        displayName: data.displayName || displayName,
+        photoURL: data.photoURL || photoURL,
+        role,
+        walletBalance,
+        hasClaimedYouTubeBonus,
+      };
+    } else {
+      // New user: Create permanent document in users/{uid}
+      const newDocPayload = {
+        uid,
+        email,
+        displayName,
+        photoURL,
+        role: defaultRole,
+        walletBalance: 0,
+        hasClaimedYouTubeBonus: false,
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+      };
+
+      await setDoc(userDocRef, newDocPayload);
+
+      return defaultResult;
+    }
+  } catch (error) {
+    console.error('[FirestoreSync] Error syncing user document in users/{uid}:', error);
+    return defaultResult;
+  }
+};
+
+/**
+ * Fetches user profile directly from backend Firestore database (`users/{uid}`)
+ */
+export const getUserProfileFromFirestore = async (uid: string) => {
+  if (!db || !uid) return null;
+  try {
+    const userDocRef = doc(db, 'users', uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      return userDocSnap.data();
+    }
+  } catch (err) {
+    console.error('[Firestore] Error fetching user profile from users/{uid}:', err);
+  }
+  return null;
+};
+
+/**
+ * Fetches user role directly from backend Firestore database (`users/{uid}` document -> `role` field)
+ */
+export const getUserRoleFromFirestore = async (
+  uid: string,
+  email?: string
+): Promise<'admin' | 'super_admin' | 'seller' | 'customer'> => {
+  const isOwnerEmail = email && email.toLowerCase() === 'wapp7272@gmail.com';
+  const fallbackRole = isOwnerEmail ? 'super_admin' : 'customer';
+
+  if (!db || !uid) {
+    return fallbackRole;
+  }
+
+  try {
+    const userDocRef = doc(db, 'users', uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      if (data?.role) {
+        return data.role as 'admin' | 'super_admin' | 'seller' | 'customer';
+      }
+    }
+
+    // Initialize/sync user document in Firestore if doc does not exist yet
+    await setDoc(
+      userDocRef,
+      {
+        uid,
+        email: email || '',
+        role: fallbackRole,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    ).catch(() => {});
+
+    return fallbackRole;
+  } catch (error) {
+    console.error('[Firestore] Error fetching user role from users/{uid}:', error);
+    return fallbackRole;
+  }
+};
+
+/**
+ * Sets or updates user role in backend Firestore database (`users/{uid}`)
+ */
+export const setUserRoleInFirestore = async (
+  uid: string,
+  role: 'admin' | 'super_admin' | 'seller' | 'customer',
+  email?: string
+): Promise<void> => {
+  if (!db || !uid) return;
+  try {
+    const userDocRef = doc(db, 'users', uid);
+    await setDoc(
+      userDocRef,
+      {
+        uid,
+        email: email || '',
+        role,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.error('[Firestore] Error updating user role in users/{uid}:', error);
+  }
+};
 
 export interface GoogleAuthResult {
   uid: string;
@@ -77,11 +302,17 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
         const idToken = await user.getIdToken().catch(() => undefined);
+        const synced = await syncUserDocumentInFirestore({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+        });
         return {
           uid: user.uid,
-          displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
+          displayName: synced.displayName || user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
           email: user.email || '',
-          photoURL: user.photoURL || undefined,
+          photoURL: synced.photoURL || user.photoURL || undefined,
           idToken,
         };
       } catch (popupErr: any) {
@@ -97,11 +328,17 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const idToken = await user.getIdToken().catch(() => undefined);
+      const synced = await syncUserDocumentInFirestore({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      });
       return {
         uid: user.uid,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
+        displayName: synced.displayName || user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
         email: user.email || '',
-        photoURL: user.photoURL || undefined,
+        photoURL: synced.photoURL || user.photoURL || undefined,
         idToken,
       };
     }
@@ -110,9 +347,12 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
 
     // Provide clear, actionable error messages
     if (error?.code === 'auth/unauthorized-domain') {
-      throw new Error(
+      const customErr: any = new Error(
         `This domain (${window.location.hostname}) is not authorized in your Firebase Console. Go to Firebase Console > Authentication > Settings > Authorized Domains and add "${window.location.hostname}".`
       );
+      customErr.code = 'auth/unauthorized-domain';
+      customErr.domain = window.location.hostname;
+      throw customErr;
     }
     if (error?.code === 'auth/popup-closed-by-user') {
       throw new Error('Google Sign-In was cancelled.');

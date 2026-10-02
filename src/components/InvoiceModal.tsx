@@ -113,8 +113,16 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* ================= Header: Brand & Meta ================= */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 border-b-2 border-purple-100">
             <div>
-              <VaultLogo size="md" showText={true} />
-              <p className="text-xs text-[#525252] mt-2 font-medium">
+              <img
+                src="/logo.png"
+                alt="ZeropicBD"
+                className="h-11 sm:h-12 w-auto object-contain mb-1.5"
+                style={{ objectFit: 'contain' }}
+              />
+              <p className="text-[10.5px] font-black text-[#5B21B6] tracking-[0.2em] uppercase mt-0.5">
+                SHOP SMART • LIVE BETTER
+              </p>
+              <p className="text-xs text-[#525252] mt-1 font-medium">
                 Premium Lifestyle & Multi-Vendor Marketplace
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">

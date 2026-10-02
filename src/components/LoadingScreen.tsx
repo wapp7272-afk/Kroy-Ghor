@@ -47,11 +47,14 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoaded }) => {
           <div className="absolute -inset-2 sm:-inset-3 rounded-full border border-[#fbbf24]/20 border-b-[#fbbf24] border-l-[#fbbf24] animate-spin [animation-direction:reverse] [animation-duration:2s]" />
 
           {/* High-Resolution Pulsing Official ZeropicBD Logo */}
-          <VaultLogo
-            size="xl"
-            isPulsing={true}
-            className="transform hover:scale-105 transition-transform"
-          />
+          <div className="w-auto h-16 sm:h-20 flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="ZeropicBD"
+              className="h-14 sm:h-16 w-auto object-contain animate-pulse filter drop-shadow-[0_0_25px_rgba(0,198,255,0.5)]"
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
         </div>
 
         {/* Sleek Loading Progress Bar */}

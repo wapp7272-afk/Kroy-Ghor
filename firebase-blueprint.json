@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role, contact info, and digital wallet balance.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "seller", "admin", "super_admin"] },
+        "walletBalance": { "type": "number" },
+        "hasClaimedYouTubeBonus": { "type": "boolean" },
+        "isPhoneVerified": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Store customer order with items, shipping destination, payment, and courier fulfillment info.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "walletDiscount": { "type": "number" },
+        "deliveryCharge": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["Pending", "Paid", "Refunded", "Failed"] },
+        "orderStatus": { "type": "string", "enum": ["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"] },
+        "courierName": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "shippingAddress": { "type": "object" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["orderId", "customerName", "customerPhone", "totalAmount", "orderStatus"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Marketplace lifestyle or fragrance product available for purchase.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "inStock": { "type": "boolean" },
+        "stockQuantity": { "type": "number" },
+        "stockStatus": { "type": "string", "enum": ["in_stock", "out_of_stock", "pre_order"] },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "storeName": { "type": "string" }
+      },
+      "required": ["title", "category", "price"]
+    },
+    "WalletTransaction": {
+      "title": "WalletTransaction",
+      "description": "Immutable ledger record for credit or debit wallet actions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["CREDIT", "DEBIT", "credit", "debit"] },
+        "reason": { "type": "string" },
+        "orderId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "amount", "type", "reason"]
+    },
+    "YouTubeBonusClaim": {
+      "title": "YouTubeBonusClaim",
+      "description": "User submitted YouTube handle subscription claim for ৳20 store credit.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "youtubeHandle": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "channelUrl": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "youtubeHandle", "status"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Global marketplace settings such as campaign banners or delivery fees.",
+      "type": "object",
+      "properties": {
+        "isEnabled": { "type": "boolean" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "promoCode": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "UserProfile" },
+      "description": "Registered customer profiles, roles, and wallet balances."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "Order" },
+      "description": "Customer orders with payment and courier shipment tracking."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "Product" },
+      "description": "Published catalog products and inventory counts."
+    },
+    "/wallet_transactions/{transactionId}": {
+      "schema": { "$ref": "WalletTransaction" },
+      "description": "Audit trail of wallet credits and deductions."
+    },
+    "/youtube_bonus_claims/{claimId}": {
+      "schema": { "$ref": "YouTubeBonusClaim" },
+      "description": "Customer YouTube subscription bonus claim requests."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "SystemSetting" },
+      "description": "Global store configuration and campaign banners."
+    }
+  }
+}

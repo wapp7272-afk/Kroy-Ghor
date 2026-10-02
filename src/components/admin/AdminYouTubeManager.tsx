@@ -30,7 +30,7 @@ export const AdminYouTubeManager: React.FC<AdminYouTubeManagerProps> = ({
   showToast = () => {},
 }) => {
   const [videoUrl, setVideoUrl] = useState(settings.youtubeVideoUrl || 'https://www.youtube.com/watch?v=sU3FkmV9b70');
-  const [channelUrl, setChannelUrl] = useState(settings.youtubeChannelUrl || 'https://www.youtube.com/@primevaultzone');
+  const [channelUrl, setChannelUrl] = useState(settings.youtubeChannelUrl || 'https://www.youtube.com/@zeropicbd');
   const [sectionTitle, setSectionTitle] = useState(settings.youtubeSectionTitle || 'Featured YouTube Videos');
   const [sectionSubtitle, setSectionSubtitle] = useState(
     settings.youtubeSectionSubtitle ||

@@ -1887,6 +1887,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             name: '',
             email: '',
             phone: '',
+            role: 'customer',
             walletBalance: 0,
             hasReceivedBonus: false,
             address: { fullName: '', phone: '', cityDivision: 'Inside Dhaka', fullAddress: '' }

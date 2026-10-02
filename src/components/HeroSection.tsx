@@ -13,7 +13,9 @@ import {
   ShoppingBag,
   Tag,
   Copy,
-  Layers
+  Layers,
+  Gift,
+  Youtube
 } from 'lucide-react';
 import { Product, PromoBanner, SystemBannerSettings } from '../types';
 import { INITIAL_PROMO_BANNERS } from '../data/banners';
@@ -26,6 +28,7 @@ interface HeroSectionProps {
   onAddToCart: (product: Product) => void;
   onSelectCategory: (category: string) => void;
   onSelectFilterTab: (tab: 'All' | 'Flash Sale' | 'Best Deals' | 'New Arrivals') => void;
+  onClaimBonus?: () => void;
   bannerSettings?: SystemBannerSettings;
   showToast?: (msg: string) => void;
 }
@@ -38,6 +41,7 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({
   onAddToCart,
   onSelectCategory,
   onSelectFilterTab,
+  onClaimBonus,
   bannerSettings,
   showToast,
 }) => {
@@ -266,6 +270,17 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({
                   <span>{currentBanner.primaryCtaText}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
+
+                {onClaimBonus && (
+                  <button
+                    id="hero-claim-bonus-btn"
+                    onClick={onClaimBonus}
+                    className="px-4 py-3 min-h-[44px] rounded-xl font-bold text-xs sm:text-sm text-amber-950 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98"
+                  >
+                    <Gift className="w-4 h-4 text-amber-950" />
+                    <span>Claim ৳20 Bonus</span>
+                  </button>
+                )}
 
                 <button
                   id="hero-secondary-cta-btn"

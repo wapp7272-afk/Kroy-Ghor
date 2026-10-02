@@ -50,10 +50,15 @@ import { PublicSellerStoreView } from './components/PublicSellerStoreView';
 import { HeroSection } from './components/HeroSection';
 import { CategoryNavGrid } from './components/CategoryNavGrid';
 import { FlashSaleSection } from './components/FlashSaleSection';
-import { CinematicVideoShowcase } from './components/CinematicVideoShowcase';
 import { TrustValueProposition } from './components/TrustValueProposition';
-import { FeaturedYouTubeSection } from './components/FeaturedYouTubeSection';
+import { YouTubeBonusBanner } from './components/YouTubeBonusBanner';
+import { StorefrontCampaignBanner } from './components/StorefrontCampaignBanner';
 import { INITIAL_PROMO_BANNERS } from './data/banners';
+import { 
+  subscribeCampaignBanner, 
+  DEFAULT_CAMPAIGN_BANNER 
+} from './services/campaignBannerService';
+import { CampaignBannerConfig } from './types';
 import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
 import { CustomerSupport } from './components/CustomerSupport';
@@ -78,8 +83,26 @@ import {
   isFirebaseConfigured,
   checkGoogleRedirectResult,
   firebaseSignOut,
+  getUserRoleFromFirestore,
+  syncUserDocumentInFirestore,
 } from './lib/firebaseAuth';
 import { UserRole } from './types';
+import { AdminRoute } from './components/AdminRoute';
+import { AuthProvider } from './context/AuthContext';
+import {
+  saveOrderToFirestore,
+  getUserOrdersFromFirestore,
+  getAllOrdersFromFirestore,
+  deductUserWalletInFirestore,
+} from './services/orderFirestoreService';
+import {
+  subscribeToProductsFromFirestore,
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+  bulkDeleteProductsFromFirestore,
+  getLocalProducts,
+} from './services/productFirestoreService';
+import { CheckoutPage } from './components/CheckoutPage';
 
 // Code-split heavy secondary view modals and admin components with React.lazy
 const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
@@ -102,8 +125,32 @@ const ModalSuspenseFallback = () => (
 );
 
 export default function App() {
-  // State: Active Navigation Routing
-  const [activePage, setActivePage] = useState<ActivePage>('Home');
+  // State: Active Navigation Routing (Supports dedicated full-page /admin and /checkout routes)
+  const [activePage, setActivePage] = useState<ActivePage>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname === '/admin') return 'Admin';
+      if (window.location.pathname === '/checkout') return 'Checkout';
+    }
+    return 'Home';
+  });
+
+  // Dedicated /admin & /checkout route browser history & popstate listener
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        if (window.location.pathname === '/admin') {
+          setActivePage('Admin');
+        } else if (window.location.pathname === '/checkout') {
+          setActivePage('Checkout');
+        } else if (activePage === 'Admin' || activePage === 'Checkout') {
+          setActivePage('Home');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activePage]);
+
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>('perfume-vault-bd');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
@@ -162,6 +209,18 @@ export default function App() {
     api.settings.updateBannerSettings(newSettings).catch(() => {});
     showToast('🚀 System Banners & Global Announcements updated!');
   };
+
+  // State: Real-time Seasonal Campaign Banner (settings/campaign_banner in Firestore)
+  const [campaignBanner, setCampaignBanner] = useState<CampaignBannerConfig>(DEFAULT_CAMPAIGN_BANNER);
+
+  useEffect(() => {
+    const unsub = subscribeCampaignBanner((config) => {
+      setCampaignBanner(config);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
 
   // State: Vendor Payout Requests & Settlements
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() => {
@@ -231,7 +290,11 @@ export default function App() {
 
   // Dynamic Document Title based on active page
   useEffect(() => {
-    if (activePage === 'Store') {
+    if (activePage === 'Admin') {
+      document.title = 'Admin Console & Executive Dashboard | ZeropicBD';
+    } else if (activePage === 'Checkout') {
+      document.title = 'Secure Express Checkout | ZeropicBD';
+    } else if (activePage === 'Store') {
       document.title = 'Brand Storefront | ZeropicBD';
     } else if (activePage === 'SellerCenter') {
       document.title = 'Merchant Seller Center | ZeropicBD';
@@ -303,21 +366,17 @@ export default function App() {
     });
   };
 
-  // State: Dynamic Products with LocalStorage persistence
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('zeropicbd_products') || localStorage.getItem('primevault_products') || localStorage.getItem('zestflick_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
+  // State: Dynamic Products with Firestore real-time sync + LocalStorage persistence
+  const [products, setProducts] = useState<Product[]>(() => getLocalProducts());
+
+  useEffect(() => {
+    const unsubscribe = subscribeToProductsFromFirestore((firestoreProducts) => {
+      if (firestoreProducts && firestoreProducts.length > 0) {
+        setProducts(firestoreProducts);
       }
-    } catch (e) {
-      console.error(e);
-    }
-    return PRODUCTS;
-  });
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Dynamic max ceiling price from catalog
   const maxCatalogPrice = useMemo(() => {
@@ -414,7 +473,6 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isReturnPolicyOpen, setIsReturnPolicyOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
@@ -570,6 +628,33 @@ export default function App() {
     localStorage.setItem('primevault_orders', JSON.stringify(orders));
   }, [orders]);
 
+  // Load lifetime order history from Firestore backend for authenticated users
+  useEffect(() => {
+    const fetchLifetimeOrders = async () => {
+      try {
+        if (user.isLoggedIn) {
+          const userOrders = await getUserOrdersFromFirestore(
+            user.email,
+            user.email,
+            user.phone
+          );
+          if (userOrders && userOrders.length > 0) {
+            setOrders(userOrders);
+          }
+        } else {
+          const allOrders = await getAllOrdersFromFirestore();
+          if (allOrders && allOrders.length > 0) {
+            setOrders(allOrders);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load orders from Firestore:', e);
+      }
+    };
+
+    fetchLifetimeOrders();
+  }, [user.isLoggedIn, user.email, user.phone]);
+
   useEffect(() => {
     localStorage.setItem('zeropicbd_products', JSON.stringify(products));
     localStorage.setItem('primevault_products', JSON.stringify(products));
@@ -637,18 +722,19 @@ export default function App() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  // Product Management (Admin Handlers)
-  const handleAddProduct = (newProductData: Omit<Product, 'id'>) => {
+  // Product Management (Admin Handlers with Firestore Persistence)
+  const handleAddProduct = async (newProductData: Omit<Product, 'id'>) => {
     const newProduct: Product = {
       ...newProductData,
-      id: `pvz-prod-${Date.now()}`,
+      id: `zbd-prod-${Date.now()}`,
     };
     setProducts((prev) => [newProduct, ...prev]);
+    saveProductToFirestore(newProduct).catch((e) => console.error(e));
     api.products.create(newProductData).catch(() => {});
     showToast(`✓ Product "${newProduct.title}" added to store!`);
   };
 
-  const handleUpdateProduct = (updatedProduct: Product) => {
+  const handleUpdateProduct = async (updatedProduct: Product) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
@@ -665,11 +751,12 @@ export default function App() {
     if (selectedProductDetail?.id === updatedProduct.id) {
       setSelectedProductDetail(updatedProduct);
     }
+    saveProductToFirestore(updatedProduct).catch((e) => console.error(e));
     api.products.update(updatedProduct).catch(() => {});
     showToast(`✓ Product "${updatedProduct.title}" updated!`);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
     if (quickViewProduct?.id === productId) {
@@ -679,11 +766,12 @@ export default function App() {
       setSelectedProductDetail(null);
       setActivePage('Home');
     }
+    deleteProductFromFirestore(productId).catch((e) => console.error(e));
     api.products.delete(productId).catch(() => {});
     showToast('✓ Product deleted from store.');
   };
 
-  const handleBulkDeleteProducts = (productIds: string[]) => {
+  const handleBulkDeleteProducts = async (productIds: string[]) => {
     const idSet = new Set(productIds);
     setProducts((prev) => prev.filter((p) => !idSet.has(p.id)));
     setCart((prev) => prev.filter((item) => !idSet.has(item.product.id)));
@@ -694,6 +782,7 @@ export default function App() {
       setSelectedProductDetail(null);
       setActivePage('Home');
     }
+    bulkDeleteProductsFromFirestore(productIds).catch((e) => console.error(e));
     productIds.forEach((id) => api.products.delete(id).catch(() => {}));
     showToast(`✓ Removed ${productIds.length} products from catalog.`);
   };
@@ -815,14 +904,29 @@ export default function App() {
     showToast(`🛒 "${itemToAdd.title}" added to cart!`);
   };
 
+  // Dedicated /checkout navigation handler
+  const handleOpenCheckout = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/checkout') {
+      window.history.pushState(null, '', '/checkout');
+    }
+    setSelectedProductDetail(null);
+    setActivePage('Checkout');
+    setIsCartOpen(false);
+    setIsCheckoutOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Instant Buy Now trigger
   const handleBuyNow = (product: Product, quantity = 1, selectedSize?: string) => {
     handleAddToCart(product, quantity, selectedSize);
-    setIsCheckoutOpen(true);
+    handleOpenCheckout();
   };
 
   // Navigation Handlers memoized with useCallback to prevent re-renders
   const handleGoHome = useCallback(() => {
+    if (typeof window !== 'undefined' && (window.location.pathname === '/admin' || window.location.pathname === '/checkout')) {
+      window.history.pushState(null, '', '/');
+    }
     setSelectedProductDetail(null);
     setActivePage('Home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -835,16 +939,59 @@ export default function App() {
   }, []);
 
   const handleOpenOrders = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
+    }
     setSelectedProductDetail(null);
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleOpenUserProfile = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
+    }
     setSelectedProductDetail(null);
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  const handleOpenBonusClaim = useCallback(() => {
+    if (!user.isLoggedIn) {
+      setIsAuthOpen(true);
+      showToast('🎁 Sign in to claim your ৳20 YouTube Subscription Bonus!');
+      return;
+    }
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
+    }
+    setSelectedProductDetail(null);
+    setActivePage('UserProfile');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [user.isLoggedIn, showToast]);
+
+  const handleCampaignBannerNavigate = useCallback((target: string) => {
+    if (!target) return;
+    if (target === '/checkout') {
+      handleOpenCheckout();
+    } else if (['Flash Sale', 'Best Deals', 'New Arrivals'].includes(target)) {
+      setActiveFilterTab(target as any);
+      setSelectedCategory('All');
+      setActivePage('Home');
+      const el = document.getElementById('explore');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else if (target.startsWith('#')) {
+      setActivePage('Home');
+      const el = document.getElementById(target.substring(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Category target
+      handleSelectCategoryFromNav(target);
+      setActivePage('Home');
+      const el = document.getElementById('explore');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [handleOpenCheckout, handleSelectCategoryFromNav]);
 
   const handleOpenSellerCenter = useCallback(() => {
     // RBAC Security Guard: Require authenticated user session for merchant center
@@ -852,6 +999,9 @@ export default function App() {
       setIsAuthOpen(true);
       showToast('🔒 Please sign in to access the Merchant Seller Center.');
       return;
+    }
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
     }
     setSelectedProductDetail(null);
     setActivePage('SellerCenter');
@@ -875,13 +1025,30 @@ export default function App() {
     } else {
       setSelectedStoreSlug(slugKey || 'perfume-vault-bd');
     }
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      window.history.pushState(null, '', '/');
+    }
     setSelectedProductDetail(null);
     setActivePage('Store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [sellers]);
 
   const handleOpenAdmin = useCallback(() => {
-    setIsAdminOpen(true);
+    if (typeof window !== 'undefined' && window.location.pathname !== '/admin') {
+      window.history.pushState(null, '', '/admin');
+    }
+    setSelectedProductDetail(null);
+    setActivePage('Admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleExitAdmin = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
+    setSelectedProductDetail(null);
+    setActivePage('Home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleOpenTrackOrder = useCallback((orderId?: string) => {
@@ -967,7 +1134,7 @@ export default function App() {
   };
 
   // User Profile Authentication Handlers with Tokenized Session & RBAC
-  const handleLogin = (
+  const handleLogin = async (
     name: string,
     email: string,
     phone: string,
@@ -990,7 +1157,6 @@ export default function App() {
       (email && a.email?.toLowerCase() === email?.toLowerCase())
     );
 
-    const balance = matched?.walletBalance ?? (user.walletBalance > 0 ? user.walletBalance : 20);
     const verified = isPhoneVerified ?? matched?.isPhoneVerified ?? true;
     const history: WalletTransaction[] = matched?.walletHistory || user.walletHistory || [
       {
@@ -1002,12 +1168,21 @@ export default function App() {
       }
     ];
 
-    // RBAC: Determine role
+    // Sync/retrieve Firestore user document in users/{uid}
+    const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
+    const synced = await syncUserDocumentInFirestore({
+      uid: targetUid,
+      email,
+      displayName: name || matched?.name,
+      photoURL: avatar || matched?.avatar,
+    });
+
     const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
     const isUserSeller = sellers.some(
       (s) => (email && s.email.toLowerCase() === email.toLowerCase()) || (cleanPhone && s.phone === cleanPhone)
     );
-    const role: UserRole = isEmailAdmin ? 'admin' : isUserSeller ? 'seller' : 'customer';
+    const role: UserRole = matched?.role || synced.role || (isEmailAdmin ? 'super_admin' : isUserSeller ? 'seller' : 'customer');
+    const balance = synced.walletBalance > 0 ? synced.walletBalance : (matched?.walletBalance ?? (user.walletBalance > 0 ? user.walletBalance : 20));
 
     // Issue Bearer token session
     const session = createSession(email, cleanPhone, role);
@@ -1015,16 +1190,17 @@ export default function App() {
 
     const updatedUser: UserProfile = {
       isLoggedIn: true,
-      name: name || matched?.name || 'ZeropicBD Member',
-      email: email || matched?.email || '',
+      name: name || synced.displayName || matched?.name || 'ZeropicBD Member',
+      email: email || synced.email || matched?.email || '',
       phone: cleanPhone || matched?.phone || '',
       role,
       session,
       walletBalance: balance,
       hasReceivedBonus: true,
+      hasClaimedYouTubeBonus: synced.hasClaimedYouTubeBonus,
       isPhoneVerified: verified,
       authProvider: authProvider || matched?.authProvider || 'google',
-      avatar: avatar || matched?.avatar,
+      avatar: avatar || synced.photoURL || matched?.avatar,
       walletHistory: history,
       address: matched?.address ? { ...matched.address } : user.address
     };
@@ -1034,7 +1210,7 @@ export default function App() {
     showToast(`✓ Welcome back, ${updatedUser.name}! (Role: ${role.toUpperCase()})`);
   };
 
-  const handleSignup = (
+  const handleSignup = async (
     name: string,
     email: string,
     phone: string,
@@ -1053,23 +1229,32 @@ export default function App() {
       description: 'Welcome Sign-up & Phone Verification Bonus'
     };
 
+    const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
+    const synced = await syncUserDocumentInFirestore({
+      uid: targetUid,
+      email,
+      displayName: name,
+      photoURL: avatar,
+    });
+
     const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
-    const role: UserRole = isEmailAdmin ? 'admin' : 'customer';
+    const role: UserRole = synced.role || (isEmailAdmin ? 'super_admin' : 'customer');
     const session = createSession(email, cleanPhone, role);
     setStoredSession(session);
 
     const newUser: UserProfile = {
       isLoggedIn: true,
-      name: name || 'ZeropicBD Member',
-      email: email || '',
+      name: name || synced.displayName || 'ZeropicBD Member',
+      email: email || synced.email || '',
       phone: cleanPhone,
       role,
       session,
-      walletBalance: bonus,
+      walletBalance: synced.walletBalance > 0 ? synced.walletBalance : bonus,
       hasReceivedBonus: true,
+      hasClaimedYouTubeBonus: synced.hasClaimedYouTubeBonus,
       isPhoneVerified: isPhoneVerified ?? true,
       authProvider: authProvider || 'google',
-      avatar: avatar,
+      avatar: avatar || synced.photoURL,
       walletHistory: [welcomeTx],
       address: address || {
         fullName: name,
@@ -1190,16 +1375,35 @@ export default function App() {
     showToast('You have been logged out.');
   };
 
-  const handleCreateOrder = (order: Order) => {
-    setOrders((prev) => [order, ...prev]);
+  const handleCreateOrder = async (order: Order) => {
+    const orderWithUser: Order = {
+      ...order,
+      userId: user.isLoggedIn ? user.email || 'user' : 'guest',
+      customerName: order.customerName || order.address.fullName,
+      customerEmail: order.customerEmail || user.email || '',
+      customerPhone: order.customerPhone || order.address.phone || user.phone || '',
+    };
+
+    setOrders((prev) => [orderWithUser, ...prev.filter((o) => o.id !== orderWithUser.id)]);
     setCart([]);
     setIsCheckoutOpen(false);
 
-    // Asynchronous API client layer call with automatic fallback
-    api.orders.create(order).catch(() => {});
+    try {
+      const saved = await saveOrderToFirestore(orderWithUser);
+      setOrders((prev) => [saved, ...prev.filter((o) => o.id !== saved.id)]);
+    } catch {
+      api.orders.create(orderWithUser).catch(() => {});
+    }
+
     api.cart.clear().catch(() => {});
 
     if (order.walletDeducted > 0) {
+      // Deduct from Firestore users/{uid} and log DEBIT in wallet_transactions
+      if (user.isLoggedIn) {
+        const targetUid = user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : (user.phone || 'user');
+        deductUserWalletInFirestore(targetUid, order.walletDeducted, order.id, user.email).catch((e) => console.error(e));
+      }
+
       setUser((prev) => {
         const remaining = Math.max(0, prev.walletBalance - order.walletDeducted);
         const debitTx: WalletTransaction = {
@@ -1510,10 +1714,98 @@ export default function App() {
     return products.find((p) => p.isFeatured) || products.find((p) => p.id === 'p1') || products[0];
   }, [products]);
 
+  // Dedicated Full-Page /admin Route with AdminRoute Protection & Redirect
+  if (activePage === 'Admin') {
+    return (
+      <AuthProvider userState={user} onUpdateUser={setUser}>
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <AdminRoute
+            user={user}
+            isOpen={true}
+            onClose={() => {
+              if (typeof window !== 'undefined') {
+                window.history.replaceState(null, '', '/');
+              }
+              setActivePage('Home');
+              showToast('Access Denied: Admin or Super Admin privileges required.');
+            }}
+            onOpenAuth={() => {
+              if (typeof window !== 'undefined') {
+                window.history.replaceState(null, '', '/');
+              }
+              setActivePage('Home');
+              setIsAuthOpen(true);
+            }}
+          >
+            <AdminDashboard
+              user={user}
+              orders={orders}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+              onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
+              onUpdateOrderTracking={handleUpdateOrderTracking}
+              onUpdateOrderNotes={handleUpdateOrderNotes}
+              products={products}
+              onAddProduct={handleAddProduct}
+              onUpdateProduct={handleUpdateProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onBulkDeleteProducts={handleBulkDeleteProducts}
+              onResetDemoProducts={handleResetDemoProducts}
+              coupons={coupons}
+              onAddCoupon={handleAddCoupon}
+              onUpdateCoupon={handleUpdateCoupon}
+              onDeleteCoupon={handleDeleteCoupon}
+              sellers={sellers}
+              onUpdateSellerStatus={handleUpdateSellerStatus}
+              commissionRate={commissionRate}
+              onUpdateCommissionRate={handleUpdateCommissionRate}
+              bannerSettings={bannerSettings}
+              onUpdateBannerSettings={handleUpdateBannerSettings}
+              payoutRequests={payoutRequests}
+              onApprovePayout={handleApprovePayout}
+              onRejectPayout={handleRejectPayout}
+              showToast={showToast}
+              onViewPublicStore={(slug) => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState(null, '', '/');
+                }
+                handleOpenSellerStore(slug);
+              }}
+              onGoShop={handleExitAdmin}
+              onGoOrders={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState(null, '', '/');
+                }
+                handleOpenOrders();
+              }}
+              onLogout={() => {
+                handleLogout();
+                handleExitAdmin();
+              }}
+              onClose={handleExitAdmin}
+            />
+          </AdminRoute>
+        </Suspense>
+        {toastMsg && (
+          <div className="fixed bottom-6 right-6 z-50 py-3 px-5 rounded-2xl bg-slate-900 border border-slate-700 text-white font-bold text-xs shadow-2xl animate-slideUp flex items-center gap-2">
+            <span>{toastMsg}</span>
+          </div>
+        )}
+      </AuthProvider>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
+    <AuthProvider userState={user} onUpdateUser={setUser}>
+      <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
       {/* Animated Loading Screen */}
       <LoadingScreen />
+
+      {/* Real-time Admin Controlled Seasonal Campaign Announcement Banner (settings/campaign_banner) */}
+      <StorefrontCampaignBanner
+        bannerConfig={campaignBanner}
+        onNavigateTarget={handleCampaignBannerNavigate}
+        showToast={showToast}
+      />
 
       {/* Header with High-Converting Announcement Bar & Secondary Navbar */}
       <Header
@@ -1558,7 +1850,33 @@ export default function App() {
       />
 
       {/* Active Page Routing Router */}
-      {activePage === 'UserProfile' || activePage === 'MyOrders' ? (
+      {activePage === 'Checkout' ? (
+        <CheckoutPage
+          items={cart}
+          user={user}
+          subtotal={cartSubtotal}
+          couponDiscount={couponDiscount}
+          couponCode={couponCode}
+          isCouponApplied={isCouponApplied}
+          appliedCoupon={appliedCoupon}
+          onApplyCoupon={handleApplyCoupon}
+          onRemoveCoupon={handleRemoveCoupon}
+          onPlaceOrder={handleCreateOrder}
+          onClearCart={() => setCart([])}
+          onGoHome={handleGoHome}
+          onViewOrders={handleOpenOrders}
+          onTrackOrder={handleOpenTrackOrder}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          showToast={showToast}
+          onUpdateUserWallet={(newBalance) => {
+            setUser((prev) => ({
+              ...prev,
+              walletBalance: newBalance,
+            }));
+          }}
+        />
+      ) : activePage === 'UserProfile' || activePage === 'MyOrders' ? (
         <CustomerProfileView
           user={user}
           orders={orders}
@@ -1579,7 +1897,7 @@ export default function App() {
           onSubmitReturnRequest={handleSubmitReturnRequest}
           onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
           onTrackOrder={handleOpenTrackOrder}
-          onOpenAdmin={() => setIsAdminOpen(true)}
+          onOpenAdmin={handleOpenAdmin}
         />
       ) : activePage === 'TrackOrder' ? (
         <OrderTrackingPortal
@@ -1656,6 +1974,7 @@ export default function App() {
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }
             }}
+            onClaimBonus={handleOpenBonusClaim}
             bannerSettings={bannerSettings}
             showToast={showToast}
           />
@@ -1681,7 +2000,7 @@ export default function App() {
             onSelectCategory={handleSelectCategoryFromNav}
           />
 
-          {/* ==================== 4. FEATURED MULTI-CATEGORY PRODUCTS (PHASE 4 FILTER ENGINE) ==================== */}
+          {/* ==================== 4. FEATURED MULTI-CATEGORY PRODUCTS ==================== */}
           <main id="explore" className="py-10 lg:py-16 bg-[#F9FAFB] border-b border-slate-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
               
@@ -1864,34 +2183,6 @@ export default function App() {
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>Reset / Clear All Filters</span>
                       </button>
-                      <div className="mt-8 pt-6 border-t border-slate-100">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                          Or browse popular departments:
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {[
-                            'Perfumes & Attars',
-                            'Electronics & Tech',
-                            'Fashion & Lifestyle',
-                            'Watches & Accessories',
-                            'Beauty & Skincare'
-                          ].map((dept) => (
-                            <button
-                              key={dept}
-                              onClick={() => {
-                                setCatalogFilters({
-                                  ...INITIAL_FILTER_STATE,
-                                  categories: [dept],
-                                });
-                                setSearchQuery('');
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium cursor-pointer transition-colors"
-                            >
-                              {dept}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
@@ -1915,59 +2206,15 @@ export default function App() {
             </div>
           </main>
 
-          {/* ==================== 5. AI CINEMATIC VIDEO SHOWCASE ==================== */}
-          <CinematicVideoShowcase
-            featuredProduct={featuredProduct}
-            onSelectProduct={handleSelectProductDetail}
-            onBuyNow={handleBuyNow}
-            onAddToCart={handleAddToCart}
-            bannerSettings={bannerSettings}
-            onOpenAdmin={handleOpenAdmin}
+          {/* ==================== 5. YOUTUBE SUBSCRIPTION ৳20 BONUS PROMO ==================== */}
+          <YouTubeBonusBanner
+            user={user}
+            onClaimBonus={handleOpenBonusClaim}
+            onOpenAuth={() => setIsAuthOpen(true)}
           />
 
-          {/* ==================== 6. TRUST BADGES & VALUE PROPOSITION ==================== */}
+          {/* ==================== 6. BRAND TRUST BADGES & VALUE PROPOSITION ==================== */}
           <TrustValueProposition />
-
-          {/* Value Proposition Highlights */}
-          <section className="py-10 bg-white border-b border-slate-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
-                <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-[#0F172A] mb-1">১০০% অথেনটিক কোয়ালিটি</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    অরিজিনাল ব্র্যান্ডের পারফিউম, গ্যাজেটস ও বিশ্বস্ত ভেরিফাইড সেলারদের পণ্য নিশ্চয়তা।
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
-                <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-[#0F172A] mb-1">সারা বাংলাদেশে ফাস্ট হোম ডেলিভারি</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    ঢাকার ভিতরে মাত্র ৳৬০ এবং বাইরে ৳১২০ তে ক্যাশ অন ডেলিভারিতে সরাসরি পৌঁছানো হয়।
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-lg bg-[#F9FAFB] border border-slate-200 transition-colors shadow-2xs flex items-start gap-3.5">
-                <div className="p-2.5 rounded-md bg-indigo-50 text-[#4F46E5] border border-indigo-100 shrink-0">
-                  <Gift className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-[#0F172A] mb-1">ইনস্ট্যান্ট ওয়ালেট বোনাস ও ছাড়</h4>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    সাইনআপ করলেই ওয়ালেটে ৳২০ বোনাস এবং <strong className="text-[#4F46E5]">VAULT10</strong> কোডে ১০% ছাড়।
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
         </>
       )}
 
@@ -2010,7 +2257,7 @@ export default function App() {
         onToggleWalletBonus={setApplyWalletBonus}
         onProceedToCheckout={() => {
           setIsCartOpen(false);
-          setIsCheckoutOpen(true);
+          handleOpenCheckout();
         }}
         onViewOrders={handleOpenOrders}
         onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
@@ -2059,48 +2306,6 @@ export default function App() {
             onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
             onOpenAuth={() => setIsAuthOpen(true)}
             onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-          />
-        </Suspense>
-      )}
-
-      {/* Code-Split Admin Dashboard */}
-      {isAdminOpen && (
-        <Suspense fallback={<ModalSuspenseFallback />}>
-          <AdminDashboard
-            isOpen={isAdminOpen}
-            onClose={() => setIsAdminOpen(false)}
-            user={user}
-            orders={orders}
-            onUpdateOrderStatus={handleUpdateOrderStatus}
-            onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
-            onUpdateOrderTracking={handleUpdateOrderTracking}
-            onUpdateOrderNotes={handleUpdateOrderNotes}
-            products={products}
-            onAddProduct={handleAddProduct}
-            onUpdateProduct={handleUpdateProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onBulkDeleteProducts={handleBulkDeleteProducts}
-            onResetDemoProducts={handleResetDemoProducts}
-            coupons={coupons}
-            onAddCoupon={handleAddCoupon}
-            onUpdateCoupon={handleUpdateCoupon}
-            onDeleteCoupon={handleDeleteCoupon}
-            sellers={sellers}
-            onUpdateSellerStatus={handleUpdateSellerStatus}
-            commissionRate={commissionRate}
-            onUpdateCommissionRate={handleUpdateCommissionRate}
-            bannerSettings={bannerSettings}
-            onUpdateBannerSettings={handleUpdateBannerSettings}
-            payoutRequests={payoutRequests}
-            onApprovePayout={handleApprovePayout}
-            onRejectPayout={handleRejectPayout}
-            showToast={showToast}
-            onViewPublicStore={(slug) => {
-              setIsAdminOpen(false);
-              handleOpenSellerStore(slug);
-            }}
-            onGoShop={handleGoHome}
-            onGoOrders={handleOpenOrders}
           />
         </Suspense>
       )}
@@ -2154,6 +2359,7 @@ export default function App() {
 
       {/* PWA Install Banner & Network Connection Ribbon */}
       <PwaInstallBanner showToast={showToast} />
-    </div>
+      </div>
+    </AuthProvider>
   );
 }

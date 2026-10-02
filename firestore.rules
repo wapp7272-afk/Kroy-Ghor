@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for Role-Based Access Control (RBAC)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'wapp7272@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin')
+      );
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin')
+      );
+    }
+
+    // 1. Users collection
+    match /users/{uid} {
+      // Admins can read all users; Customers can read their own document
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Create: Users can initialize their own doc with customer role, or Super Admin
+      allow create: if isOwner(uid) && (
+        !('role' in request.resource.data) || 
+        request.resource.data.role == 'customer' || 
+        isSuperAdmin()
+      );
+
+      // Update: Users can update basic profile info, but CANNOT modify role or walletBalance unless Admin
+      allow update: if isOwner(uid) && (
+        isAdmin() || (
+          // Ensure sensitive fields are not modified by standard users
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'walletBalance', 'hasClaimedYouTubeBonus']))
+        )
+      ) || isAdmin();
+
+      // Delete: Strictly Super Admin
+      allow delete: if isSuperAdmin();
+    }
+
+    // 2. Orders collection
+    match /orders/{orderId} {
+      // Customers can read their own orders; Admins can read all orders
+      allow read: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.userId == request.auth.uid ||
+          (resource.data.customerEmail != null && request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
+        )
+      );
+
+      // Create: Allow order placement (both authenticated customers and guest checkouts)
+      allow create: if request.resource.data.totalAmount >= 0;
+
+      // Update & Delete: Restricted to Admins (order lifecycle, courier assignment, status updates)
+      allow update, delete: if isAdmin();
+    }
+
+    // 3. Products collection (Public read, Admin-only write)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 4. Global Settings & Campaign Banners (Public read, Admin-only write)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Wallet Transactions Ledger
+    match /wallet_transactions/{transactionId} {
+      // Owner or Admin can read ledger entries
+      allow read: if isAdmin() || (
+        isAuthenticated() && resource.data.uid == request.auth.uid
+      );
+
+      // Writes restricted to Admins or authenticated user creating a verified debit ledger entry
+      allow create: if isAdmin() || (
+        isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.amount > 0
+      );
+
+      // Immutable: No direct edits or deletes allowed by regular users
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // 6. YouTube Bonus Claims
+    match /youtube_bonus_claims/{claimId} {
+      // Owner can read their own claim; Admin can read all claims
+      allow read: if isAdmin() || (
+        isAuthenticated() && resource.data.uid == request.auth.uid
+      );
+
+      // Users can submit their own pending claim
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.status == 'Pending';
+
+      // Only Admins can approve/reject claims
+      allow update, delete: if isAdmin();
+    }
+
+  }
+}

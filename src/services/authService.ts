@@ -205,6 +205,7 @@ export const getAuthHeaders = (): Record<string, string> => {
  * Role hierarchy: admin (level 3) > seller (level 2) > customer (level 1)
  */
 const ROLE_HIERARCHY: Record<UserRole, number> = {
+  super_admin: 4,
   admin: 3,
   seller: 2,
   customer: 1,
@@ -259,7 +260,6 @@ export const seedSuperAdminAccount = (): void => {
       name: 'Super Admin Owner',
       email: SUPER_ADMIN_EMAIL,
       phone: '01883418309',
-      password: 'admin123',
       role: 'admin',
       isPhoneVerified: true,
       authProvider: 'google',

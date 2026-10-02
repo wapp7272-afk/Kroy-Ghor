@@ -414,14 +414,22 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* ================= 2. MAIN BRAND & SEARCH BAR ================= */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 md:h-18 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 bg-white">
-          {/* Brand Logo */}
+          {/* Official Brand Logo Image */}
           <div className="flex items-center gap-2 shrink-0 min-w-0">
             <button 
               onClick={handleLogoOrHomeClick}
-              className="flex items-center text-left focus:outline-none cursor-pointer shrink-0"
+              className="flex items-center text-left focus:outline-none cursor-pointer shrink-0 transition-opacity hover:opacity-95 group"
               aria-label="ZeropicBD Home"
             >
-              <VaultLogo size="md" />
+              <img
+                src="/logo.png"
+                alt="ZeropicBD"
+                className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] shrink-0"
+                style={{
+                  objectFit: 'contain',
+                }}
+                loading="eager"
+              />
             </button>
           </div>
 

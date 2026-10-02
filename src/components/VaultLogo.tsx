@@ -3,35 +3,48 @@ import React from 'react';
 export interface VaultLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  showText?: boolean;
-  tagline?: string;
   isPulsing?: boolean;
   variant?: 'light' | 'dark';
-  showDivider?: boolean;
   onClick?: (e?: React.MouseEvent) => void;
+  showDivider?: boolean;
+  showText?: boolean;
+  tagline?: string;
+  mode?: string;
 }
 
 /**
- * Official ZeropicBD Brand Logo Component using zeropicbd_logo_exact.png directly.
- * Strict adherence to official brand asset rules:
- * - Direct usage of uploaded PNG asset /zeropicbd_logo_exact.png
- * - Maintains exact proportions with object-fit: contain and width: auto
- * - Transparent PNG background preserved
- * - Fully responsive across mobile & desktop displays
+ * Official ZeropicBD Brand Logo Component
+ * Uses the exact uploaded image asset (/logo.png) directly without any pseudo SVG or code-based drawings.
  */
 export const VaultLogo: React.FC<VaultLogoProps> = ({
   className = '',
   size = 'md',
   isPulsing = false,
+  variant = 'light',
   onClick,
 }) => {
-  // Height sizing classes for exact responsive presentation without distortion or cropping
   const sizeClasses = {
     sm: 'h-8 sm:h-9 max-h-9',
     md: 'h-10 sm:h-12 max-h-12',
     lg: 'h-12 sm:h-16 max-h-16',
-    xl: 'h-16 sm:h-20 md:h-24 max-h-24',
-  }[size];
+    xl: 'h-16 sm:h-20 max-h-20',
+  }[size] || 'h-10 w-auto';
+
+  const logoImg = (
+    <img
+      src="/logo.png"
+      alt="ZeropicBD"
+      className={`w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] shrink-0 ${sizeClasses} ${
+        isPulsing ? 'animate-pulse' : ''
+      }`}
+      style={{
+        objectFit: 'contain',
+        width: 'auto',
+        maxWidth: '100%',
+      }}
+      loading="eager"
+    />
+  );
 
   return (
     <div
@@ -40,19 +53,13 @@ export const VaultLogo: React.FC<VaultLogoProps> = ({
         onClick ? 'cursor-pointer' : ''
       } ${className}`}
     >
-      <img
-        src="/zeropicbd_logo_exact.png"
-        alt="ZeropicBD - Shop Smart • Live Better"
-        className={`w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] shrink-0 ${sizeClasses} ${
-          isPulsing ? 'animate-pulse' : ''
-        }`}
-        style={{
-          objectFit: 'contain',
-          width: 'auto',
-          maxWidth: '100%',
-        }}
-        loading="eager"
-      />
+      {variant === 'dark' ? (
+        <div className="bg-white/95 hover:bg-white rounded-2xl px-3 py-1.5 shadow-sm inline-flex items-center transition-all">
+          {logoImg}
+        </div>
+      ) : (
+        logoImg
+      )}
     </div>
   );
 };
