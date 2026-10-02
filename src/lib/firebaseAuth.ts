@@ -14,7 +14,7 @@ import {
 // Read Firebase configuration from environment variables with import.meta.env
 const firebaseConfig = {
   apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || '',
-  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || '',
+  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || 'zeropic-bd.vercel.app',
   projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '',
   storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
