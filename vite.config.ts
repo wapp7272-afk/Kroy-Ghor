@@ -8,10 +8,14 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
+    esbuild: {
+      drop: ['console', 'debugger'] as ('console' | 'debugger')[],
+    },
     build: {
+      minify: 'esbuild' as const,
       cssCodeSplit: true,
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
@@ -23,7 +27,7 @@ export default defineConfig(() => {
             if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
               return 'vendor-react';
             }
-            if (id.includes('node_modules/firebase')) {
+            if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
               return 'vendor-firebase';
             }
             if (id.includes('node_modules/motion')) {
@@ -42,3 +46,4 @@ export default defineConfig(() => {
     },
   };
 });
+
