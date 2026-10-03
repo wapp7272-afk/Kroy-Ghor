@@ -67,6 +67,7 @@ interface HeaderProps {
   onToggleMobileSearch?: (open: boolean) => void;
   onOpenUserProfile?: () => void;
   onOpenTrackOrder?: () => void;
+  onOpenYouTubeBonusModal?: () => void;
 }
 
 export const CATEGORY_DROPDOWN_ITEMS = [
@@ -144,6 +145,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onToggleMobileSearch,
   onOpenUserProfile,
   onOpenTrackOrder,
+  onOpenYouTubeBonusModal,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -384,7 +386,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   <span>Track Order</span>
                 </button>
               )}
-              {onOpenSellerCenter && (
+              {user.isLoggedIn && (user.role === 'seller' || user.role === 'admin' || user.role === 'super_admin') && onOpenSellerCenter && (
                 <button 
                   onClick={onOpenSellerCenter}
                   className="hover:text-white transition-colors flex items-center gap-1 font-medium cursor-pointer"
@@ -393,15 +395,17 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   <span>Seller Center</span>
                 </button>
               )}
-              <button
-                id="topbar-admin-portal-link"
-                onClick={onOpenAdmin}
-                className="hover:text-[#F59E0B] transition-colors flex items-center gap-1 font-medium cursor-pointer"
-                title="Open Secure Admin Portal"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Admin Portal</span>
-              </button>
+              {user.isLoggedIn && (user.role === 'admin' || user.role === 'super_admin' || isUserAdmin) && onOpenAdmin && (
+                <button
+                  id="topbar-admin-portal-link"
+                  onClick={onOpenAdmin}
+                  className="hover:text-[#F59E0B] transition-colors flex items-center gap-1 font-medium cursor-pointer"
+                  title="Open Secure Admin Portal"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Admin Portal</span>
+                </button>
+              )}
               <a href="tel:01883418309" className="hover:text-white transition-colors flex items-center gap-1">
                 <PhoneCall className="w-3 h-3" />
                 <span>Helpline: {bannerSettings?.helplineNumber || '01883-418309'}</span>
@@ -1108,10 +1112,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           onOpenWishlist={onOpenWishlist}
           onOpenTrackOrder={onOpenTrackOrder}
           onOpenFaq={() => {}}
-          onOpenReturnPolicy={() => {}}
           onOpenSellerCenter={onOpenSellerCenter}
           onOpenAdmin={onOpenAdmin}
           onGoHome={onGoHome}
+          onOpenYouTubeBonusModal={onOpenYouTubeBonusModal}
         />
       </header>
 

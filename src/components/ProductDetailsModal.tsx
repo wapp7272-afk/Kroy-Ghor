@@ -209,8 +209,8 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <span>Fast Nationwide Delivery</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                <span>7 Days Return</span>
+                <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Secure Payments</span>
               </div>
             </div>
           </div>

@@ -92,16 +92,16 @@ export const Logo: React.FC<LogoProps> = React.memo(({
     >
       {/* Exact Final Kroyghor Logo Image Asset */}
       <div
-        className={`relative inline-flex items-center justify-center shrink-0 ${
+        className={`relative inline-flex items-center justify-center shrink-0 bg-transparent ${
           isPulsing ? 'animate-pulse' : ''
-        } ${isDark ? 'bg-white rounded-lg px-2 py-1 shadow-xs' : ''}`}
+        }`}
       >
         <img
           src="/kroyghor-logo.png"
           alt={altText}
           width={currentNumeric.width}
           height={currentNumeric.height}
-          className={`${imageClasses} object-contain transition-transform duration-200 group-hover:scale-102`}
+          className={`${imageClasses} object-contain transition-transform duration-200 group-hover:scale-102 mix-blend-multiply dark:mix-blend-normal bg-transparent`}
           loading="eager"
           decoding="async"
         />

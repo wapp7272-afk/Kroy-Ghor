@@ -3,7 +3,8 @@ import {
   Send, 
   X, 
   Bot, 
-  Sparkles
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 import { ChatMessage } from '../types';
 
@@ -104,25 +105,23 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
 
   return (
     <>
-      {/* Floating Buttons Column - Fixed bottom-20 right-4 z-50 */}
+      {/* Floating Buttons Column - Fixed right-4 bottom-24 z-50 */}
       <div 
         id="floating-support-bar"
-        className="fixed bottom-20 right-4 z-50 flex flex-col gap-2.5 items-center pointer-events-auto"
+        className="fixed right-4 bottom-24 z-50 flex flex-col gap-3 items-end pointer-events-auto select-none"
       >
         {/* 1. WhatsApp Direct Chat Button (ABOVE) */}
         <button
           type="button"
           onClick={handleWhatsAppClick}
-          className="relative w-11 h-11 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          className="relative w-12 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-xl rounded-full hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
           aria-label="Direct WhatsApp Chat"
           title="Chat on WhatsApp (+880 1883-418309)"
         >
-          <svg className="w-5 h-5 fill-current text-white" viewBox="0 0 24 24">
-            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.285-.143-1.689-.834-1.951-.929-.262-.095-.453-.143-.644.143-.191.286-.74.929-.908 1.12-.168.19-.334.214-.619.071-.285-.143-1.205-.444-2.296-1.416-.848-.757-1.421-1.692-1.588-1.978-.167-.286-.018-.44.125-.582.128-.128.285-.333.428-.499.143-.167.19-.286.285-.476.095-.19.048-.357-.024-.5-.071-.143-.644-1.552-.882-2.122-.231-.557-.468-.481-.644-.49-.167-.008-.357-.01-.548-.01s-.5.071-.762.357c-.262.286-1 002.977-1 2.381s1.024 4.714 1.167 4.905c.143.19 2.015 3.078 4.882 4.316.682.295 1.215.471 1.63.603.686.218 1.311.187 1.805.113.551-.083 1.689-.69 1.927-1.357.238-.667.238-1.238.167-1.357-.072-.119-.262-.19-.547-.333z"/>
-          </svg>
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-300 rounded-full border-2 border-white animate-pulse" />
+          <MessageCircle className="w-5.5 h-5.5 text-white fill-white" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full shadow-[0_0_10px_#10B981] animate-pulse" />
           
-          <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+          <span className="absolute right-14 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
             WhatsApp Support
           </span>
         </button>
@@ -132,16 +131,16 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
           id="open-ai-chat-btn"
           type="button"
           onClick={() => setIsChatOpen(!isChatOpen)}
-          className="relative w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group border border-slate-700"
+          className="relative w-12 h-12 rounded-full bg-slate-900/90 text-amber-400 border border-amber-400/30 backdrop-blur-md hover:scale-105 active:scale-95 transition-all flex items-center justify-center shadow-xl cursor-pointer group hover:shadow-amber-500/20"
           aria-label="Open AI Assistant"
           aria-expanded={isChatOpen}
         >
-          <Bot className="w-5 h-5 text-orange-400" />
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
-            <span className="w-1 h-1 bg-white rounded-full animate-ping" />
+          <Sparkles className="w-5.5 h-5.5 text-amber-400" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 border-2 border-slate-900 flex items-center justify-center rounded-full shadow-[0_0_8px_#F59E0B]">
+            <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
           </span>
 
-          <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+          <span className="absolute right-14 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
             Kroyghor AI Assistant
           </span>
         </button>

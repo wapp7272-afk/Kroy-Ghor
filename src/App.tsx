@@ -1867,6 +1867,7 @@ export default function App() {
         activeNav={activePage}
         bannerSettings={bannerSettings}
         onOpenTrackOrder={handleOpenTrackOrder}
+        onOpenYouTubeBonusModal={handleOpenBonusClaim}
       />
 
       {/* Active Page Routing Router */}

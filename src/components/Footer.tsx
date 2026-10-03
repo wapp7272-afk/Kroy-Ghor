@@ -85,21 +85,14 @@ export const Footer: React.FC<FooterProps> = React.memo(({
             </div>
           </div>
 
-          {/* 4. Best Deals & Easy Return */}
-          <div 
-            onClick={onOpenReturnPolicy}
-            className={`flex items-center gap-3.5 ${onOpenReturnPolicy ? 'cursor-pointer group hover:opacity-90 transition-opacity' : ''}`}
-            title="রিটার্ন ও রিপ্লেসমেন্ট পলিসি"
-          >
-            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-              <Gift className="w-6 h-6" />
+          {/* 4. 100% Original Guarantee */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[#F59E0B] shrink-0 shadow-xs">
+              <ShieldCheck className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1 group-hover:text-cyan-400">
-                <span>সেরা অফার ও রিটার্ন</span>
-                {onOpenReturnPolicy && <span className="text-[10px] text-cyan-400 underline">Return</span>}
-              </h4>
-              <p className="text-[11px] text-gray-300">৭ দিনের সহজ রিটার্ন পলিসি</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">১০০% আসল পণ্য</h4>
+              <p className="text-[11px] text-gray-300">সরাসরি ব্র্যান্ড থেকে আমদানিকৃত</p>
             </div>
           </div>
         </div>
@@ -199,7 +192,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onOpenReturnPolicy}
+                  onClick={onOpenFaq}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
                   প্রাইভেসি পলিসি (Privacy Policy)
@@ -208,19 +201,10 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onOpenReturnPolicy}
+                  onClick={onOpenFaq}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
                   টার্মস ও কন্ডিশন (Terms)
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={onOpenReturnPolicy}
-                  className="hover:text-white transition-colors cursor-pointer text-left text-gray-300 font-medium"
-                >
-                  রিটার্ন ও রিফান্ড পলিসি
                 </button>
               </li>
               <li>
@@ -343,7 +327,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
         {/* ================= 4. BOTTOM COPYRIGHT & EXPORT ================= */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <p className="text-center sm:text-left">
-            © {new Date().getFullYear()} <strong className="text-gray-300">ZeropicBD (জিরোপিক বিডি)</strong>। সর্বস্বত্ব সংরক্ষিত। Registered Trademark in Bangladesh.
+            © {new Date().getFullYear()} <strong className="text-gray-300">Kroyghor (ক্রয় ঘর)</strong>। সর্বস্বত্ব সংরক্ষিত। Registered Trademark in Bangladesh.
           </p>
 
           <div className="flex items-center gap-4 text-xs">

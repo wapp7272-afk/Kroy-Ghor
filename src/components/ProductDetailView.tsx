@@ -1159,19 +1159,10 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <div className="text-[9px] text-slate-500">Across Bangladesh</div>
                 </div>
 
-                <div 
-                  onClick={onOpenReturnPolicy}
-                  className={`p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center space-y-1 transition-all ${
-                    onOpenReturnPolicy ? 'cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/50' : ''
-                  }`}
-                  title="Click to view 7-Day Replacement & Return Policy"
-                >
-                  <RotateCcw className="w-4 h-4 text-amber-600 mx-auto" />
-                  <div className="text-[11px] font-bold text-slate-900 flex items-center justify-center gap-0.5">
-                    <span>7 Days Return</span>
-                    {onOpenReturnPolicy && <span className="text-[9px] text-[#4F46E5]">↗</span>}
-                  </div>
-                  <div className="text-[9px] text-slate-500">Easy Replacement</div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-center space-y-1">
+                  <RotateCcw className="w-4 h-4 text-indigo-600 mx-auto" />
+                  <div className="text-[11px] font-bold text-slate-900">Same Day Dispatch</div>
+                  <div className="text-[9px] text-slate-500">Fast Handover</div>
                 </div>
               </div>
             </div>

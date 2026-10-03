@@ -25,28 +25,28 @@ export const SortModal: React.FC<SortModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
     >
-      {/* Glassmorphic Bottom Sheet Container */}
+      {/* iOS Glassmorphic Bottom Sheet Container */}
       <div 
-        className="w-full sm:max-w-md bg-white/80 dark:bg-slate-900/85 backdrop-blur-xl border border-white/30 dark:border-slate-800/80 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl text-slate-900 dark:text-white transition-all animate-slideUp overflow-hidden"
+        className="fixed inset-x-0 bottom-0 z-50 backdrop-blur-xl bg-slate-900/85 text-white border-t border-white/20 rounded-t-3xl p-6 shadow-2xl animate-slideUp overflow-hidden max-w-lg mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* iOS Drag Handle */}
-        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4 opacity-80" />
+        <div className="w-12 h-1 bg-white/25 rounded-full mx-auto mb-4" />
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/80 pb-3 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-800/60 flex items-center justify-center text-orange-600 dark:text-orange-400">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
               <ArrowUpDown className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <h3 className="text-sm font-black text-white tracking-tight">
                 Sort Products
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-slate-400">
                 Choose how you want products arranged
               </p>
             </div>
@@ -55,7 +55,7 @@ export const SortModal: React.FC<SortModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
             aria-label="Close sort modal"
           >
             <X className="w-4 h-4" />
@@ -63,7 +63,7 @@ export const SortModal: React.FC<SortModalProps> = ({
         </div>
 
         {/* Radio Button Options List */}
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {SORT_OPTIONS.map((option) => {
             const isSelected = currentSort === option.id;
 
@@ -72,10 +72,10 @@ export const SortModal: React.FC<SortModalProps> = ({
                 key={option.id}
                 type="button"
                 onClick={() => handleOptionClick(option.id)}
-                className={`w-full p-3.5 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-[0.99] ${
+                className={`w-full p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer active:scale-[0.99] ${
                   isSelected
-                    ? 'bg-orange-500/10 dark:bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-400 shadow-xs'
-                    : 'bg-white/50 dark:bg-slate-800/40 border-slate-200/70 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-slate-800/70'
+                    ? 'bg-orange-500/20 border-orange-500/50 text-white shadow-[0_0_15px_rgba(249,115,22,0.15)]'
+                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -89,11 +89,11 @@ export const SortModal: React.FC<SortModalProps> = ({
                 <div 
                   className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
                     isSelected
-                      ? 'border-orange-500 bg-orange-500 text-white shadow-xs'
-                      : 'border-slate-300 dark:border-slate-700 bg-transparent'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-[0_0_10px_rgba(249,115,22,0.3)]'
+                      : 'border-white/20 bg-transparent'
                   }`}
                 >
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {isSelected && <Check className="w-3 h-3 stroke-[3.5]" />}
                 </div>
               </button>
             );
@@ -101,8 +101,8 @@ export const SortModal: React.FC<SortModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="mt-5 pt-3 border-t border-slate-200/60 dark:border-slate-800/80 text-center">
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+        <div className="mt-5 pt-3 border-t border-white/10 text-center">
+          <p className="text-[11px] text-slate-400 font-medium">
             Updates catalog immediately without page reload
           </p>
         </div>

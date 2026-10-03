@@ -147,8 +147,8 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
               {/* Dark Gradient Overlay for Maximum Text Contrast */}
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent sm:via-slate-950/40" />
 
-              {/* Banner Content Card Overlay */}
-              <div className="relative z-10 p-5 sm:p-10 md:p-12 max-w-xl sm:max-w-2xl text-white space-y-2 sm:space-y-3.5">
+              {/* Banner Content Card Overlay with mobile horizontal padding */}
+              <div className="relative z-10 p-5 px-6 sm:p-10 md:p-12 md:px-12 max-w-xl sm:max-w-2xl text-white space-y-2 sm:space-y-3.5">
                 {/* Badge */}
                 {banner.badge && (
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-xs text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
@@ -198,7 +198,7 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
               type="button"
               onClick={handlePrev}
               aria-label="Previous Slide"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-xs flex items-center justify-center border border-white/20 shadow-lg transition-all cursor-pointer active:scale-90 hover:scale-105 z-20"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-xs hidden md:flex items-center justify-center border border-white/20 shadow-lg transition-all cursor-pointer active:scale-90 hover:scale-105 z-20"
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -206,7 +206,7 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
               type="button"
               onClick={handleNext}
               aria-label="Next Slide"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-xs flex items-center justify-center border border-white/20 shadow-lg transition-all cursor-pointer active:scale-90 hover:scale-105 z-20"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-xs hidden md:flex items-center justify-center border border-white/20 shadow-lg transition-all cursor-pointer active:scale-90 hover:scale-105 z-20"
             >
               <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
