@@ -15,6 +15,7 @@ export default defineConfig(() => {
       drop: ['console', 'debugger'] as ('console' | 'debugger')[],
     },
     build: {
+      target: 'esnext',
       minify: 'esbuild' as const,
       cssCodeSplit: true,
       chunkSizeWarningLimit: 1000,
