@@ -706,6 +706,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               onClick={onClearSearch}
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title="Remove keyword filter"
+              aria-label="Remove keyword filter"
             >
               <X className="w-3 h-3" />
             </button>
@@ -728,6 +729,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               }
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title={`Remove ${cat}`}
+              aria-label={`Remove category filter ${cat}`}
             >
               <X className="w-3 h-3" />
             </button>
@@ -748,6 +750,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               }
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title="Reset price filter"
+              aria-label="Reset price filter"
             >
               <X className="w-3 h-3" />
             </button>
@@ -762,6 +765,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               onClick={() => onChange((prev) => ({ ...prev, inStockOnly: false }))}
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title="Remove stock filter"
+              aria-label="Remove stock filter"
             >
               <X className="w-3 h-3" />
             </button>
@@ -776,6 +780,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               onClick={() => onChange((prev) => ({ ...prev, minDiscount: 0 }))}
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title="Remove discount filter"
+              aria-label="Remove discount filter"
             >
               <X className="w-3 h-3" />
             </button>
@@ -790,6 +795,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               onClick={() => onChange((prev) => ({ ...prev, minRating: 0 }))}
               className="hover:text-rose-600 cursor-pointer p-0.5"
               title="Remove rating filter"
+              aria-label="Remove rating filter"
             >
               <X className="w-3 h-3" />
             </button>
@@ -812,6 +818,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
               }
               className="hover:text-amber-300 cursor-pointer p-0.5"
               title={`Remove ${brand}`}
+              aria-label={`Remove brand filter ${brand}`}
             >
               <X className="w-3 h-3" />
             </button>

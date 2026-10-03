@@ -161,6 +161,10 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
                     <img
                       src={item.product.image}
                       alt={item.product.title}
+                      width={40}
+                      height={40}
+                      loading="lazy"
+                      decoding="async"
                       className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
                     />
                     <div className="min-w-0">
@@ -290,6 +294,10 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
                     <img
                       src={photoProofUrl}
                       alt="Uploaded proof"
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
                       className="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-2xs"
                     />
                     <div>

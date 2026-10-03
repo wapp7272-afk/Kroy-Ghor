@@ -68,7 +68,16 @@ export const Logo: React.FC<LogoProps> = ({
     },
   };
 
+  const numericDimensions = {
+    xs: { width: 80, height: 24 },
+    sm: { width: 110, height: 32 },
+    md: { width: 140, height: 40 },
+    lg: { width: 160, height: 48 },
+    xl: { width: 200, height: 64 },
+  };
+
   const currentSize = sizeDimensions[size] || sizeDimensions.md;
+  const currentNumeric = numericDimensions[size] || numericDimensions.md;
   const imageClasses = isIcon ? currentSize.iconImg : currentSize.img;
   const altText = alt || `${brandName} - আপনার বিশ্বস্ত শপিং পার্টনার`;
 
@@ -90,6 +99,8 @@ export const Logo: React.FC<LogoProps> = ({
         <img
           src="/kroyghor-logo.png"
           alt={altText}
+          width={currentNumeric.width}
+          height={currentNumeric.height}
           className={`${imageClasses} object-contain transition-transform duration-200 group-hover:scale-102`}
           loading="eager"
           decoding="async"

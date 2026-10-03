@@ -38,22 +38,15 @@ import {
 } from './components/ProductCatalogFilter';
 import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { Footer } from './components/Footer';
 import { ProductCard } from './components/ProductCard';
 import { HeroSection } from './components/HeroSection';
 import { CategoryNavGrid } from './components/CategoryNavGrid';
-import { FlashSaleSection } from './components/FlashSaleSection';
-import { TrustValueProposition } from './components/TrustValueProposition';
-import { YouTubeBonusBanner } from './components/YouTubeBonusBanner';
-import { StorefrontCampaignBanner } from './components/StorefrontCampaignBanner';
 import { INITIAL_PROMO_BANNERS } from './data/banners';
 import { 
   subscribeCampaignBanner, 
   DEFAULT_CAMPAIGN_BANNER 
 } from './services/campaignBannerService';
 import { CampaignBannerConfig } from './types';
-import { CartDrawer } from './components/CartDrawer';
-import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { triggerOrderNotifications } from './utils/notificationService';
 import { api } from './services/api';
 import {
@@ -93,7 +86,15 @@ import {
   getLocalProducts,
 } from './services/productFirestoreService';
 
-// Code-split heavy secondary views, modals, and admin components with React.lazy
+// Code-split heavy secondary views, below-the-fold sections, drawers, modals, and admin components with React.lazy
+const StorefrontCampaignBanner = lazy(() => import('./components/StorefrontCampaignBanner').then((m) => ({ default: m.StorefrontCampaignBanner })));
+const FlashSaleSection = lazy(() => import('./components/FlashSaleSection').then((m) => ({ default: m.FlashSaleSection })));
+const YouTubeBonusBanner = lazy(() => import('./components/YouTubeBonusBanner').then((m) => ({ default: m.YouTubeBonusBanner })));
+const TrustValueProposition = lazy(() => import('./components/TrustValueProposition').then((m) => ({ default: m.TrustValueProposition })));
+const Footer = lazy(() => import('./components/Footer').then((m) => ({ default: m.Footer })));
+const CartDrawer = lazy(() => import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const PwaInstallBanner = lazy(() => import('./components/PwaInstallBanner').then((m) => ({ default: m.PwaInstallBanner })));
+
 const CheckoutPage = lazy(() => import('./components/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
 const CustomerProfileView = lazy(() => import('./components/UserProfile').then((m) => ({ default: m.UserProfile })));
 const OrderTrackingPortal = lazy(() => import('./components/OrderTrackingPortal').then((m) => ({ default: m.OrderTrackingPortal })));
@@ -118,6 +119,18 @@ const ModalSuspenseFallback = () => (
     <div className="p-6 rounded-2xl bg-white shadow-2xl flex flex-col items-center gap-3 border border-slate-200 min-w-[200px]">
       <div className="w-9 h-9 border-3 border-[#5B21B6] border-t-transparent rounded-full animate-spin" />
       <span className="text-xs font-bold text-slate-800 tracking-wide">Loading module...</span>
+    </div>
+  </div>
+);
+
+const SectionSkeleton = () => (
+  <div className="w-full max-w-7xl mx-auto px-4 py-8 animate-pulse" aria-hidden="true">
+    <div className="h-6 bg-slate-200 rounded-md w-48 mb-4" />
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="h-44 bg-slate-100 rounded-xl" />
+      <div className="h-44 bg-slate-100 rounded-xl" />
+      <div className="h-44 bg-slate-100 rounded-xl" />
+      <div className="h-44 bg-slate-100 rounded-xl" />
     </div>
   </div>
 );
@@ -1796,11 +1809,13 @@ export default function App() {
     <AuthProvider userState={user} onUpdateUser={setUser}>
       <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
       {/* Real-time Admin Controlled Seasonal Campaign Announcement Banner (settings/campaign_banner) */}
-      <StorefrontCampaignBanner
-        bannerConfig={campaignBanner}
-        onNavigateTarget={handleCampaignBannerNavigate}
-        showToast={showToast}
-      />
+      <Suspense fallback={null}>
+        <StorefrontCampaignBanner
+          bannerConfig={campaignBanner}
+          onNavigateTarget={handleCampaignBannerNavigate}
+          showToast={showToast}
+        />
+      </Suspense>
 
       {/* Header with High-Converting Announcement Bar & Secondary Navbar */}
       <Header
@@ -1982,19 +1997,21 @@ export default function App() {
           />
 
           {/* ==================== 3. FLASH SALES & SPECIAL DEALS ==================== */}
-          <FlashSaleSection
-            products={products}
-            onSelectProduct={handleSelectProductDetail}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            onViewMoreDeals={() => {
-              setActiveFilterTab('Flash Sale');
-              setSelectedCategory('All');
-              const el = document.getElementById('explore');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            onSelectCategory={handleSelectCategoryFromNav}
-          />
+          <Suspense fallback={<SectionSkeleton />}>
+            <FlashSaleSection
+              products={products}
+              onSelectProduct={handleSelectProductDetail}
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+              onViewMoreDeals={() => {
+                setActiveFilterTab('Flash Sale');
+                setSelectedCategory('All');
+                const el = document.getElementById('explore');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onSelectCategory={handleSelectCategoryFromNav}
+            />
+          </Suspense>
 
           {/* ==================== 4. FEATURED MULTI-CATEGORY PRODUCTS ==================== */}
           <main id="explore" className="py-10 lg:py-16 bg-[#F9FAFB] border-b border-slate-200">
@@ -2203,30 +2220,36 @@ export default function App() {
           </main>
 
           {/* ==================== 5. YOUTUBE SUBSCRIPTION ৳20 BONUS PROMO ==================== */}
-          <YouTubeBonusBanner
-            user={user}
-            onClaimBonus={handleOpenBonusClaim}
-            onOpenAuth={() => setIsAuthOpen(true)}
-          />
+          <Suspense fallback={<SectionSkeleton />}>
+            <YouTubeBonusBanner
+              user={user}
+              onClaimBonus={handleOpenBonusClaim}
+              onOpenAuth={() => setIsAuthOpen(true)}
+            />
+          </Suspense>
 
           {/* ==================== 6. BRAND TRUST BADGES & VALUE PROPOSITION ==================== */}
-          <TrustValueProposition />
+          <Suspense fallback={null}>
+            <TrustValueProposition />
+          </Suspense>
         </>
       )}
       </Suspense>
 
       {/* Multi-Column Localized Footer */}
-      <Footer
-        onGoHome={handleGoHome}
-        onOpenOrders={handleOpenOrders}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenSellerCenter={handleOpenSellerCenter}
-        onOpenSellerStore={handleOpenSellerStore}
-        onOpenAdmin={handleOpenAdmin}
-        onDownloadHtml={handleDownloadStandaloneHtml}
-        onOpenFaq={() => setIsFaqOpen(true)}
-        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-      />
+      <Suspense fallback={null}>
+        <Footer
+          onGoHome={handleGoHome}
+          onOpenOrders={handleOpenOrders}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenSellerCenter={handleOpenSellerCenter}
+          onOpenSellerStore={handleOpenSellerStore}
+          onOpenAdmin={handleOpenAdmin}
+          onDownloadHtml={handleDownloadStandaloneHtml}
+          onOpenFaq={() => setIsFaqOpen(true)}
+          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+        />
+      </Suspense>
 
       {/* Toast Notification */}
       {toastMsg && (
@@ -2237,28 +2260,32 @@ export default function App() {
       )}
 
       {/* Shopping Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveFromCart}
-        user={user}
-        couponCode={couponCode}
-        isCouponApplied={isCouponApplied}
-        appliedCoupon={appliedCoupon}
-        couponDiscount={couponDiscount}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-        applyWalletBonus={applyWalletBonus}
-        onToggleWalletBonus={setApplyWalletBonus}
-        onProceedToCheckout={() => {
-          setIsCartOpen(false);
-          handleOpenCheckout();
-        }}
-        onViewOrders={handleOpenOrders}
-        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-      />
+      {isCartOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            items={cart}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            user={user}
+            couponCode={couponCode}
+            isCouponApplied={isCouponApplied}
+            appliedCoupon={appliedCoupon}
+            couponDiscount={couponDiscount}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
+            applyWalletBonus={applyWalletBonus}
+            onToggleWalletBonus={setApplyWalletBonus}
+            onProceedToCheckout={() => {
+              setIsCartOpen(false);
+              handleOpenCheckout();
+            }}
+            onViewOrders={handleOpenOrders}
+            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          />
+        </Suspense>
+      )}
 
       {/* Product Quick View Modal */}
       {quickViewProduct && (
@@ -2365,7 +2392,9 @@ export default function App() {
       )}
 
       {/* PWA Install Banner & Network Connection Ribbon */}
-      <PwaInstallBanner showToast={showToast} />
+      <Suspense fallback={null}>
+        <PwaInstallBanner showToast={showToast} />
+      </Suspense>
       </div>
     </AuthProvider>
   );

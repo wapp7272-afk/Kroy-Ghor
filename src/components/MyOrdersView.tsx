@@ -587,7 +587,7 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
 
                     <div className="space-y-2.5">
                       {order.items.map((item, idx) => {
-                        const itemStore = item.storeName || item.product.storeName || item.product.sellerName || 'ZeropicBD Official';
+                        const itemStore = item.storeName || item.product.storeName || item.product.sellerName || 'Kroyghor Official';
                         return (
                           <div
                             key={idx}
@@ -598,6 +598,10 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                               <img
                                 src={item.product.image}
                                 alt={item.product.title}
+                                width={48}
+                                height={48}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-12 h-12 rounded-xl object-cover bg-white border border-gray-200 shrink-0 group-hover:scale-105 transition-transform"
                               />
                               <div className="min-w-0">
@@ -743,6 +747,10 @@ export const MyOrdersView: React.FC<MyOrdersViewProps> = ({
                           <img
                             src={order.returnRequest.photoProofUrl}
                             alt="Return Proof"
+                            width={32}
+                            height={32}
+                            loading="lazy"
+                            decoding="async"
                             className="w-8 h-8 rounded-md object-cover border border-amber-200"
                           />
                         </div>

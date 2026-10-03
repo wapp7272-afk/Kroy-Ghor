@@ -651,6 +651,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                                 <img
                                   src={product.image}
                                   alt={product.title}
+                                  width={48}
+                                  height={48}
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-12 h-12 rounded-xl object-cover border border-gray-200 bg-gray-50 shrink-0"
                                 />
                                 <div className="min-w-0 max-w-xs">
@@ -909,6 +913,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                               <img
                                 src={item.product.image}
                                 alt={item.product.title}
+                                width={32}
+                                height={32}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-8 h-8 rounded-lg object-cover border border-gray-200"
                               />
                               <span className="font-semibold text-gray-800">{item.product.title}</span>
@@ -1166,6 +1174,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                     <img
                       src={prodImage}
                       alt="Preview"
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
                       className="w-12 h-12 rounded-lg object-cover border border-gray-200"
                     />
                     <span className="text-[11px] text-gray-500">Image Asset Preview</span>
