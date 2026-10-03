@@ -97,6 +97,7 @@ export { app, auth, db };
 /**
  * Syncs user document in Firestore (`users/{uid}`) upon login/signup
  * Creates permanent doc with default fields if new user, or updates lastLoginAt if existing user
+ * Non-blocking: Uses a 2-second timeout fallback so network latency never blocks UI
  */
 export const syncUserDocumentInFirestore = async (
   fUser: { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }
@@ -133,18 +134,23 @@ export const syncUserDocumentInFirestore = async (
 
   try {
     const userDocRef = doc(db, 'users', uid);
-    const userDocSnap = await getDoc(userDocRef);
 
-    if (userDocSnap.exists()) {
+    // Fast 2-second timeout fallback so slow Firestore queries never stall authentication
+    const getDocPromise = getDoc(userDocRef);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+
+    const userDocSnap = await Promise.race([getDocPromise, timeoutPromise]);
+
+    if (userDocSnap && userDocSnap.exists()) {
       const data = userDocSnap.data();
 
-      // Document exists: Update lastLoginAt without overwriting existing walletBalance, role, or hasClaimedYouTubeBonus
-      await updateDoc(userDocRef, {
+      // Update lastLoginAt in non-blocking background
+      updateDoc(userDocRef, {
         lastLoginAt: serverTimestamp(),
         ...(displayName && !data.displayName ? { displayName } : {}),
         ...(photoURL && !data.photoURL ? { photoURL } : {}),
-      }).catch(async () => {
-        await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
+      }).catch(() => {
+        setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true }).catch(() => {});
       });
 
       const role = (data.role || defaultRole) as 'customer' | 'seller' | 'admin' | 'super_admin';
@@ -161,7 +167,7 @@ export const syncUserDocumentInFirestore = async (
         hasClaimedYouTubeBonus,
       };
     } else {
-      // New user: Create permanent document in users/{uid}
+      // New user doc payload created in non-blocking background
       const newDocPayload = {
         uid,
         email,
@@ -174,7 +180,9 @@ export const syncUserDocumentInFirestore = async (
         lastLoginAt: serverTimestamp(),
       };
 
-      await setDoc(userDocRef, newDocPayload);
+      setDoc(userDocRef, newDocPayload).catch((err) => {
+        console.warn('[FirestoreSync] Background setDoc error:', err);
+      });
 
       return defaultResult;
     }
@@ -290,58 +298,55 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
     );
   }
 
-  // Detect mobile user agent
+  // Safety 10-second timeout promise so Google OAuth never hangs UI permanently
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Google Sign-In connection timed out. Please try clicking again.'));
+    }, 10000);
+  });
+
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
 
   try {
+    let result;
     if (isMobile) {
-      // Use redirect on mobile for seamless mobile browser support
       try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-        const idToken = await user.getIdToken().catch(() => undefined);
-        const synced = await syncUserDocumentInFirestore({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        });
-        return {
-          uid: user.uid,
-          displayName: synced.displayName || user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
-          email: user.email || '',
-          photoURL: synced.photoURL || user.photoURL || undefined,
-          idToken,
-        };
+        result = await Promise.race([signInWithPopup(auth, googleProvider), timeoutPromise]);
       } catch (popupErr: any) {
         if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/popup-closed-by-user') {
-          // Fallback to redirect
           await signInWithRedirect(auth, googleProvider);
           throw new Error('Redirecting to Google Sign-In...');
         }
         throw popupErr;
       }
     } else {
-      // Desktop: Popup flow
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const idToken = await user.getIdToken().catch(() => undefined);
-      const synced = await syncUserDocumentInFirestore({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-      });
-      return {
-        uid: user.uid,
-        displayName: synced.displayName || user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
-        email: user.email || '',
-        photoURL: synced.photoURL || user.photoURL || undefined,
-        idToken,
-      };
+      result = await Promise.race([signInWithPopup(auth, googleProvider), timeoutPromise]);
     }
+
+    const user = result.user;
+    const idToken = await user.getIdToken().catch(() => undefined);
+
+    // Non-blocking background sync with Firestore (fire-and-forget: do NOT await!)
+    syncUserDocumentInFirestore({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    }).catch((err) => {
+      console.warn('[FirebaseAuth] Non-fatal background Firestore sync error:', err);
+    });
+
+    const displayName = user.displayName || user.email?.split('@')[0] || 'ZeropicBD Member';
+
+    return {
+      uid: user.uid,
+      displayName,
+      email: user.email || '',
+      photoURL: user.photoURL || undefined,
+      idToken,
+    };
   } catch (error: any) {
     console.error('[FirebaseAuth] Google Sign-In error:', error);
 

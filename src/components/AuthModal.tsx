@@ -184,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Real Firebase Google OAuth Handler
+  // High-Performance Real Firebase Google OAuth Handler
   const handleGoogleSignInClick = async () => {
     setErrorMsg(null);
     setUnauthorizedDomain(null);
@@ -197,14 +197,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsGoogleLoading(true);
+
+    // 5-second safety fallback timeout to prevent UI from being stuck on loading
+    const safetyTimeout = setTimeout(() => {
+      setIsGoogleLoading(false);
+      setErrorMsg('⚠️ Google OAuth connection timed out. Please try clicking again or check pop-up permissions.');
+    }, 5000);
+
     try {
       const googleUser = await signInWithGoogle();
-      setName(googleUser.displayName);
+      clearTimeout(safetyTimeout);
+
+      const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'ZeropicBD Member';
+      setName(userDisplayName);
       setEmail(googleUser.email);
       setUserAvatar(googleUser.photoURL);
       setAuthProvider('google');
 
-      // Check if account already registered and verified
+      // Retrieve existing accounts for instant local verification check
       const accounts = getRegisteredAccounts();
       const existing = accounts.find(
         (a: any) =>
@@ -212,38 +222,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           (a.uid && a.uid === googleUser.uid)
       );
 
-      if (existing && existing.isPhoneVerified) {
-        // Already verified, log in directly!
-        onLogin(
-          existing.name || googleUser.displayName,
-          existing.email || googleUser.email,
-          existing.phone,
-          true,
-          'google',
-          googleUser.photoURL || existing.avatar
-        );
-        setSuccessMsg(`✓ Welcome back, ${existing.name || googleUser.displayName}! Logged in with Google.`);
-        setTimeout(() => {
-          setSuccessMsg(null);
+      const isVerified = existing ? Boolean(existing.isPhoneVerified) : false;
+      const userPhone = existing ? existing.phone || '' : '';
+
+      // Immediately log the user in to update global state without waiting for Firestore
+      onLogin(
+        existing?.name || userDisplayName,
+        googleUser.email,
+        userPhone,
+        isVerified,
+        'google',
+        googleUser.photoURL || existing?.avatar
+      );
+
+      setSuccessMsg(`✓ Welcome, ${existing?.name || userDisplayName}! Logged in with Google.`);
+
+      // Fast non-blocking UI transition
+      setTimeout(() => {
+        setIsGoogleLoading(false);
+        setSuccessMsg(null);
+        if (!isVerified && !userPhone) {
+          setTab('phone_verify');
+        } else {
           setTab('profile');
-        }, 700);
-      } else {
-        // New Google user or needs phone verification to activate ৳20 bonus!
-        setTab('phone_verify');
-        setSuccessMsg(`✓ Google Authenticated: ${googleUser.email}. Please verify your phone to claim ৳20 bonus.`);
-        setTimeout(() => setSuccessMsg(null), 3000);
-      }
+        }
+      }, 300);
     } catch (err: any) {
+      clearTimeout(safetyTimeout);
+      setIsGoogleLoading(false);
+
       if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('unauthorized-domain'))) {
         setUnauthorizedDomain(window.location.hostname);
         setErrorMsg(
           `⚠️ Firebase domain authorization needed for "${window.location.hostname}". You can add it in Firebase Console or click below for 1-Tap Google Sign-In.`
         );
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setErrorMsg('Google Sign-In was cancelled.');
       } else if (err.message && err.message !== 'Redirecting to Google Sign-In...') {
         setErrorMsg(err.message);
       }
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
