@@ -31,6 +31,7 @@ import {
   Truck
 } from 'lucide-react';
 import { UserProfile, SystemBannerSettings, Product } from '../types';
+import { Logo } from './Logo';
 import { VaultLogo } from './VaultLogo';
 import { checkIsAdmin, checkIsSuperAdmin } from '../services/authService';
 
@@ -406,7 +407,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               </a>
               <span className="text-slate-600">|</span>
               <span className="bg-slate-800 px-2 py-0.5 rounded text-[#00C6FF] font-mono text-[11px] font-semibold">
-                Code: ZEROPIC10
+                Code: KROYGHOR10
               </span>
             </div>
           </div>
@@ -414,24 +415,49 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* ================= 2. MAIN BRAND & SEARCH BAR ================= */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 md:h-18 flex items-center justify-between gap-2 sm:gap-4 md:gap-6 bg-white">
-          {/* Official Brand Logo Image */}
+          {/* Brand Logo Component */}
           <div className="flex items-center gap-2 shrink-0 min-w-0">
             <button 
               onClick={handleLogoOrHomeClick}
               className="flex items-center text-left focus:outline-none cursor-pointer shrink-0 transition-opacity hover:opacity-95 group"
-              aria-label="ZeropicBD Home"
+              aria-label="Kroyghor Home"
             >
-              <img
-                src="/logo.png"
-                alt="ZeropicBD"
-                className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.02] shrink-0"
-                style={{
-                  objectFit: 'contain',
-                }}
-                loading="eager"
-              />
+              {/* Desktop Logo */}
+              <div className="hidden md:block">
+                <Logo variant="full" size="md" theme="light" />
+              </div>
+
+              {/* Mobile Logo */}
+              <div className="block md:hidden">
+                <Logo variant="compact" size="sm" theme="light" />
+              </div>
             </button>
           </div>
+
+          {/* Navigation Elements / Links (Bengali Quick Links) */}
+          <nav className="hidden xl:flex items-center gap-6 shrink-0">
+            <button
+              onClick={handleLogoOrHomeClick}
+              className="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors cursor-pointer"
+            >
+              হোম
+            </button>
+            <button
+              onClick={() => {
+                if (onGoHome) onGoHome();
+                if (onSelectCategory) onSelectCategory('All');
+              }}
+              className="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors cursor-pointer"
+            >
+              শপ
+            </button>
+            <a
+              href="tel:01883418309"
+              className="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors cursor-pointer"
+            >
+              যোগাযোগ
+            </a>
+          </nav>
 
           {/* Desktop Multi-Category Search & Discovery Bar */}
           <div className="flex-1 max-w-2xl hidden md:block relative" ref={searchContainerRef}>
@@ -1089,7 +1115,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-[#0F172A]">
-                      {user.isLoggedIn ? user.name : 'Welcome to ZeropicBD'}
+                      {user.isLoggedIn ? user.name : 'Welcome to Kroyghor'}
                     </p>
                     <p className="text-[10px] text-slate-500 font-mono">
                       {user.isLoggedIn ? (user.phone || user.email) : 'Sign in to unlock ৳20 bonus'}
@@ -1122,7 +1148,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                      ZeropicBD Wallet
+                      Kroyghor Wallet
                     </span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-base font-bold font-mono text-[#0F172A]">
@@ -1571,3 +1597,5 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     </>
   );
 });
+
+export default Header;

@@ -42,10 +42,10 @@ export const docToOrder = (data: any, docId: string): Order => {
   const items: CartItem[] = (data.items || []).map((item: any) => ({
     product: {
       id: item.productId || item.product?.id || `p-${Math.random()}`,
-      title: item.title || item.product?.title || 'ZeropicBD Authentic Product',
+      title: item.title || item.product?.title || 'Kroyghor Authentic Product',
       price: item.price || item.product?.price || 0,
       discountPrice: item.price || item.product?.discountPrice,
-      image: item.image || item.product?.image || '/zeropicbd_logo_exact.png',
+      image: item.image || item.product?.image || '/kroyghor-icon.svg',
       category: item.category || item.product?.category || 'Lifestyle',
       rating: 5,
       reviewsCount: 1,
@@ -59,7 +59,7 @@ export const docToOrder = (data: any, docId: string): Order => {
 
   const shippingAddr = data.shippingAddress || data.address || {};
   const addressObj: Address = {
-    fullName: data.customerName || shippingAddr.fullName || 'ZeropicBD Member',
+    fullName: data.customerName || shippingAddr.fullName || 'Kroyghor Member',
     phone: data.customerPhone || shippingAddr.phone || '01883418309',
     cityDivision: shippingAddr.cityDivision || 'Inside Dhaka',
     fullAddress: shippingAddr.fullAddress || shippingAddr.address || 'Dhaka',
@@ -67,7 +67,7 @@ export const docToOrder = (data: any, docId: string): Order => {
     notes: shippingAddr.notes || '',
   };
 
-  const id = data.orderId || docId || data.id || `ZBD-${Math.floor(10000 + Math.random() * 90000)}`;
+  const id = data.orderId || docId || data.id || `KG-${Math.floor(10000 + Math.random() * 90000)}`;
 
   return {
     id,
@@ -105,9 +105,9 @@ export const docToOrder = (data: any, docId: string): Order => {
  */
 export const saveOrderToFirestore = async (order: Order, currentUserId?: string): Promise<Order> => {
   const uid = currentUserId || auth?.currentUser?.uid || order.userId || 'guest';
-  const orderId = order.id || `ZBD-${Math.floor(10000 + Math.random() * 90000)}`;
+  const orderId = order.id || `KG-${Math.floor(10000 + Math.random() * 90000)}`;
 
-  const customerName = order.customerName || order.address?.fullName || 'ZeropicBD Member';
+  const customerName = order.customerName || order.address?.fullName || 'Kroyghor Member';
   const customerEmail = order.customerEmail || auth?.currentUser?.email || '';
   const customerPhone = order.customerPhone || order.address?.phone || '';
 

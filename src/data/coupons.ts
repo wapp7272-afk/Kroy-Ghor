@@ -2,6 +2,17 @@ import { Coupon } from '../types';
 
 export const INITIAL_COUPONS: Coupon[] = [
   {
+    id: 'coup-kroyghor10',
+    code: 'KROYGHOR10',
+    discountType: 'percentage',
+    discountValue: 10,
+    minOrderAmount: 0,
+    expiryDate: '2026-12-31',
+    isActive: true,
+    usageCount: 245,
+    description: 'Kroyghor Exclusive 10% Off on all orders with code KROYGHOR10',
+  },
+  {
     id: 'coup-zeropic10',
     code: 'ZEROPIC10',
     discountType: 'percentage',
@@ -10,7 +21,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     expiryDate: '2026-12-31',
     isActive: true,
     usageCount: 198,
-    description: 'ZeropicBD Exclusive 10% Off on all orders with code ZEROPIC10',
+    description: 'Kroyghor 10% Off on all orders',
   },
   {
     id: 'coup-prime10',

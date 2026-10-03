@@ -36,7 +36,6 @@ import {
   MobileFilterDrawer,
   ActiveFilterChips
 } from './components/ProductCatalogFilter';
-import { LoadingScreen } from './components/LoadingScreen';
 import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
@@ -291,19 +290,19 @@ export default function App() {
   // Dynamic Document Title based on active page
   useEffect(() => {
     if (activePage === 'Admin') {
-      document.title = 'Admin Console & Executive Dashboard | ZeropicBD';
+      document.title = 'এডমিন প্যানেল ও ড্যাশবোর্ড | Kroyghor';
     } else if (activePage === 'Checkout') {
-      document.title = 'Secure Express Checkout | ZeropicBD';
+      document.title = 'নিরাপদ চেকআউট | Kroyghor (ক্রয় ঘর)';
     } else if (activePage === 'Store') {
-      document.title = 'Brand Storefront | ZeropicBD';
+      document.title = 'ব্র্যান্ড স্টোরফ্রন্ট | Kroyghor';
     } else if (activePage === 'SellerCenter') {
-      document.title = 'Merchant Seller Center | ZeropicBD';
+      document.title = 'মার্চেন্ট সেলার সেন্টার | Kroyghor';
     } else if (activePage === 'MyOrders' || activePage === 'UserProfile') {
-      document.title = 'Customer Portal & Order History | ZeropicBD';
+      document.title = 'কাস্টমার পোর্টাল ও অর্ডার হিস্ট্রি | Kroyghor';
     } else if (activePage === 'TrackOrder') {
-      document.title = 'Live Parcel Tracker & Courier Status | ZeropicBD';
+      document.title = 'লাইভ পার্সেল ট্র্যাকিং | Kroyghor';
     } else {
-      document.title = 'ZeropicBD - Premium Marketplace & Lifestyle BD';
+      document.title = 'Kroyghor (ক্রয় ঘর) - আপনার বিশ্বস্ত শপিং পার্টনার';
     }
   }, [activePage, selectedStoreSlug]);
 
@@ -863,11 +862,11 @@ export default function App() {
       const cat = product.category || '';
       if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
       if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-      if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
+      if (cat.includes('Fashion')) return 'Kroyghor Atelier';
       if (cat.includes('Watches')) return 'Chronos Official';
       if (cat.includes('Beauty')) return 'Glow & Glam BD';
       if (cat.includes('Home')) return 'Nordic Living';
-      return 'ZeropicBD Official';
+      return 'Kroyghor Official';
     })();
 
     // Adjust price by size multiplier if applicable
@@ -1797,9 +1796,6 @@ export default function App() {
   return (
     <AuthProvider userState={user} onUpdateUser={setUser}>
       <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
-      {/* Animated Loading Screen */}
-      <LoadingScreen />
-
       {/* Real-time Admin Controlled Seasonal Campaign Announcement Banner (settings/campaign_banner) */}
       <StorefrontCampaignBanner
         bannerConfig={campaignBanner}

@@ -106,11 +106,11 @@ export const Cart: React.FC<CartProps> = React.memo(({
         const cat = item.product.category || '';
         if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
         if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-        if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
+        if (cat.includes('Fashion')) return 'Kroyghor Atelier';
         if (cat.includes('Watches')) return 'Chronos Official';
         if (cat.includes('Beauty')) return 'Glow & Glam BD';
         if (cat.includes('Home')) return 'Nordic Living';
-        return 'ZeropicBD Official';
+        return 'Kroyghor Official';
       })();
 
       if (!groups[storeName]) {
@@ -172,7 +172,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
             <p className="text-xs text-[#525252]">
               {vendorCount > 1 
                 ? `Multi-Vendor Checkout (${vendorCount} Verified Stores)` 
-                : 'ZeropicBD Bangladesh Official'}
+                : 'Kroyghor Bangladesh Official'}
             </p>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#171717] text-base">আপনার শপিং কার্ট খালি আছে</h4>
               <p className="text-xs text-[#525252] max-w-xs mx-auto">
-                ZeropicBD-এর লাইফস্টাইল, ফ্যাশন এক্সেসরিজ, লাইটিং, জুয়েলারি ও ট্রেন্ডিং কালেকশন ঘুরে দেখুন।
+                Kroyghor-এর লাইফস্টাইল, ফ্যাশন এক্সেসরিজ, লাইটিং, জুয়েলারি ও ট্রেন্ডিং কালেকশন ঘুরে দেখুন।
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
@@ -547,7 +547,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-[#171717]">ZeropicBD Wallet Bonus</span>
+                      <span className="font-bold text-[#171717]">Kroyghor Wallet Bonus</span>
                       <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-[#EDE9FE] text-[#5B21B6]">
                         ব্যালেন্স: ৳{user.walletBalance || 0}
                       </span>

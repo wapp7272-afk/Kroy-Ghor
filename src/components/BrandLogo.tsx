@@ -1,14 +1,8 @@
-import React from 'react';
-import { VaultLogo, VaultLogoProps } from './VaultLogo';
+import { Logo, LogoProps } from './Logo';
 
-export type BrandLogoProps = VaultLogoProps;
+export type BrandLogoProps = LogoProps;
+export const BrandLogo = Logo;
+export const SiteLogo = Logo;
+export const ZeropicBDLogo = Logo;
 
-export const BrandLogo: React.FC<BrandLogoProps> = (props) => {
-  return <VaultLogo {...props} />;
-};
-
-export const Logo = BrandLogo;
-export const SiteLogo = BrandLogo;
-export const ZeropicBDLogo = BrandLogo;
-
-export default BrandLogo;
+export default Logo;

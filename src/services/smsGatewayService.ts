@@ -53,15 +53,15 @@ export const interpolateSmsTemplate = (
  */
 export const BD_SMS_TEMPLATES = {
   placed:
-    '[Zeropicbd] Dear {customerName}, Order #{orderId} of {total} is received! Courier: {courierName}. Track live: {trackingUrl}. Helpline: {helpline}',
+    '[Kroyghor] Dear {customerName}, Order #{orderId} of {total} is received! Courier: {courierName}. Track live: {trackingUrl}. Helpline: {helpline}',
   confirmed:
-    '[Zeropicbd] Order #{orderId} is confirmed! Packed with 100% genuine seal. Handing to {courierName}. Track live: {trackingUrl}',
+    '[Kroyghor] Order #{orderId} is confirmed! Packed with 100% genuine seal. Handing to {courierName}. Track live: {trackingUrl}',
   shipped:
-    '[Zeropicbd] Parcel #{orderId} dispatched via {courierName}! Consignment: {trackingNumber}. Live route: {trackingUrl}',
+    '[Kroyghor] Parcel #{orderId} dispatched via {courierName}! Consignment: {trackingNumber}. Live route: {trackingUrl}',
   out_for_delivery:
-    '[Zeropicbd] Order #{orderId} is OUT FOR DELIVERY via {courierName} rider. Amount payable: {total}. Please keep cash ready.',
+    '[Kroyghor] Order #{orderId} is OUT FOR DELIVERY via {courierName} rider. Amount payable: {total}. Please keep cash ready.',
   delivered:
-    '[Zeropicbd] Order #{orderId} delivered! Thank you for choosing Zeropicbd. Review to earn ৳20 wallet bonus: {trackingUrl}',
+    '[Kroyghor] Order #{orderId} delivered! Thank you for choosing Kroyghor. Review to earn ৳20 wallet bonus: {trackingUrl}',
 };
 
 /**

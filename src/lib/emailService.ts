@@ -53,7 +53,7 @@ export async function sendOrderEmail(order: Order, customerEmail?: string): Prom
       .map((item: CartItem) => `${item.product.title} (x${item.quantity}) - ৳${item.product.price * item.quantity}`)
       .join('\n');
 
-    const targetEmail = customerEmail || (order.address as any).email || 'customer@zeropicbd.com';
+    const targetEmail = customerEmail || (order.address as any).email || 'customer@kroyghor.com';
 
     const templateParams = {
       to_email: targetEmail,
@@ -67,7 +67,7 @@ export async function sendOrderEmail(order: Order, customerEmail?: string): Prom
       delivery_address: `${order.address.fullAddress} (${order.address.cityDivision})`,
       customer_phone: order.address.phone,
       message: `New Order Confirmed (#${order.id})! Total: ৳${order.total}. Items:\n${itemsSummary}`,
-      subject: `[Zeropicbd] Order Confirmation - #${order.id}`,
+      subject: `[Kroyghor] Order Confirmation - #${order.id}`,
     };
 
     const response = await emailjs.send(

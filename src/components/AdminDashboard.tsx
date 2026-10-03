@@ -48,7 +48,7 @@ import { AdminCustomersManager } from './admin/AdminCustomersManager';
 import { AdminSettingsManager } from './admin/AdminSettingsManager';
 import { INITIAL_PROMO_BANNERS } from '../data/banners';
 import { SUPER_ADMIN_EMAIL } from '../services/authService';
-import { BrandLogo } from './BrandLogo';
+import { BrandLogo, Logo } from './Logo';
 
 export type AdminSection =
   | 'dashboard'
@@ -77,21 +77,21 @@ const DEFAULT_BANNER_SETTINGS: SystemBannerSettings = {
 
 export interface AdminDashboardProps {
   user?: UserProfile;
-  orders: Order[];
-  onUpdateOrderStatus: (orderId: string, newStatus: Order['status']) => void;
+  orders?: Order[];
+  onUpdateOrderStatus?: (orderId: string, newStatus: Order['status']) => void;
   onUpdateOrderPaymentStatus?: (orderId: string, newPaymentStatus: Order['paymentStatus']) => void;
   onUpdateOrderTracking?: (orderId: string, courierName: string, trackingNumber: string) => void;
   onUpdateOrderNotes?: (orderId: string, notes: string) => void;
-  products: Product[];
-  onAddProduct: (product: Omit<Product, 'id'>) => void;
-  onUpdateProduct: (product: Product) => void;
-  onDeleteProduct: (productId: string) => void;
+  products?: Product[];
+  onAddProduct?: (product: Omit<Product, 'id'>) => void;
+  onUpdateProduct?: (product: Product) => void;
+  onDeleteProduct?: (productId: string) => void;
   onBulkDeleteProducts?: (productIds: string[]) => void;
   onResetDemoProducts?: () => void;
-  coupons: Coupon[];
-  onAddCoupon: (coupon: Omit<Coupon, 'id'>) => void;
-  onUpdateCoupon: (coupon: Coupon) => void;
-  onDeleteCoupon: (couponId: string) => void;
+  coupons?: Coupon[];
+  onAddCoupon?: (coupon: Omit<Coupon, 'id'>) => void;
+  onUpdateCoupon?: (coupon: Coupon) => void;
+  onDeleteCoupon?: (couponId: string) => void;
   sellers?: Seller[];
   onUpdateSellerStatus?: (sellerId: string, newStatus: Seller['status']) => void;
   commissionRate?: number;
@@ -111,21 +111,21 @@ export interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   user,
-  orders,
-  onUpdateOrderStatus,
+  orders = [],
+  onUpdateOrderStatus = () => {},
   onUpdateOrderPaymentStatus,
   onUpdateOrderTracking,
   onUpdateOrderNotes,
-  products,
-  onAddProduct,
-  onUpdateProduct,
-  onDeleteProduct,
+  products = [],
+  onAddProduct = () => {},
+  onUpdateProduct = () => {},
+  onDeleteProduct = () => {},
   onBulkDeleteProducts,
   onResetDemoProducts,
-  coupons,
-  onAddCoupon,
-  onUpdateCoupon,
-  onDeleteCoupon,
+  coupons = [],
+  onAddCoupon = () => {},
+  onUpdateCoupon = () => {},
+  onDeleteCoupon = () => {},
   sellers = [],
   onUpdateSellerStatus,
   commissionRate = 8,
@@ -138,6 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRejectPayout,
   showToast = () => {},
   onGoShop,
+  onGoOrders,
   onLogout,
   onClose,
 }) => {
@@ -161,13 +162,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const navItems = [
     {
       id: 'dashboard' as AdminSection,
-      label: 'Dashboard',
+      label: 'ড্যাশবোর্ড (Dashboard)',
       subtitle: 'Overview & Analytics',
       icon: LayoutDashboard,
     },
     {
       id: 'orders' as AdminSection,
-      label: 'Orders',
+      label: 'অর্ডারসমূহ (Orders)',
       subtitle: 'Orders & Statuses',
       icon: ShoppingBag,
       badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
@@ -175,13 +176,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     },
     {
       id: 'customers' as AdminSection,
-      label: 'Customers',
+      label: 'গ্রাহক তালিকা (Customers)',
       subtitle: 'Directory & Lifetime Profiles',
       icon: Users,
     },
     {
       id: 'products' as AdminSection,
-      label: 'Products',
+      label: 'পণ্য তালিকা (Products)',
       subtitle: 'Catalog & Media',
       icon: Package,
       badge: products.length,
@@ -189,13 +190,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     },
     {
       id: 'inventory' as AdminSection,
-      label: 'Inventory',
+      label: 'ইনভেন্টরি (Inventory)',
       subtitle: 'Stock & Thresholds',
       icon: Boxes,
     },
     {
       id: 'categories_coupons' as AdminSection,
-      label: 'Categories & Coupons',
+      label: 'কুপন ও ক্যাটাগরি (Coupons)',
       subtitle: 'Discounts & Promos',
       icon: Tag,
       badge: coupons.length,
@@ -203,19 +204,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     },
     {
       id: 'marketing' as AdminSection,
-      label: 'Marketing & Banners',
+      label: 'মার্কেটিং (Marketing)',
       subtitle: 'Campaigns, YouTube & Bonus',
       icon: Megaphone,
     },
     {
       id: 'finance' as AdminSection,
-      label: 'Finance & Wallet',
+      label: 'ফাইন্যান্স (Finance)',
       subtitle: 'Transactions & Payouts',
       icon: Wallet,
     },
     {
       id: 'settings' as AdminSection,
-      label: 'Settings',
+      label: 'সেটিংস (Settings)',
       subtitle: 'Delivery & Config',
       icon: Settings,
     },
@@ -262,13 +263,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="hidden sm:inline-flex focus:outline-none cursor-pointer group"
               title="Return to Storefront"
             >
-              <div className="bg-white/95 hover:bg-white rounded-xl px-2.5 py-1 inline-flex items-center shadow-xs transition-all group-hover:scale-[1.02]">
-                <img
-                  src="/logo.png"
-                  alt="ZeropicBD"
-                  className="h-7 w-auto object-contain"
-                />
-              </div>
+              <Logo variant="full" theme="dark" size="sm" />
             </button>
             <div className="hidden sm:block h-5 w-px bg-slate-800" />
             <div>
@@ -362,47 +357,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           {/* Sidebar Top: Logo & Collapse button */}
           <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-2">
-            <div className={`flex items-center gap-2 overflow-hidden ${isSidebarCollapsed ? 'hidden' : 'flex'}`}>
+            {/* Collapsed vs Expanded Logo */}
+            {isSidebarCollapsed ? (
               <button
                 type="button"
                 onClick={handleReturnHome}
-                className="focus:outline-none cursor-pointer text-left block group"
-                title="Go to ZeropicBD Storefront"
+                className="mx-auto focus:outline-none cursor-pointer group p-1"
+                title="Go to Kroyghor Storefront"
               >
-                <div className="bg-white/95 hover:bg-white rounded-xl px-2.5 py-1.5 inline-flex items-center shadow-xs transition-all group-hover:scale-[1.02]">
-                  <img
-                    src="/logo.png"
-                    alt="ZeropicBD"
-                    className="h-8 sm:h-9 w-auto object-contain"
-                    style={{ objectFit: 'contain' }}
-                  />
-                </div>
+                <Logo variant="icon" theme="dark" size="md" />
               </button>
-            </div>
-            {isSidebarCollapsed && (
-              <button
-                type="button"
-                onClick={handleReturnHome}
-                className="mx-auto focus:outline-none cursor-pointer group"
-                title="Go to ZeropicBD Storefront"
-              >
-                <div className="bg-white/95 hover:bg-white rounded-lg p-1 transition-all group-hover:scale-105">
-                  <img
-                    src="/logo.png"
-                    alt="ZeropicBD"
-                    className="w-8 h-8 object-contain"
-                  />
-                </div>
-              </button>
+            ) : (
+              <div className="flex items-center gap-2 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={handleReturnHome}
+                  className="focus:outline-none cursor-pointer text-left block group"
+                  title="Go to Kroyghor Storefront"
+                >
+                  <Logo variant="full" theme="dark" size="md" />
+                </button>
+              </div>
             )}
 
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="text-gray-400 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 p-1.5 rounded transition-colors cursor-pointer"
               title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
-              {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              {isSidebarCollapsed ? '▶' : '◀'}
             </button>
           </div>
 
@@ -610,3 +594,5 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     </div>
   );
 };
+
+export default AdminDashboard;

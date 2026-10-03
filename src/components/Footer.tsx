@@ -14,22 +14,23 @@ import {
   Instagram,
   Youtube
 } from 'lucide-react';
+import { Logo } from './Logo';
 import { VaultLogo } from './VaultLogo';
 
-interface FooterProps {
-  onGoHome: () => void;
-  onOpenOrders: () => void;
-  onOpenAuth: () => void;
+export interface FooterProps {
+  onGoHome?: () => void;
+  onOpenOrders?: () => void;
+  onOpenAuth?: () => void;
   onOpenSellerCenter?: () => void;
   onOpenSellerStore?: (slug: string) => void;
-  onOpenAdmin: () => void;
-  onDownloadHtml: () => void;
+  onOpenAdmin?: () => void;
+  onDownloadHtml?: () => void;
   onOpenFaq?: () => void;
   onOpenReturnPolicy?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  onGoHome,
+  onGoHome = () => window.scrollTo({ top: 0, behavior: 'smooth' }),
   onOpenOrders,
   onOpenAuth,
   onOpenSellerCenter,
@@ -40,29 +41,29 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenReturnPolicy,
 }) => {
   return (
-    <footer className="bg-[#0A1B3D] text-white pt-10 pb-8 border-t border-slate-800">
-      {/* ================= 1. TRUST & VALUE PROPOSITION BADGES (From Brand Sheet) ================= */}
+    <footer className="bg-gray-900 text-white pt-10 pb-8 border-t border-gray-800">
+      {/* ================= 1. TRUST & VALUE PROPOSITION BADGES ================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-[#050D20] border border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-[#0b1329] border border-gray-800">
           {/* 1. Secure */}
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-[#F3F7FF] flex items-center justify-center text-[#007BFF] shrink-0 shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[#00C6FF] shrink-0 shadow-xs">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">100% Secure</h4>
-              <p className="text-[11px] text-slate-300">Safe bKash, Nagad & Cards</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">১০০% নিরাপদ শপিং</h4>
+              <p className="text-[11px] text-gray-300">bKash, Nagad ও ক্যাশ অন ডেলিভারি</p>
             </div>
           </div>
 
           {/* 2. Fast Delivery */}
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-[#F3F7FF] flex items-center justify-center text-[#7A3BFF] shrink-0 shadow-xs">
+            <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 shadow-xs">
               <Truck className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Fast Delivery</h4>
-              <p className="text-[11px] text-slate-300">24-48h in Dhaka, 3-5 days BD</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">দ্রুততম ডেলিভারি</h4>
+              <p className="text-[11px] text-gray-300">ঢাকায় ২৪-৪৮ ঘণ্টা, সারাদেশে ৩-৫ দিন</p>
             </div>
           </div>
 
@@ -70,17 +71,17 @@ export const Footer: React.FC<FooterProps> = ({
           <div 
             onClick={onOpenFaq}
             className={`flex items-center gap-3.5 ${onOpenFaq ? 'cursor-pointer group hover:opacity-90 transition-opacity' : ''}`}
-            title="Click to view Customer Support & FAQs"
+            title="গ্রাহক সেবা ও সাধারণ জিজ্ঞাসা"
           >
-            <div className="w-11 h-11 rounded-xl bg-[#F3F7FF] flex items-center justify-center text-[#00C6FF] shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <div className="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 shadow-xs group-hover:scale-105 transition-transform">
               <Headphones className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1 group-hover:text-[#00C6FF]">
-                <span>24/7 Support</span>
-                {onOpenFaq && <span className="text-[10px] text-[#00C6FF] underline">Help</span>}
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1 group-hover:text-cyan-400">
+                <span>২৪/৭ গ্রাহক সেবা</span>
+                {onOpenFaq && <span className="text-[10px] text-cyan-400 underline">Help</span>}
               </h4>
-              <p className="text-[11px] text-slate-300">Phone, WhatsApp & Live Help</p>
+              <p className="text-[11px] text-gray-300">হটলাইন ও ইনস্ট্যান্ট সাপোর্ট</p>
             </div>
           </div>
 
@@ -88,17 +89,17 @@ export const Footer: React.FC<FooterProps> = ({
           <div 
             onClick={onOpenReturnPolicy}
             className={`flex items-center gap-3.5 ${onOpenReturnPolicy ? 'cursor-pointer group hover:opacity-90 transition-opacity' : ''}`}
-            title="Click to view Return Policy & Deals"
+            title="রিটার্ন ও রিপ্লেসমেন্ট পলিসি"
           >
-            <div className="w-11 h-11 rounded-xl bg-[#F3F7FF] flex items-center justify-center text-[#7A3BFF] shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 shadow-xs group-hover:scale-105 transition-transform">
               <Gift className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1 group-hover:text-[#00C6FF]">
-                <span>Best Deals</span>
-                {onOpenReturnPolicy && <span className="text-[10px] text-[#00C6FF] underline">Return</span>}
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1 group-hover:text-cyan-400">
+                <span>সেরা অফার ও রিটার্ন</span>
+                {onOpenReturnPolicy && <span className="text-[10px] text-cyan-400 underline">Return</span>}
               </h4>
-              <p className="text-[11px] text-slate-300">Verified Quality & 7-Day Return</p>
+              <p className="text-[11px] text-gray-300">৭ দিনের সহজ রিটার্ন পলিসি</p>
             </div>
           </div>
         </div>
@@ -106,217 +107,205 @@ export const Footer: React.FC<FooterProps> = ({
 
       {/* ================= 2. MAIN FOOTER MULTI-COLUMN CONTENT ================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 pb-10 border-b border-slate-800">
-          {/* Col 1: Brand & Contact Info (Matches Brand Sheet) */}
-          <div className="lg:col-span-2 space-y-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 pb-10 border-b border-gray-800">
+          {/* Brand Info (Col 1 & 2) */}
+          <div className="lg:col-span-2 space-y-4">
             <button onClick={onGoHome} className="focus:outline-none cursor-pointer block text-left group">
-              <div className="bg-white/95 hover:bg-white rounded-2xl px-3.5 py-2 inline-flex items-center shadow-md transition-all group-hover:scale-[1.02]">
-                <img
-                  src="/logo.png"
-                  alt="ZeropicBD"
-                  className="h-10 sm:h-11 w-auto object-contain"
-                  style={{ objectFit: 'contain' }}
-                  loading="lazy"
-                />
-              </div>
-              <div className="text-[10.5px] font-black text-[#00C6FF] tracking-[0.25em] mt-2 uppercase flex items-center gap-1.5">
-                <span>SHOP SMART</span>
-                <span className="text-white/60">•</span>
-                <span>LIVE BETTER</span>
-              </div>
+              <Logo variant="full" theme="dark" size="lg" />
             </button>
-            <p className="text-xs text-slate-300 leading-relaxed max-w-sm">
-              <strong className="text-white">ZeropicBD</strong> is Bangladesh's premier verified lifestyle and marketplace. Discover curated authentic collections, premium essentials, and seamless shopping with bKash, Nagad, and Cash on Delivery nationwide.
+            <p className="text-gray-300 text-sm leading-relaxed max-w-sm">
+              <strong className="text-white">ZeropicBD</strong> - আপনার বিশ্বস্ত শপিং পার্টনার। সেরা দামে গুণগত মানের সেরা লাইফস্টাইল, গ্যাজেট ও নিত্যনতুন ট্রেন্ডি পণ্য পেতে আমাদের সাথেই থাকুন।
             </p>
 
-            <div className="space-y-2 pt-1 text-xs text-slate-300">
+            <div className="space-y-2 pt-2 text-xs text-gray-300">
               <div className="flex items-center gap-2.5">
-                <PhoneCall className="w-4 h-4 text-[#00C6FF]" />
-                <span className="font-semibold text-white">+880 1883-418309</span>
-                <span className="text-[11px] text-slate-400">(9 AM - 10 PM)</span>
+                <PhoneCall className="w-4 h-4 text-cyan-400" />
+                <span className="font-semibold text-white">হটলাইন: +880 1883-418309</span>
+                <span className="text-[11px] text-gray-400">(সকাল ৯টা - রাত ১০টা)</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-[#00C6FF]" />
-                <span className="text-slate-200">support@zeropicbd.com</span>
+                <Mail className="w-4 h-4 text-cyan-400" />
+                <span className="text-gray-200">ইমেইল: support@zeropicbd.com</span>
               </div>
               <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#00C6FF] shrink-0 mt-0.5" />
-                <span className="text-slate-300">
-                  Dhanmondi 27, Dhaka - 1209, Bangladesh
+                <MapPin className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <span className="text-gray-300">
+                  ঠিকানা: ধানমন্ডি ২৭, ঢাকা - ১২০৯, বাংলাদেশ
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Col 2: Customer Support & Care */}
+          {/* Quick Links (কুইক লিঙ্ক) */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00C6FF]" />
-              <span>Customer Care</span>
-            </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-200 mb-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span>কুইক লিঙ্ক</span>
+            </h3>
+            <ul className="space-y-2.5 text-sm text-gray-400">
+              <li>
+                <button 
+                  onClick={onGoHome}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  আমাদের সম্পর্কে (About Us)
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={onGoHome}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  শপ / ক্যাটাগরি (Shop)
+                </button>
+              </li>
               <li>
                 <button 
                   onClick={onOpenOrders}
-                  className="hover:text-[#00C6FF] transition-colors cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Track Your Order (অর্ডার ট্র্যাকিং)
+                  অর্ডার ট্র্যাকিং (Order Tracking)
                 </button>
               </li>
               <li>
-                <button 
-                  onClick={onOpenAuth}
-                  className="hover:text-[#00C6FF] transition-colors cursor-pointer"
+                <a 
+                  href="tel:01883418309"
+                  className="hover:text-white transition-colors block"
                 >
-                  My Account & Wallet (ওয়ালেট)
-                </button>
+                  যোগাযোগ (Contact)
+                </a>
               </li>
+              {onOpenSellerCenter && (
+                <li>
+                  <button 
+                    onClick={onOpenSellerCenter}
+                    className="hover:text-cyan-400 text-cyan-500 font-medium transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    <span>সেলার পোর্টাল (Seller Center)</span>
+                  </button>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          {/* Customer Service (গ্রাহক সেবা) */}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-200 mb-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+              <span>গ্রাহক সেবা</span>
+            </h3>
+            <ul className="space-y-2.5 text-sm text-gray-400">
               <li>
                 <button
                   type="button"
-                  onClick={onOpenFaq}
-                  className="hover:text-[#00C6FF] transition-colors cursor-pointer text-left"
+                  onClick={onOpenReturnPolicy}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Help Center & FAQs (সাধারণ প্রশ্নোত্তর)
+                  প্রাইভেসি পলিসি (Privacy Policy)
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={onOpenReturnPolicy}
-                  className="hover:text-[#00C6FF] transition-colors cursor-pointer text-left font-medium text-slate-200"
+                  className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Returns & Refunds Policy (৭ দিনের রিটার্ন)
+                  টার্মস ও কন্ডিশন (Terms)
                 </button>
               </li>
               <li>
-                <a href="#shipping" className="hover:text-[#00C6FF] transition-colors">
-                  Shipping Rates & Delivery
-                </a>
+                <button
+                  type="button"
+                  onClick={onOpenReturnPolicy}
+                  className="hover:text-white transition-colors cursor-pointer text-left text-gray-300 font-medium"
+                >
+                  রিটার্ন ও রিফান্ড পলিসি
+                </button>
               </li>
               <li>
-                <a href="#terms" className="hover:text-[#00C6FF] transition-colors">
-                  Terms of Service & Privacy
-                </a>
+                <button
+                  type="button"
+                  onClick={onOpenFaq}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  হেল্প সেন্টার (FAQs)
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={onOpenAuth}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  আমার অ্যাকাউন্ট ও ওয়ালেট
+                </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Seller Information */}
+          {/* Payment & Security */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#7A3BFF]" />
-              <span>Seller Information</span>
-            </h4>
-            <ul className="space-y-2 text-xs text-slate-300">
-              {onOpenSellerStore && (
-                <li>
-                  <button 
-                    onClick={() => onOpenSellerStore('perfume-vault-bd')}
-                    className="hover:text-[#00C6FF] transition-colors font-semibold text-[#00C6FF] flex items-center gap-1 cursor-pointer"
-                  >
-                    <Store className="w-3.5 h-3.5" />
-                    <span>Brand Storefronts</span>
-                  </button>
-                </li>
-              )}
-              {onOpenSellerCenter && (
-                <li>
-                  <button 
-                    onClick={onOpenSellerCenter}
-                    className="hover:text-[#00C6FF] transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Seller Center & Portal</span>
-                  </button>
-                </li>
-              )}
-              <li>
-                <a href="#sell" className="hover:text-[#00C6FF] transition-colors">
-                  Sell on ZeropicBD
-                </a>
-              </li>
-              <li>
-                <a href="#seller-policy" className="hover:text-[#00C6FF] transition-colors">
-                  Seller Code of Conduct
-                </a>
-              </li>
-              <li>
-                <a href="#warehouses" className="hover:text-[#00C6FF] transition-colors">
-                  Fulfillment Centers
-                </a>
-              </li>
-              <li>
-                <a href="#verified" className="hover:text-[#00C6FF] transition-colors">
-                  Verified Merchant Badge
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 4: Payment Methods & Logistics */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#007BFF]" />
-              <span>Payment & Security</span>
-            </h4>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-200 mb-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>নিরাপদ পেমেন্ট পার্টনার</span>
+            </h3>
             <div className="space-y-3">
-              <p className="text-[11px] text-slate-300">
-                100% Secure Checkout with Instant Automated Confirmation:
+              <p className="text-xs text-gray-400">
+                ইনস্ট্যান্ট কনফার্মেশনের সাথে ১০০% সুরক্ষিত পেমেন্ট:
               </p>
 
               {/* Bangladesh Payment Badges */}
               <div className="grid grid-cols-3 gap-1.5 text-center">
-                <div className="p-1.5 rounded-md border border-slate-700 bg-white text-[10px] font-bold text-[#E2136E]">
+                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#E2136E]">
                   bKash
                 </div>
-                <div className="p-1.5 rounded-md border border-slate-700 bg-white text-[10px] font-bold text-[#F7941D]">
+                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#F7941D]">
                   Nagad
                 </div>
-                <div className="p-1.5 rounded-md border border-slate-700 bg-white text-[10px] font-bold text-[#8C1E70]">
+                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#8C1E70]">
                   Rocket
                 </div>
-                <div className="p-1.5 rounded-md border border-slate-700 bg-white text-[10px] font-bold text-[#1A1F71]">
+                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#1A1F71]">
                   VISA
                 </div>
-                <div className="p-1.5 rounded-md border border-slate-700 bg-white text-[10px] font-bold text-[#EB001B]">
+                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#EB001B]">
                   Mastercard
                 </div>
-                <div className="p-1.5 rounded-md border border-[#007BFF] bg-[#007BFF]/20 text-[10px] font-bold text-[#00C6FF]">
+                <div className="p-1.5 rounded-md border border-blue-500 bg-blue-500/20 text-[10px] font-bold text-cyan-400">
                   Cash on Del.
                 </div>
               </div>
 
-              <div className="pt-1.5">
-                <span className="text-[10px] font-medium text-slate-300 block mb-1">
-                  Delivery Logistics Partners:
+              <div className="pt-2">
+                <span className="text-[11px] font-medium text-gray-400 block mb-1">
+                  কুরিয়ার ও ডেলিভারি পার্টনার:
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200 font-mono">
-                  <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded">Pathao Courier</span>
-                  <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded">Steadfast</span>
-                  <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded">Paperfly</span>
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-300 font-mono">
+                  <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded">Pathao Courier</span>
+                  <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded">Steadfast</span>
+                  <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded">Paperfly</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ================= 3. FOOTER PREVIEW BAR (Matches Brand Sheet Bottom Card) ================= */}
-        <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800">
-          {/* Logo & Vertical Divider Lockup */}
+        {/* ================= 3. FOOTER SOCIALS & LOCKUP ================= */}
+        <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-gray-800">
           <div className="flex items-center gap-4">
             <button onClick={onGoHome} className="focus:outline-none cursor-pointer">
               <VaultLogo size="sm" variant="dark" showDivider={true} />
             </button>
           </div>
 
-          {/* Social Media Channels (Facebook, Instagram, YouTube, TikTok as shown in Sheet) */}
+          {/* Social Media Channels */}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 mr-1 hidden sm:inline">Follow Us:</span>
+            <span className="text-xs text-gray-400 mr-1 hidden sm:inline">যুক্ত থাকুন:</span>
             <a
               href="https://facebook.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#007BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#007BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
               aria-label="Facebook"
             >
               <Facebook className="w-4 h-4" />
@@ -325,7 +314,7 @@ export const Footer: React.FC<FooterProps> = ({
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#7A3BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#7A3BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
               aria-label="Instagram"
             >
               <Instagram className="w-4 h-4" />
@@ -334,7 +323,7 @@ export const Footer: React.FC<FooterProps> = ({
               href="https://youtube.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
               aria-label="YouTube"
             >
               <Youtube className="w-4 h-4" />
@@ -343,7 +332,7 @@ export const Footer: React.FC<FooterProps> = ({
               href="https://tiktok.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#00C6FF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#00C6FF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
               aria-label="TikTok"
             >
               <span className="font-bold text-xs">♪</span>
@@ -352,31 +341,37 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* ================= 4. BOTTOM COPYRIGHT & EXPORT ================= */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <p className="text-center sm:text-left">
-            © {new Date().getFullYear()} <strong className="text-white">ZeropicBD</strong>. All rights reserved. Registered Trademark in Bangladesh.
+            © {new Date().getFullYear()} <strong className="text-gray-300">ZeropicBD (জিরোপিক বিডি)</strong>। সর্বস্বত্ব সংরক্ষিত। Registered Trademark in Bangladesh.
           </p>
 
           <div className="flex items-center gap-4 text-xs">
-            <button
-              onClick={onDownloadHtml}
-              className="text-[#00C6FF] hover:text-[#80E5FF] hover:underline flex items-center gap-1 cursor-pointer font-medium"
-            >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>Export HTML</span>
-            </button>
-            <span className="text-slate-700">•</span>
-            <button
-              id="footer-admin-link"
-              onClick={onOpenAdmin}
-              className="text-slate-300 hover:text-[#00C6FF] transition-colors flex items-center gap-1 cursor-pointer font-medium"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#00C6FF]" />
-              <span>Admin Portal</span>
-            </button>
+            {onDownloadHtml && (
+              <button
+                onClick={onDownloadHtml}
+                className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Export HTML</span>
+              </button>
+            )}
+            {onDownloadHtml && onOpenAdmin && <span className="text-gray-700">•</span>}
+            {onOpenAdmin && (
+              <button
+                id="footer-admin-link"
+                onClick={onOpenAdmin}
+                className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Admin Portal</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
     </footer>
   );
 };
+
+export default Footer;

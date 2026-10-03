@@ -463,7 +463,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <BrandLogo size="md" />
             </div>
             <h2 className="text-lg sm:text-xl font-black text-[#0A1B3D]">
-              {user.isLoggedIn ? 'Customer Profile & Wallet' : 'ZeropicBD Member Club'}
+              {user.isLoggedIn ? 'Customer Profile & Wallet' : 'Kroyghor Member Club'}
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               {user.isLoggedIn 
@@ -492,7 +492,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                 </div>
                 <p className="text-[11px] text-blue-800 mt-0.5">
-                  ZeropicBD Verification OTP for <strong className="font-mono text-[#0A1B3D]">{smsToast.phone}</strong> is:
+                  Kroyghor Verification OTP for <strong className="font-mono text-[#0A1B3D]">{smsToast.phone}</strong> is:
                 </p>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded bg-white border border-blue-300 font-mono font-black text-[#007BFF] text-base tracking-widest">

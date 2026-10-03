@@ -84,7 +84,7 @@ export const generateEmailContent = (
       <td style="padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
         <strong style="color: #0f172a; font-size: 13px;">${item.product.title}</strong>
         ${item.selectedSize ? `<br/><span style="color: #64748b; font-size: 11px;">Size: ${item.selectedSize}</span>` : ''}
-        <br/><span style="color: #4f46e5; font-size: 11px;">Merchant: ${item.storeName || 'Zeropicbd Official'}</span>
+        <br/><span style="color: #4f46e5; font-size: 11px;">Merchant: ${item.storeName || 'Kroyghor Official'}</span>
       </td>
       <td style="padding: 10px 0; border-bottom: 1px solid #f1f5f9; text-align: center; color: #475569; font-size: 13px;">
         ${item.quantity}x
@@ -99,7 +99,7 @@ export const generateEmailContent = (
 
   const subject = 
     eventType === 'placed'
-      ? `Order Confirmation: #${orderId} — Zeropicbd 🇧🇩`
+      ? `Order Confirmation: #${orderId} — Kroyghor 🇧🇩`
       : eventType === 'shipped'
       ? `Your Parcel #${orderId} has been Dispatched via ${courier} 🚚`
       : `Delivery Update: #${orderId} — ${order.status}`;
@@ -107,8 +107,8 @@ export const generateEmailContent = (
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
       <div style="background: #0f172a; padding: 24px; text-align: center; color: #ffffff;">
-        <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #ffffff;">Zeropicbd</h1>
-        <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">Bangladesh Premier Lifestyle & Marketplace</p>
+        <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #ffffff;">Kroyghor</h1>
+        <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">ক্রয় ঘর • আপনার বিশ্বস্ত শপিং পার্টনার</p>
       </div>
 
       <div style="padding: 24px;">
