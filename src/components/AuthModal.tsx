@@ -208,7 +208,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const googleUser = await signInWithGoogle();
       clearTimeout(safetyTimeout);
 
-      const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'ZeropicBD Member';
+      const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'Kroyghor Member';
       setName(userDisplayName);
       setEmail(googleUser.email);
       setUserAvatar(googleUser.photoURL);
@@ -235,18 +235,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         googleUser.photoURL || existing?.avatar
       );
 
-      setSuccessMsg(`✓ Welcome, ${existing?.name || userDisplayName}! Logged in with Google.`);
-
-      // Fast non-blocking UI transition
-      setTimeout(() => {
-        setIsGoogleLoading(false);
-        setSuccessMsg(null);
-        if (!isVerified && !userPhone) {
-          setTab('phone_verify');
-        } else {
-          setTab('profile');
-        }
-      }, 300);
+      // Close the Auth modal immediately as soon as Google returns credentials!
+      setIsGoogleLoading(false);
+      onClose();
     } catch (err: any) {
       clearTimeout(safetyTimeout);
       setIsGoogleLoading(false);

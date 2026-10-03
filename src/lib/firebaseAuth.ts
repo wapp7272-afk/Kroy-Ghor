@@ -112,7 +112,7 @@ export const syncUserDocumentInFirestore = async (
 }> => {
   const uid = fUser.uid;
   const email = (fUser.email || '').trim();
-  const displayName = fUser.displayName || (email ? email.split('@')[0] : 'ZeropicBD Member');
+  const displayName = fUser.displayName || (email ? email.split('@')[0] : 'Kroyghor Member');
   const photoURL = fUser.photoURL || '';
 
   const isOwner = email.toLowerCase() === 'wapp7272@gmail.com';
@@ -338,7 +338,7 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       console.warn('[FirebaseAuth] Non-fatal background Firestore sync error:', err);
     });
 
-    const displayName = user.displayName || user.email?.split('@')[0] || 'ZeropicBD Member';
+    const displayName = user.displayName || user.email?.split('@')[0] || 'Kroyghor Member';
 
     return {
       uid: user.uid,

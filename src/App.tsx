@@ -106,6 +106,7 @@ const AuthModal = lazy(() => import('./components/AuthModal').then((m) => ({ def
 const CustomerSupport = lazy(() => import('./components/CustomerSupport').then((m) => ({ default: m.CustomerSupport })));
 const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const InvoiceModal = lazy(() => import('./components/InvoiceModal').then((m) => ({ default: m.InvoiceModal })));
 const ReturnPolicyModal = lazy(() => import('./components/ReturnPolicyModal').then((m) => ({ default: m.ReturnPolicyModal })));
 const FaqModal = lazy(() => import('./components/FaqModal').then((m) => ({ default: m.FaqModal })));
 
