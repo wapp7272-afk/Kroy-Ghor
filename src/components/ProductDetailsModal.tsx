@@ -55,6 +55,10 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <img
               src={product.image}
               alt={product.title}
+              width={400}
+              height={400}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
             {product.tag && (

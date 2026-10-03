@@ -186,9 +186,12 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = ({
               >
                 <img
                   src="https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=800"
-                  alt="ZeropicBD YouTube Channel Preview"
+                  alt="Kroyghor YouTube Channel Preview"
+                  width={640}
+                  height={360}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                   <div className="w-14 h-14 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">

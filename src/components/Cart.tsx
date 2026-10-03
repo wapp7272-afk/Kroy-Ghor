@@ -311,8 +311,11 @@ export const Cart: React.FC<CartProps> = React.memo(({
                             <img
                               src={item.product.image}
                               alt={item.product.title}
+                              width={72}
+                              height={72}
                               className="w-full h-full object-cover"
                               loading="lazy"
+                              decoding="async"
                             />
                             {item.product.discount && (
                               <span className="absolute top-1 left-1 px-1 py-0.2 bg-rose-600 text-[9px] font-black text-white rounded shadow-xs">
@@ -508,6 +511,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                   <div className="relative flex-1">
                     <input
                       type="text"
+                      aria-label="কুপন কোড লিখুন"
                       placeholder="কুপন কোড (যেমন: PRIME10)"
                       value={couponInput}
                       onChange={(e) => setCouponInput(e.target.value)}
@@ -564,6 +568,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
+                      aria-label="Apply wallet bonus deduction"
                       checked={applyWalletBonus}
                       onChange={(e) => onToggleWalletBonus(e.target.checked)}
                       className="sr-only peer"

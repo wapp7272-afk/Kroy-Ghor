@@ -296,6 +296,10 @@ export const CinematicVideoShowcase: React.FC<CinematicVideoShowcaseProps> = ({
                   <img
                     src={spotlightProduct.image}
                     alt={spotlightProduct.title}
+                    width={80}
+                    height={80}
+                    loading="lazy"
+                    decoding="async"
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border border-slate-800 shrink-0 group-hover:scale-102 transition-transform"
                   />
                   <div className="min-w-0 flex-1">

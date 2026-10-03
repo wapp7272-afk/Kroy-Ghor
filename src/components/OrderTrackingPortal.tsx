@@ -500,6 +500,8 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                         <img
                           src={item.product.image}
                           alt={item.product.title}
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50 shrink-0"
                           loading="lazy"
                           decoding="async"

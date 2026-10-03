@@ -254,6 +254,7 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = ({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <input
                       type="checkbox"
+                      aria-label={`Filter by category: ${dept.name}`}
                       checked={isSelected}
                       onChange={() => handleCategoryToggle(dept.name)}
                       className="w-4 h-4 rounded text-[#4F46E5] border-slate-300 focus:ring-[#4F46E5] cursor-pointer accent-[#4F46E5]"
@@ -397,6 +398,7 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = ({
           </div>
           <input
             type="checkbox"
+            aria-label="Filter in stock products only"
             checked={filters.inStockOnly}
             onChange={(e) => onChange((prev) => ({ ...prev, inStockOnly: e.target.checked }))}
             className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500 cursor-pointer accent-emerald-600"

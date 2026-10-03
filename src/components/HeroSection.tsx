@@ -319,8 +319,11 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({
                 <img
                   src={currentBanner.imageUrl}
                   alt={currentBanner.title}
+                  width={640}
+                  height={480}
                   className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500"
-                  loading="lazy"
+                  loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                 />
                 
@@ -345,6 +348,8 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({
                       <img 
                         src={linkedProduct.image} 
                         alt={linkedProduct.title}
+                        width={48}
+                        height={48}
                         className="w-10 h-10 sm:w-11 sm:h-11 rounded-md object-cover border border-slate-200 shrink-0 bg-slate-50"
                         loading="lazy"
                         decoding="async"

@@ -571,6 +571,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <img
                     src={images[selectedImageIndex] || product.image}
                     alt={product.title}
+                    width={600}
+                    height={600}
                     className="w-full h-full object-cover object-center transition-all duration-300 group-hover:scale-105 pointer-events-none"
                     draggable={false}
                     decoding="async"
@@ -636,6 +638,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <img
                         src={imgUrl}
                         alt={`Thumbnail ${idx + 1}`}
+                        width={64}
+                        height={64}
                         className="w-full h-full object-cover object-center"
                         loading="lazy"
                         decoding="async"
@@ -690,6 +694,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <img
                           src={product.videoPoster || product.image}
                           alt={`Video thumbnail for ${product.title}`}
+                          width={640}
+                          height={360}
                           className="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-300"
                           loading="lazy"
                           decoding="async"
@@ -1580,6 +1586,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <img
                           src={rev.photoUrl}
                           alt="Customer snapshot proof"
+                          width={56}
+                          height={56}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           decoding="async"
@@ -1644,6 +1652,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <img
                     src={product.image}
                     alt={product.title}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 object-cover rounded-lg"
                     loading="lazy"
                     decoding="async"
@@ -1667,6 +1677,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <img
                     src={complementaryProduct.image}
                     alt={complementaryProduct.title}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 object-cover rounded-lg"
                     loading="lazy"
                     decoding="async"
@@ -1766,6 +1778,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <img
                         src={relProduct.image}
                         alt={relProduct.title}
+                        width={200}
+                        height={200}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                         decoding="async"

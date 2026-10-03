@@ -263,6 +263,10 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
                       <img
                         src={thumbnailUrl}
                         alt={video.title}
+                        width={96}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           // Fallback to high quality perfume poster if thumb fails

@@ -504,6 +504,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <img
                       src={user.avatar}
                       alt={user.name}
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                      decoding="async"
                       className="w-14 h-14 rounded-2xl object-cover border-2 border-[#007BFF]/20 shadow-xs"
                     />
                   ) : (
@@ -682,6 +686,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             <img
                               src={preset.url}
                               alt={preset.name}
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-12 rounded-xl object-cover"
                             />
                             {profileAvatar === preset.url && (
@@ -905,8 +913,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               <div key={idx} className="flex items-center justify-between gap-3 text-xs">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <img
-                                    src={item.product?.image || '/zeropicbd_logo_exact.png'}
+                                    src={item.product?.image || '/kroyghor-logo.png'}
                                     alt={item.product?.title || 'Product'}
+                                    width={40}
+                                    height={40}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
                                   />
                                   <div className="truncate">
@@ -1264,6 +1276,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           <img
                             src={prod.image}
                             alt={prod.title}
+                            width={64}
+                            height={64}
+                            loading="lazy"
+                            decoding="async"
                             className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shrink-0"
                           />
                           <div className="min-w-0">
@@ -1414,8 +1430,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={item.product?.image || '/zeropicbd_logo_exact.png'}
+                          src={item.product?.image || '/kroyghor-logo.png'}
                           alt={item.product?.title || 'Product'}
+                          width={48}
+                          height={48}
+                          loading="lazy"
+                          decoding="async"
                           className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
                         />
                         <div className="truncate">

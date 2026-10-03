@@ -207,8 +207,11 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
                       <img
                         src={product.image}
                         alt={product.title}
+                        width={240}
+                        height={240}
                         className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
                         loading="lazy"
+                        decoding="async"
                       />
 
                       {/* Computed Discount Badge */}
@@ -320,6 +323,10 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
               <img
                 src="https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&q=80&w=400"
                 alt="Perfume Deco"
+                width={128}
+                height={128}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover mix-blend-screen"
               />
             </div>
@@ -354,6 +361,10 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
               <img
                 src="https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=400"
                 alt="Gadgets Deco"
+                width={128}
+                height={128}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover mix-blend-screen"
               />
             </div>
@@ -388,6 +399,10 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
               <img
                 src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=400"
                 alt="Fashion Deco"
+                width={128}
+                height={128}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover mix-blend-screen"
               />
             </div>

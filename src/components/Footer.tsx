@@ -114,18 +114,18 @@ export const Footer: React.FC<FooterProps> = ({
               <Logo variant="full" theme="dark" size="lg" />
             </button>
             <p className="text-gray-300 text-sm leading-relaxed max-w-sm">
-              <strong className="text-white">ZeropicBD</strong> - আপনার বিশ্বস্ত শপিং পার্টনার। সেরা দামে গুণগত মানের সেরা লাইফস্টাইল, গ্যাজেট ও নিত্যনতুন ট্রেন্ডি পণ্য পেতে আমাদের সাথেই থাকুন।
+              <strong className="text-white">Kroyghor (ক্রয় ঘর)</strong> - আপনার বিশ্বস্ত শপিং পার্টনার। সেরা দামে গুণগত মানের সেরা লাইফস্টাইল, গ্যাজেট ও নিত্যনতুন ট্রেন্ডি পণ্য পেতে আমাদের সাথেই থাকুন।
             </p>
 
             <div className="space-y-2 pt-2 text-xs text-gray-300">
               <div className="flex items-center gap-2.5">
                 <PhoneCall className="w-4 h-4 text-cyan-400" />
-                <span className="font-semibold text-white">হটলাইন: +880 1883-418309</span>
+                <span className="font-semibold text-white">হটলাইন: +880 1700-000000</span>
                 <span className="text-[11px] text-gray-400">(সকাল ৯টা - রাত ১০টা)</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-cyan-400" />
-                <span className="text-gray-200">ইমেইল: support@zeropicbd.com</span>
+                <span className="text-gray-200">ইমেইল: support@kroyghor.com</span>
               </div>
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />

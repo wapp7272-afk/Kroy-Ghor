@@ -177,6 +177,8 @@ export const CategoryNavGrid: React.FC<CategoryNavGridProps> = React.memo(({
                   <img
                     src={cat.image}
                     alt={cat.name}
+                    width={72}
+                    height={72}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                     decoding="async"

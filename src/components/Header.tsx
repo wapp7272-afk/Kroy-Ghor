@@ -466,6 +466,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <div className="relative shrink-0">
                 <select
                   id="desktop-search-category-select"
+                  aria-label="Filter search by category"
                   value={searchCategory}
                   onChange={(e) => setSearchCategory(e.target.value)}
                   className="h-10 pl-3 pr-7 bg-slate-100 hover:bg-slate-200/80 border-y border-l border-slate-200 rounded-l-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4F46E5] appearance-none cursor-pointer transition-colors"
@@ -483,6 +484,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <div className="relative flex-1">
                 <input
                   id="header-search-input-desktop"
+                  aria-label="Search products, perfumes, lifestyle, brands and categories"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
@@ -577,6 +579,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                               <img
                                 src={p.image}
                                 alt={p.title}
+                                width={40}
+                                height={40}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-10 h-10 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-100"
                               />
                               <div className="min-w-0">
@@ -826,6 +832,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             <div className="relative shrink-0">
               <select
                 id="mobile-search-category-select"
+                aria-label="Filter search by category"
                 value={searchCategory}
                 onChange={(e) => setSearchCategory(e.target.value)}
                 className="h-10 min-h-[40px] pl-2.5 pr-6 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#4F46E5] appearance-none max-w-[110px] truncate"
@@ -843,6 +850,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             <div className="relative flex-1 min-w-0">
               <input
                 id="header-search-input-mobile"
+                aria-label="Search products and brands"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -1341,6 +1349,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   ref={mobileSearchInputRef}
+                  aria-label="Search all categories"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
@@ -1402,6 +1411,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                         <img
                           src={p.image}
                           alt={p.title}
+                          width={44}
+                          height={44}
+                          loading="lazy"
+                          decoding="async"
                           className="w-11 h-11 object-cover rounded-md border border-slate-200 shrink-0"
                         />
                         <div className="min-w-0">

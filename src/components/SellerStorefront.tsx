@@ -264,6 +264,10 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
           <img
             src={bannerBg}
             alt={seller.storeName}
+            width={1200}
+            height={300}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center opacity-40 scale-105 filter blur-xs"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent" />
@@ -326,7 +330,7 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-[#5B21B6] to-indigo-600 text-white flex items-center justify-center font-black text-3xl shadow-lg border-4 border-white shrink-0 overflow-hidden">
                 {seller.logoImage ? (
-                  <img src={seller.logoImage} alt={seller.storeName} className="w-full h-full object-cover" />
+                  <img src={seller.logoImage} alt={seller.storeName} width={80} height={80} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 ) : (
                   <span>{seller.storeName.charAt(0)}</span>
                 )}
@@ -529,8 +533,11 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
                     <img
                       src={product.image}
                       alt={product.title}
+                      width={300}
+                      height={300}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Discount or tag badge */}

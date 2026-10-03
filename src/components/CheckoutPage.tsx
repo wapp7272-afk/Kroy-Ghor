@@ -506,6 +506,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <img
                       src={item.product.image}
                       alt={item.product.title}
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
                       className="w-12 h-12 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
                     />
                     <div>
@@ -1126,6 +1130,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       <img
                         src={item.product.image}
                         alt={item.product.title}
+                        width={44}
+                        height={44}
+                        loading="lazy"
+                        decoding="async"
                         className="w-11 h-11 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
                       />
                       <div className="min-w-0">

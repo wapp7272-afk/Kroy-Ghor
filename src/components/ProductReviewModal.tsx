@@ -283,6 +283,10 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                   <img
                     src={preset.url}
                     alt={preset.label}
+                    width={56}
+                    height={56}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                   {selectedPhotoPreset === preset.url && (

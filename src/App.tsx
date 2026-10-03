@@ -40,12 +40,6 @@ import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { ProductCard } from './components/ProductCard';
-import { ProductDetailsModal } from './components/ProductDetailsModal';
-import { ProductDetailView } from './components/ProductDetailView';
-import { UserProfile as CustomerProfileView } from './components/UserProfile';
-import { MyOrdersView } from './components/MyOrdersView';
-import { SellerCenterView } from './components/SellerCenterView';
-import { PublicSellerStoreView } from './components/PublicSellerStoreView';
 import { HeroSection } from './components/HeroSection';
 import { CategoryNavGrid } from './components/CategoryNavGrid';
 import { FlashSaleSection } from './components/FlashSaleSection';
@@ -59,9 +53,6 @@ import {
 } from './services/campaignBannerService';
 import { CampaignBannerConfig } from './types';
 import { CartDrawer } from './components/CartDrawer';
-import { AuthModal } from './components/AuthModal';
-import { CustomerSupport } from './components/CustomerSupport';
-import { OrderTrackingPortal } from './components/OrderTrackingPortal';
 import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { triggerOrderNotifications } from './utils/notificationService';
 import { api } from './services/api';
@@ -101,9 +92,17 @@ import {
   bulkDeleteProductsFromFirestore,
   getLocalProducts,
 } from './services/productFirestoreService';
-import { CheckoutPage } from './components/CheckoutPage';
 
-// Code-split heavy secondary view modals and admin components with React.lazy
+// Code-split heavy secondary views, modals, and admin components with React.lazy
+const CheckoutPage = lazy(() => import('./components/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const CustomerProfileView = lazy(() => import('./components/UserProfile').then((m) => ({ default: m.UserProfile })));
+const OrderTrackingPortal = lazy(() => import('./components/OrderTrackingPortal').then((m) => ({ default: m.OrderTrackingPortal })));
+const SellerCenterView = lazy(() => import('./components/SellerCenterView').then((m) => ({ default: m.SellerCenterView })));
+const PublicSellerStoreView = lazy(() => import('./components/PublicSellerStoreView').then((m) => ({ default: m.PublicSellerStoreView })));
+const ProductDetailView = lazy(() => import('./components/ProductDetailView').then((m) => ({ default: m.ProductDetailView })));
+const ProductDetailsModal = lazy(() => import('./components/ProductDetailsModal').then((m) => ({ default: m.ProductDetailsModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then((m) => ({ default: m.AuthModal })));
+const CustomerSupport = lazy(() => import('./components/CustomerSupport').then((m) => ({ default: m.CustomerSupport })));
 const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 const ReturnPolicyModal = lazy(() => import('./components/ReturnPolicyModal').then((m) => ({ default: m.ReturnPolicyModal })));
@@ -1846,118 +1845,119 @@ export default function App() {
       />
 
       {/* Active Page Routing Router */}
-      {activePage === 'Checkout' ? (
-        <CheckoutPage
-          items={cart}
-          user={user}
-          subtotal={cartSubtotal}
-          couponDiscount={couponDiscount}
-          couponCode={couponCode}
-          isCouponApplied={isCouponApplied}
-          appliedCoupon={appliedCoupon}
-          onApplyCoupon={handleApplyCoupon}
-          onRemoveCoupon={handleRemoveCoupon}
-          onPlaceOrder={handleCreateOrder}
-          onClearCart={() => setCart([])}
-          onGoHome={handleGoHome}
-          onViewOrders={handleOpenOrders}
-          onTrackOrder={handleOpenTrackOrder}
-          onOpenAuth={() => setIsAuthOpen(true)}
-          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-          showToast={showToast}
-          onUpdateUserWallet={(newBalance) => {
-            setUser((prev) => ({
-              ...prev,
-              walletBalance: newBalance,
-            }));
-          }}
-        />
-      ) : activePage === 'UserProfile' || activePage === 'MyOrders' ? (
-        <CustomerProfileView
-          user={user}
-          orders={orders}
-          products={products}
-          wishlist={wishlist}
-          onToggleWishlist={handleToggleWishlist}
-          onAddToCart={handleAddToCart}
-          onSelectProduct={handleSelectProductDetail}
-          onReorder={handleReorder}
-          onUpdateAddress={handleUpdateAddress}
-          onUpdateSavedAddresses={(addresses: Address[]) => {
-            setUser((prev) => ({ ...prev, savedAddresses: addresses }));
-          }}
-          onLogout={handleLogout}
-          onBackToShop={handleGoHome}
-          onOpenAuth={() => setIsAuthOpen(true)}
-          initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
-          onSubmitReturnRequest={handleSubmitReturnRequest}
-          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-          onTrackOrder={handleOpenTrackOrder}
-          onOpenAdmin={handleOpenAdmin}
-        />
-      ) : activePage === 'TrackOrder' ? (
-        <OrderTrackingPortal
-          orders={orders}
-          user={user}
-          initialOrderId={trackedOrderId}
-          onBackToShop={handleGoHome}
-          onViewProduct={handleSelectProductDetail}
-          onOpenSupport={() => setIsFaqOpen(true)}
-          onOpenOrders={handleOpenOrders}
-        />
-      ) : activePage === 'SellerCenter' ? (
-        <SellerCenterView
-          onBackToShop={handleGoHome}
-          products={products}
-          orders={orders}
-          sellers={sellers}
-          onAddProduct={handleAddProduct}
-          onUpdateProduct={handleUpdateProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onRegisterSeller={handleRegisterSeller}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-          onUpdateOrderTracking={handleUpdateOrderTracking}
-          currentSellerId={currentSellerId}
-          onSwitchSeller={setCurrentSellerId}
-          commissionRate={commissionRate}
-          onViewPublicStore={handleOpenSellerStore}
-        />
-      ) : activePage === 'Store' ? (
-        <PublicSellerStoreView
-          sellerSlug={selectedStoreSlug}
-          sellers={sellers}
-          products={products}
-          orders={orders}
-          onBackToShop={handleGoHome}
-          onAddToCart={handleAddToCart}
-          onQuickView={(p) => handleSelectProductDetail(p)}
-          onBuyNow={handleBuyNow}
-          wishlist={wishlist}
-          onToggleWishlist={handleToggleWishlist}
-          onOpenSellerCenter={handleOpenSellerCenter}
-          onSwitchStore={(slug) => setSelectedStoreSlug(slug)}
-          showToast={showToast}
-        />
-      ) : activePage === 'ProductDetail' && selectedProductDetail ? (
-        <ProductDetailView
-          product={selectedProductDetail}
-          products={products}
-          user={user}
-          onBackToShop={handleGoHome}
-          onAddToCart={handleAddToCart}
-          onBuyNow={handleBuyNow}
-          onSelectProduct={handleSelectProductDetail}
-          isWishlisted={wishlist.includes(selectedProductDetail.id)}
-          onToggleWishlist={handleToggleWishlist}
-          onOpenSellerStore={handleOpenSellerStore}
-          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-          showToast={showToast}
-        />
-      ) : (
-        <>
-          {/* ==================== 1. HERO PROMO BANNER CAROUSEL ==================== */}
-          <HeroSection
-            banners={bannerSettings.promoBanners || INITIAL_PROMO_BANNERS}
+      <Suspense fallback={<ModalSuspenseFallback />}>
+        {activePage === 'Checkout' ? (
+          <CheckoutPage
+            items={cart}
+            user={user}
+            subtotal={cartSubtotal}
+            couponDiscount={couponDiscount}
+            couponCode={couponCode}
+            isCouponApplied={isCouponApplied}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
+            onPlaceOrder={handleCreateOrder}
+            onClearCart={() => setCart([])}
+            onGoHome={handleGoHome}
+            onViewOrders={handleOpenOrders}
+            onTrackOrder={handleOpenTrackOrder}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+            showToast={showToast}
+            onUpdateUserWallet={(newBalance) => {
+              setUser((prev) => ({
+                ...prev,
+                walletBalance: newBalance,
+              }));
+            }}
+          />
+        ) : activePage === 'UserProfile' || activePage === 'MyOrders' ? (
+          <CustomerProfileView
+            user={user}
+            orders={orders}
+            products={products}
+            wishlist={wishlist}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+            onSelectProduct={handleSelectProductDetail}
+            onReorder={handleReorder}
+            onUpdateAddress={handleUpdateAddress}
+            onUpdateSavedAddresses={(addresses: Address[]) => {
+              setUser((prev) => ({ ...prev, savedAddresses: addresses }));
+            }}
+            onLogout={handleLogout}
+            onBackToShop={handleGoHome}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
+            onSubmitReturnRequest={handleSubmitReturnRequest}
+            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+            onTrackOrder={handleOpenTrackOrder}
+            onOpenAdmin={handleOpenAdmin}
+          />
+        ) : activePage === 'TrackOrder' ? (
+          <OrderTrackingPortal
+            orders={orders}
+            user={user}
+            initialOrderId={trackedOrderId}
+            onBackToShop={handleGoHome}
+            onViewProduct={handleSelectProductDetail}
+            onOpenSupport={() => setIsFaqOpen(true)}
+            onOpenOrders={handleOpenOrders}
+          />
+        ) : activePage === 'SellerCenter' ? (
+          <SellerCenterView
+            onBackToShop={handleGoHome}
+            products={products}
+            orders={orders}
+            sellers={sellers}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onRegisterSeller={handleRegisterSeller}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onUpdateOrderTracking={handleUpdateOrderTracking}
+            currentSellerId={currentSellerId}
+            onSwitchSeller={setCurrentSellerId}
+            commissionRate={commissionRate}
+            onViewPublicStore={handleOpenSellerStore}
+          />
+        ) : activePage === 'Store' ? (
+          <PublicSellerStoreView
+            sellerSlug={selectedStoreSlug}
+            sellers={sellers}
+            products={products}
+            orders={orders}
+            onBackToShop={handleGoHome}
+            onAddToCart={handleAddToCart}
+            onQuickView={(p) => handleSelectProductDetail(p)}
+            onBuyNow={handleBuyNow}
+            wishlist={wishlist}
+            onToggleWishlist={handleToggleWishlist}
+            onOpenSellerCenter={handleOpenSellerCenter}
+            onSwitchStore={(slug) => setSelectedStoreSlug(slug)}
+            showToast={showToast}
+          />
+        ) : activePage === 'ProductDetail' && selectedProductDetail ? (
+          <ProductDetailView
+            product={selectedProductDetail}
+            products={products}
+            user={user}
+            onBackToShop={handleGoHome}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+            onSelectProduct={handleSelectProductDetail}
+            isWishlisted={wishlist.includes(selectedProductDetail.id)}
+            onToggleWishlist={handleToggleWishlist}
+            onOpenSellerStore={handleOpenSellerStore}
+            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+            showToast={showToast}
+          />
+        ) : (
+          <>
+            {/* ==================== 1. HERO PROMO BANNER CAROUSEL ==================== */}
+            <HeroSection
+              banners={bannerSettings.promoBanners || INITIAL_PROMO_BANNERS}
             products={products}
             onSelectProduct={handleSelectProductDetail}
             onBuyNow={handleBuyNow}
@@ -2213,6 +2213,7 @@ export default function App() {
           <TrustValueProposition />
         </>
       )}
+      </Suspense>
 
       {/* Multi-Column Localized Footer */}
       <Footer
@@ -2260,25 +2261,33 @@ export default function App() {
       />
 
       {/* Product Quick View Modal */}
-      <ProductDetailsModal
-        product={quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
-        onAddToCart={handleAddToCart}
-        onBuyNow={handleBuyNow}
-      />
+      {quickViewProduct && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <ProductDetailsModal
+            product={quickViewProduct}
+            onClose={() => setQuickViewProduct(null)}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+          />
+        </Suspense>
+      )}
 
       {/* Auth & Wallet Modal */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        user={user}
-        onLogin={handleLogin}
-        onSignup={handleSignup}
-        onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
-        onUpdateAddress={handleUpdateAddress}
-        onLogout={handleLogout}
-        onOpenCustomerPortal={handleOpenUserProfile}
-      />
+      {isAuthOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <AuthModal
+            isOpen={isAuthOpen}
+            onClose={() => setIsAuthOpen(false)}
+            user={user}
+            onLogin={handleLogin}
+            onSignup={handleSignup}
+            onVerifyPhoneSuccess={handleVerifyPhoneSuccess}
+            onUpdateAddress={handleUpdateAddress}
+            onLogout={handleLogout}
+            onOpenCustomerPortal={handleOpenUserProfile}
+          />
+        </Suspense>
+      )}
 
       {/* Code-Split Checkout Modal */}
       {isCheckoutOpen && (
@@ -2323,10 +2332,12 @@ export default function App() {
       />
 
       {/* Floating Customer Support Widget */}
-      <CustomerSupport
-        onOpenFaq={() => setIsFaqOpen(true)}
-        onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
-      />
+      <Suspense fallback={null}>
+        <CustomerSupport
+          onOpenFaq={() => setIsFaqOpen(true)}
+          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+        />
+      </Suspense>
 
       {/* Code-Split 7-Day Hassle-Free Replacement & Return Policy Modal */}
       {isReturnPolicyOpen && (
