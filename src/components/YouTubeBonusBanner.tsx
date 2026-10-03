@@ -19,7 +19,7 @@ interface YouTubeBonusBannerProps {
   onOpenAuth?: () => void;
 }
 
-export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = ({
+export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(({
   user,
   onClaimBonus,
   onOpenAuth,
@@ -42,7 +42,7 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = ({
     <section 
       id="youtube-bonus-promo-banner" 
       aria-label="YouTube Subscription ৳20 Wallet Bonus Promo"
-      className="py-10 sm:py-14 bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e1b4b] text-white border-y border-slate-800 relative overflow-hidden"
+      className="py-10 sm:py-14 bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1e1b4b] text-white border-y border-slate-800 relative overflow-hidden content-visibility-auto"
     >
       {/* Background Ambience Glow */}
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -221,4 +221,4 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = ({
       </div>
     </section>
   );
-};
+});

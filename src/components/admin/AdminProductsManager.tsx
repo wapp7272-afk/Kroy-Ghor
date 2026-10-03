@@ -1570,7 +1570,15 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
                           key={idx}
                           className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group"
                         >
-                          <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                          <img
+                            src={img}
+                            alt={`Gallery ${idx}`}
+                            width={64}
+                            height={64}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                          />
                           <button
                             type="button"
                             onClick={() => handleRemoveGalleryImage(idx)}

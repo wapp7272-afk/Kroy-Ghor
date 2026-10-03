@@ -47,7 +47,7 @@ const DEFAULT_PLAYLIST: YouTubeVideo[] = [
   }
 ];
 
-export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
+export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = React.memo(({
   settings,
   onOpenAdmin,
   isAdminLoggedIn
@@ -326,4 +326,4 @@ export const FeaturedYouTubeSection: React.FC<FeaturedYouTubeSectionProps> = ({
       </div>
     </section>
   );
-};
+});

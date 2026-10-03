@@ -20,7 +20,7 @@ export interface LogoProps {
  * Renders the exact final Kroyghor logo image asset (/kroyghor-logo.png)
  * preserving proper sizing, responsiveness, and accessible alt text.
  */
-export const Logo: React.FC<LogoProps> = ({
+export const Logo: React.FC<LogoProps> = React.memo(({
   variant = 'full',
   size = 'md',
   theme = 'light',
@@ -132,7 +132,7 @@ export const Logo: React.FC<LogoProps> = ({
       )}
     </div>
   );
-};
+});
 
 export const VaultLogo = Logo;
 export const BrandLogo = Logo;

@@ -23,7 +23,7 @@ interface FlashSaleSectionProps {
   onSelectCategory: (category: string) => void;
 }
 
-export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
+export const FlashSaleSection: React.FC<FlashSaleSectionProps> = React.memo(({
   products,
   onSelectProduct,
   onAddToCart,
@@ -431,4 +431,4 @@ export const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
       </div>
     </section>
   );
-};
+});

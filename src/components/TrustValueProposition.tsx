@@ -14,7 +14,7 @@ interface TrustValuePropositionProps {
   onLearnMore?: () => void;
 }
 
-export const TrustValueProposition: React.FC<TrustValuePropositionProps> = () => {
+export const TrustValueProposition: React.FC<TrustValuePropositionProps> = React.memo(() => {
   const features = [
     {
       id: 'feature-auth',
@@ -57,7 +57,7 @@ export const TrustValueProposition: React.FC<TrustValuePropositionProps> = () =>
         <div className="text-center max-w-2xl mx-auto mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-indigo-50 border border-indigo-200/80 text-[#4F46E5] text-xs font-semibold mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Why Customers Trust ZeropicBD</span>
+            <span>Why Customers Trust Kroyghor</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
             The Safe, Premium Bangladeshi Marketplace
@@ -102,7 +102,7 @@ export const TrustValueProposition: React.FC<TrustValuePropositionProps> = () =>
                 {/* Trust Assurance Tick */}
                 <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#4F46E5]" />
-                  <span>Verified ZeropicBD Guarantee</span>
+                  <span>Verified Kroyghor Guarantee</span>
                 </div>
               </div>
             );
@@ -111,4 +111,4 @@ export const TrustValueProposition: React.FC<TrustValuePropositionProps> = () =>
       </div>
     </section>
   );
-};
+});

@@ -146,7 +146,7 @@ interface FilterContentProps {
   maxCatalogPrice: number;
 }
 
-export const FilterSidebarContent: React.FC<FilterContentProps> = ({
+export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
   filters,
   onChange,
   products,
@@ -578,7 +578,7 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = ({
       </div>
     </div>
   );
-};
+});
 
 // ================= Mobile Slide-Out Filter Drawer =================
 interface MobileFilterDrawerProps {
@@ -592,7 +592,7 @@ interface MobileFilterDrawerProps {
   maxCatalogPrice: number;
 }
 
-export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
+export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = React.memo(({
   isOpen,
   onClose,
   filters,
@@ -666,7 +666,7 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
       </div>
     </div>
   );
-};
+});
 
 // ================= Active Filter Chips Bar =================
 interface ActiveFilterChipsProps {
@@ -678,7 +678,7 @@ interface ActiveFilterChipsProps {
   totalFilteredCount: number;
 }
 
-export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
+export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = React.memo(({
   filters,
   searchQuery,
   onClearSearch,
@@ -857,4 +857,4 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
       </button>
     </div>
   );
-};
+});

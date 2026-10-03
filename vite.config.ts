@@ -13,12 +13,21 @@ export default defineConfig(() => {
     },
     build: {
       cssCodeSplit: true,
-      chunkSizeWarningLimit: 1200,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
           manualChunks(id: string) {
             if (id.includes('node_modules/lucide-react')) {
               return 'vendor-icons';
+            }
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('node_modules/motion')) {
+              return 'vendor-motion';
             }
           },
         },

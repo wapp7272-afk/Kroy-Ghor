@@ -29,7 +29,7 @@ export interface FooterProps {
   onOpenReturnPolicy?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({
+export const Footer: React.FC<FooterProps> = React.memo(({
   onGoHome = () => window.scrollTo({ top: 0, behavior: 'smooth' }),
   onOpenOrders,
   onOpenAuth,
@@ -372,6 +372,6 @@ export const Footer: React.FC<FooterProps> = ({
       </div>
     </footer>
   );
-};
+});
 
 export default Footer;
