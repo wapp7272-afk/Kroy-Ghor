@@ -320,7 +320,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <Instagram className="w-4 h-4" />
             </a>
             <a
-              href="https://youtube.com"
+              href="https://www.youtube.com/@kroy-ghor"
               target="_blank"
               rel="noopener noreferrer"
               className="w-8 h-8 rounded-full bg-gray-800 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"

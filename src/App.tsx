@@ -22,7 +22,8 @@ import {
   ChevronRight,
   ChevronDown,
   RotateCcw,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ArrowUpDown
 } from 'lucide-react';
 import { Product, CartItem, UserProfile, Address, Order, Coupon, ActivePage, Seller, SystemBannerSettings, PayoutRequest, WalletTransaction, CatalogFilterState, SortOption, ReturnRequest } from './types';
 import { PRODUCTS, CATEGORIES } from './data/products';
@@ -85,6 +86,13 @@ import {
   bulkDeleteProductsFromFirestore,
   getLocalProducts,
 } from './services/productFirestoreService';
+import { HeroBannerSlider } from './components/HeroBannerSlider';
+import { SortModal } from './components/SortModal';
+import { 
+  subscribeBannersFromFirestore, 
+  PromoSlideBanner, 
+  INITIAL_SLIDER_BANNERS 
+} from './services/bannerService';
 
 // Code-split heavy secondary views, below-the-fold sections, drawers, modals, and admin components with React.lazy
 const StorefrontCampaignBanner = lazy(() => import('./components/StorefrontCampaignBanner').then((m) => ({ default: m.StorefrontCampaignBanner })));
@@ -109,6 +117,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m)
 const InvoiceModal = lazy(() => import('./components/InvoiceModal').then((m) => ({ default: m.InvoiceModal })));
 const ReturnPolicyModal = lazy(() => import('./components/ReturnPolicyModal').then((m) => ({ default: m.ReturnPolicyModal })));
 const FaqModal = lazy(() => import('./components/FaqModal').then((m) => ({ default: m.FaqModal })));
+const YouTubeBonusModal = lazy(() => import('./components/YouTubeBonusModal').then((m) => ({ default: m.YouTubeBonusModal })));
 
 // Accessible Suspense Fallback Loader
 const ModalSuspenseFallback = () => (
@@ -166,6 +175,19 @@ export default function App() {
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>('perfume-vault-bd');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+
+  // Dynamic Slider Banners State (Admin Controlled)
+  const [sliderBanners, setSliderBanners] = useState<PromoSlideBanner[]>(INITIAL_SLIDER_BANNERS);
+
+  useEffect(() => {
+    const unsubscribe = subscribeBannersFromFirestore((data) => {
+      if (data && data.length > 0) {
+        setSliderBanners(data);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // State: Dynamic Platform Commission Rate (Configurable: Default 8%)
   const [commissionRate, setCommissionRate] = useState<number>(() => {
@@ -488,6 +510,7 @@ export default function App() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isReturnPolicyOpen, setIsReturnPolicyOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
+  const [isYouTubeBonusModalOpen, setIsYouTubeBonusModalOpen] = useState(false);
 
   // State: Orders with LocalStorage persistence
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -974,12 +997,7 @@ export default function App() {
       showToast('🎁 Sign in to claim your ৳20 YouTube Subscription Bonus!');
       return;
     }
-    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
-      window.history.pushState(null, '', '/');
-    }
-    setSelectedProductDetail(null);
-    setActivePage('UserProfile');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsYouTubeBonusModalOpen(true);
   }, [user.isLoggedIn, showToast]);
 
   const handleCampaignBannerNavigate = useCallback((target: string) => {
@@ -1809,16 +1827,7 @@ export default function App() {
   return (
     <AuthProvider userState={user} onUpdateUser={setUser}>
       <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
-      {/* Real-time Admin Controlled Seasonal Campaign Announcement Banner (settings/campaign_banner) */}
-      <Suspense fallback={null}>
-        <StorefrontCampaignBanner
-          bannerConfig={campaignBanner}
-          onNavigateTarget={handleCampaignBannerNavigate}
-          showToast={showToast}
-        />
-      </Suspense>
-
-      {/* Header with High-Converting Announcement Bar & Secondary Navbar */}
+      {/* Header Navbar */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -1910,6 +1919,7 @@ export default function App() {
             onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
             onTrackOrder={handleOpenTrackOrder}
             onOpenAdmin={handleOpenAdmin}
+            onOpenYouTubeBonusModal={handleOpenBonusClaim}
           />
         ) : activePage === 'TrackOrder' ? (
           <OrderTrackingPortal
@@ -1971,175 +1981,59 @@ export default function App() {
           />
         ) : (
           <>
-            {/* ==================== 1. HERO PROMO BANNER CAROUSEL ==================== */}
-            <HeroSection
-              banners={bannerSettings.promoBanners || INITIAL_PROMO_BANNERS}
-            products={products}
-            onSelectProduct={handleSelectProductDetail}
-            onBuyNow={handleBuyNow}
-            onAddToCart={handleAddToCart}
-            onSelectCategory={handleSelectCategoryFromNav}
-            onSelectFilterTab={(tab) => {
-              setActiveFilterTab(tab);
-              if (tab !== 'All') {
-                const el = document.getElementById('explore');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-            onClaimBonus={handleOpenBonusClaim}
-            bannerSettings={bannerSettings}
-            showToast={showToast}
-          />
-
-          {/* ==================== 2. POPULAR CATEGORIES GRID ==================== */}
-          <CategoryNavGrid
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleSelectCategoryFromNav}
-          />
-
-          {/* ==================== 3. FLASH SALES & SPECIAL DEALS ==================== */}
-          <Suspense fallback={<SectionSkeleton />}>
-            <FlashSaleSection
-              products={products}
-              onSelectProduct={handleSelectProductDetail}
-              onAddToCart={handleAddToCart}
-              onBuyNow={handleBuyNow}
-              onViewMoreDeals={() => {
-                setActiveFilterTab('Flash Sale');
-                setSelectedCategory('All');
-                const el = document.getElementById('explore');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+            {/* ==================== 1. DYNAMIC PROMO BANNER SLIDER ==================== */}
+            <HeroBannerSlider
+              banners={sliderBanners}
+              onSelectCategory={handleSelectCategoryFromNav}
+              onSelectProduct={(pid) => {
+                const matched = products.find((p) => p.id === pid);
+                if (matched) handleSelectProductDetail(matched);
               }}
+            />
+
+            {/* ==================== 2. SHOP BY CATEGORY CIRCLES ==================== */}
+            <CategoryNavGrid
+              selectedCategory={selectedCategory}
               onSelectCategory={handleSelectCategoryFromNav}
             />
-          </Suspense>
 
-          {/* ==================== 4. FEATURED MULTI-CATEGORY PRODUCTS ==================== */}
-          <main id="explore" className="py-10 lg:py-16 bg-[#F9FAFB] border-b border-slate-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          {/* ==================== 3. CLEAN PRODUCT GRID ==================== */}
+          <main id="explore" className="py-6 sm:py-10 bg-[#F9FAFB]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
               
-              {/* Section Header with Dynamic Sorting & Mobile Filter Trigger */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#4F46E5] font-bold mb-1">
-                    <Sparkles className="w-3.5 h-3.5 text-[#4F46E5]" />
-                    <span>CURATED MULTI-CATEGORY MARKETPLACE</span>
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-                    Featured Marketplace Products
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                    Explore authentic fragrances, smart electronics, designer fashion, luxury watches & home wellness.
-                  </p>
-                </div>
+              {/* Clean Control Bar with Count, Sort & Mobile Filters */}
+              <div className="flex items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <span className="text-xs sm:text-sm font-bold text-slate-800">
+                  {selectedCategory && selectedCategory !== 'All' ? `${selectedCategory} Products` : 'All Products'} ({filteredProducts.length})
+                </span>
 
-                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
-                  {/* Results Count Badge */}
-                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shrink-0">
-                    Showing {filteredProducts.length} items
-                  </span>
-
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Mobile Filter Trigger Button (lg:hidden) */}
                   <button
                     type="button"
                     onClick={() => setIsMobileFilterDrawerOpen(true)}
-                    className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-[#4F46E5] text-white rounded-lg text-xs font-bold shadow-xs hover:bg-[#4338CA] transition-colors cursor-pointer shrink-0"
+                    className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-orange-700 transition-colors cursor-pointer shrink-0"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 text-white" />
                     <span>Filters</span>
                     {countActiveFilters(catalogFilters, searchQuery) > 0 && (
-                      <span className="bg-white text-[#4F46E5] text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
+                      <span className="bg-white text-orange-600 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
                         {countActiveFilters(catalogFilters, searchQuery)}
                       </span>
                     )}
                   </button>
 
-                  {/* Dynamic Sorting Engine Dropdown */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <label htmlFor="catalog-sort-select" className="text-xs text-slate-500 font-medium hidden sm:inline">Sort:</label>
-                    <div className="relative">
-                      <select
-                        id="catalog-sort-select"
-                        value={catalogFilters.sortBy}
-                        onChange={(e) => setCatalogFilters((prev) => ({ ...prev, sortBy: e.target.value as SortOption }))}
-                        className="text-xs font-bold bg-white border border-slate-300 rounded-lg pl-3 pr-7 py-1.5 text-slate-700 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] cursor-pointer shadow-2xs appearance-none"
-                      >
-                        {SORT_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.iconLabel} {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
+                  {/* Dynamic Glassmorphic Sorting Modal Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => setIsSortModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5 text-orange-600" />
+                    <span>{SORT_OPTIONS.find((s) => s.id === catalogFilters.sortBy)?.label || 'Sort'}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
                 </div>
-              </div>
-
-              {/* Dynamic Sorting Quick Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1 shrink-0">
-                  <Flame className="w-3.5 h-3.5 text-[#F59E0B]" /> Instant Sort:
-                </span>
-                {SORT_OPTIONS.map((opt) => {
-                  const isActive = catalogFilters.sortBy === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setCatalogFilters((prev) => ({ ...prev, sortBy: opt.id }))}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
-                        isActive
-                          ? 'bg-[#0F172A] text-white font-bold shadow-2xs'
-                          : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      <span>{opt.iconLabel}</span>
-                      <span>{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Department Quick Tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
-                {[
-                  { id: 'all', label: 'All Curated', icon: '🌟', cat: 'All' },
-                  { id: 'perfumes', label: 'Perfumes & Attars', icon: '✨', cat: 'Perfumes & Attars' },
-                  { id: 'gadgets', label: 'Electronics & Tech', icon: '📱', cat: 'Electronics & Tech' },
-                  { id: 'fashion', label: 'Fashion & Lifestyle', icon: '👔', cat: 'Fashion & Lifestyle' },
-                  { id: 'watches', label: 'Watches & Accessories', icon: '⌚', cat: 'Watches & Accessories' },
-                  { id: 'beauty', label: 'Beauty & Skincare', icon: '💄', cat: 'Beauty & Skincare' },
-                  { id: 'home', label: 'Home Living', icon: '🏠', cat: 'Home Living' },
-                  { id: 'gifts', label: 'Luxury Gifts', icon: '🎁', cat: 'Luxury Gifts & Bricks' },
-                ].map((tab) => {
-                  const isAll = tab.cat === 'All';
-                  const isActive = isAll 
-                    ? catalogFilters.categories.length === 0 && selectedCategory === 'All'
-                    : catalogFilters.categories.includes(tab.cat);
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        if (isAll) {
-                          setSelectedCategory('All');
-                          setCatalogFilters((prev) => ({ ...prev, categories: [] }));
-                        } else {
-                          setSelectedCategory(tab.cat);
-                          setCatalogFilters((prev) => ({ ...prev, categories: [tab.cat] }));
-                        }
-                      }}
-                      className={`py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                        isActive
-                          ? 'bg-[#4F46E5] text-white shadow-xs'
-                          : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      <span>{tab.icon}</span>
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Active Filter Chips & Clear Action */}
@@ -2391,6 +2285,34 @@ export default function App() {
           />
         </Suspense>
       )}
+
+      {/* YouTube Subscription Bonus Verification Modal */}
+      {isYouTubeBonusModalOpen && (
+        <Suspense fallback={<ModalSuspenseFallback />}>
+          <YouTubeBonusModal
+            isOpen={isYouTubeBonusModalOpen}
+            onClose={() => setIsYouTubeBonusModalOpen(false)}
+            user={user}
+            onUpdateUserWallet={(newBalance, newHistory) => {
+              setUser((prev) => ({
+                ...prev,
+                walletBalance: newBalance,
+                walletHistory: newHistory,
+                hasClaimedYouTubeBonus: true,
+              }));
+            }}
+            showToast={showToast}
+          />
+        </Suspense>
+      )}
+
+      {/* Glassmorphic iOS Bottom Sheet Sort Modal */}
+      <SortModal
+        isOpen={isSortModalOpen}
+        onClose={() => setIsSortModalOpen(false)}
+        currentSort={catalogFilters.sortBy}
+        onSelectSort={(newSort) => setCatalogFilters((prev) => ({ ...prev, sortBy: newSort }))}
+      />
 
       {/* PWA Install Banner & Network Connection Ribbon */}
       <Suspense fallback={null}>

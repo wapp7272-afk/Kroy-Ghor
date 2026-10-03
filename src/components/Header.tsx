@@ -33,6 +33,7 @@ import {
 import { UserProfile, SystemBannerSettings, Product } from '../types';
 import { Logo } from './Logo';
 import { VaultLogo } from './VaultLogo';
+import { MobileSidebar } from './MobileSidebar';
 import { checkIsAdmin, checkIsSuperAdmin } from '../services/authService';
 
 interface HeaderProps {
@@ -888,27 +889,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <Search className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick Category Carousel for Mobile with Smooth Touch Momentum */}
-          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none pt-2 pb-0.5">
-            {MOBILE_QUICK_CATEGORIES.map((cat) => {
-              const isActive = (selectedCategory || 'All') === cat.name;
-              return (
-                <button
-                  key={cat.name}
-                  onClick={() => handleCategoryPillClick(cat.name)}
-                  className={`px-3 py-1.5 min-h-[38px] rounded-full text-xs font-medium flex items-center gap-1.5 transition-all shrink-0 cursor-pointer active:scale-95 ${
-                    isActive
-                      ? 'bg-[#007BFF] text-white font-semibold shadow-xs'
-                      : 'bg-[#F3F7FF] hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* ================= 4. SECONDARY DESKTOP NAVIGATION BAR ================= */}
@@ -1111,232 +1091,28 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           </div>
         </div>
 
-        {/* ================= 5. RESPONSIVE MOBILE DRAWER MENU ================= */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white shadow-lg max-h-[80vh] overflow-y-auto animate-fadeIn">
-            {/* User & Wallet Summary Bar */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center font-bold text-sm">
-                    {user.isLoggedIn ? user.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-white" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-[#0F172A]">
-                      {user.isLoggedIn ? user.name : 'Welcome to Kroyghor'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-mono">
-                      {user.isLoggedIn ? (user.phone || user.email) : 'Sign in to unlock ৳20 bonus'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAuth();
-                  }}
-                  className="px-3 py-1.5 rounded-md bg-[#4F46E5] text-white text-[11px] font-semibold hover:bg-[#4338CA] transition-colors cursor-pointer"
-                >
-                  {user.isLoggedIn ? 'Profile' : 'Sign In'}
-                </button>
-              </div>
-
-              {/* Wallet Bonus Card */}
-              <div 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAuth();
-                }}
-                className="p-3 rounded-lg bg-white border border-slate-200 flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-indigo-50 text-[#4F46E5]">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                      Kroyghor Wallet
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-base font-bold font-mono text-[#0F172A]">
-                        ৳{user.walletBalance}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
-                        {user.isPhoneVerified ? '✓ Phone Verified' : '+৳20 on Verification'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-xs text-[#4F46E5] font-semibold">View →</span>
-              </div>
-            </div>
-
-            {/* Mobile Navigation Links */}
-            <div className="p-3 space-y-1 text-xs font-medium text-slate-700">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoHome) onGoHome();
-                  if (onSelectFilterTab) onSelectFilterTab('All');
-                  if (onSelectCategory) onSelectCategory('All');
-                }}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left"
-              >
-                <span>Home (প্রধান পাতা)</span>
-                <span>🏠</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onToggleMobileCategories) {
-                    onToggleMobileCategories(true);
-                  } else {
-                    setInternalCategorySheetOpen(true);
-                  }
-                }}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left text-[#4F46E5] font-semibold"
-              >
-                <span>Explore All Categories (ক্যাটাগরি)</span>
-                <span>📂</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoHome) onGoHome();
-                  if (onSelectFilterTab) onSelectFilterTab('Flash Sale');
-                }}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left text-amber-700 font-semibold"
-              >
-                <span>Flash Sale ⚡ (ফ্ল্যাশ সেল)</span>
-                <span>⚡</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoHome) onGoHome();
-                  if (onSelectFilterTab) onSelectFilterTab('Best Deals');
-                }}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left"
-              >
-                <span>Best Deals 🏷️ (সেরা অফার)</span>
-                <span>🏷️</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoHome) onGoHome();
-                  if (onSelectFilterTab) onSelectFilterTab('New Arrivals');
-                }}
-                className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left"
-              >
-                <span>New Arrivals ✨ (নতুন কালেকশন)</span>
-                <span>✨</span>
-              </button>
-
-              {onOpenSellerStore && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenSellerStore('perfume-vault-bd');
-                  }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left text-slate-800"
-                >
-                  <span>Brand Stores 🏬 (ব্র্যান্ড স্টোর)</span>
-                  <span>🏬</span>
-                </button>
-              )}
-
-              {onOpenOrders && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenOrders();
-                  }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left"
-                >
-                  <span>My Orders & Tracking 📦 (আমার অর্ডার)</span>
-                  {ordersCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                      {ordersCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {onOpenWishlist && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenWishlist();
-                  }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md hover:bg-slate-50 transition-colors text-left"
-                >
-                  <span>Saved Wishlist ❤️ (পছন্দের তালিকা)</span>
-                  {wishlistCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {onOpenTrackOrder && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenTrackOrder();
-                  }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-left font-semibold"
-                >
-                  <span>Track Order 🚚 (লাইভ পার্সেল ট্র্যাকিং)</span>
-                  <span>🚚</span>
-                </button>
-              )}
-
-              {onOpenSellerCenter && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenSellerCenter();
-                  }}
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-indigo-50/70 text-[#4F46E5] hover:bg-indigo-100 transition-colors text-left font-semibold"
-                >
-                  <span>Seller Center 🏪 (মার্চেন্ট পোর্টাল)</span>
-                  <span>🏪</span>
-                </button>
-              )}
-
-              {onOpenAdmin && (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenAdmin();
-                  }}
-                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl transition-all text-left font-bold ${
-                    isUserAdmin
-                      ? 'bg-gradient-to-r from-amber-500 via-[#7A3BFF] to-[#007BFF] text-white shadow-md'
-                      : 'bg-slate-900 text-amber-300 hover:text-white'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <ShieldCheck className={`w-4 h-4 ${isUserAdmin ? 'text-amber-200' : 'text-amber-400'}`} />
-                    <span>{isUserSuperAdmin ? 'Super Admin Panel (মালিক প্যানেল)' : 'Admin Portal 🛡️ (এডমিন ড্যাশবোর্ড)'}</span>
-                  </span>
-                  {isUserSuperAdmin && (
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-white/20 font-mono font-black">
-                      OWNER
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        {/* ================= 5. RESPONSIVE MOBILE SIDEBAR DRAWER MENU ================= */}
+        <MobileSidebar
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          user={user}
+          activeNav={activeNav}
+          ordersCount={ordersCount}
+          wishlistCount={wishlistCount}
+          selectedCategory={selectedCategory}
+          onSelectCategory={(cat) => {
+            if (onSelectCategory) onSelectCategory(cat);
+          }}
+          onOpenAuth={onOpenAuth}
+          onOpenOrders={onOpenOrders}
+          onOpenWishlist={onOpenWishlist}
+          onOpenTrackOrder={onOpenTrackOrder}
+          onOpenFaq={() => {}}
+          onOpenReturnPolicy={() => {}}
+          onOpenSellerCenter={onOpenSellerCenter}
+          onOpenAdmin={onOpenAdmin}
+          onGoHome={onGoHome}
+        />
       </header>
 
       {/* ================= 6. MOBILE MULTI-CATEGORY SEARCH MODAL / OVERLAY ================= */}

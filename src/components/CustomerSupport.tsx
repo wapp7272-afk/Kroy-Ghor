@@ -1,16 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  MessageCircle, 
   Send, 
   X, 
   Bot, 
-  Sparkles, 
-  ExternalLink,
-  ChevronDown,
-  PhoneCall,
-  Mail,
-  HelpCircle,
-  RotateCcw
+  Sparkles
 } from 'lucide-react';
 import { ChatMessage } from '../types';
 
@@ -24,15 +17,14 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
   onOpenReturnPolicy,
 }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       sender: 'assistant',
-      text: 'আসসালামু আলাইকুম! ZeropicBD-এ আপনাকে স্বাগতম। ✨\nআমি আপনার শপিং সহকারী। আমাদের লাক্সারি পারফিউম, ডেলিভারি, বিকাশ/নগদ পেমেন্ট, কুপন বা ৭ দিনের রিটার্ন পলিসি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
+      text: 'আসসালামু আলাইকুম! Kroyghor-এ আপনাকে স্বাগতম। ✨\nআমি আপনার শপিং সহকারী। আমাদের পারফিউম, ডেলিভারি, বিকাশ/নগদ পেমেন্ট, কুপন বা ৭ দিনের রিটার্ন পলিসি সম্পর্কে যেকোনো প্রশ্ন করতে পারেন:',
       time: 'এখন',
       quickOptions: [
-        '✨ সেরা লাক্সারি পারফিউম কোনগুলো?',
+        '✨ সেরা পারফিউম ও আতর কোনগুলো?',
         '🚚 ডেলিভারি চার্জ ও সময় কত?',
         '💳 বিকাশ ও নগদে পেমেন্ট নিয়ম',
         '🎟️ কুপন কোড কীভাবে কাজ করে?',
@@ -51,47 +43,35 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     }
   }, [messages, isChatOpen, isTyping]);
 
-  // Intelligent Bengali Knowledge Base
+  const handleWhatsAppClick = () => {
+    window.open('https://wa.me/8801883418309?text=Hi%20Kroyghor,%20I%20need%20help', '_blank');
+  };
+
+  // Intelligent Knowledge Base
   const getAIAnswer = (query: string): string => {
     const q = query.toLowerCase();
 
     if (q.includes('ডেলিভারি') || q.includes('সময়') || q.includes('চার্জ') || q.includes('delivery')) {
-      return `🚚 **ZeropicBD ডেলিভারি সংক্রান্ত তথ্য:**\n• **ঢাকার ভিতরে:** চার্জ মাত্র ৳৬০, সময় ২৪ থেকে ৪৮ ঘণ্টা।\n• **ঢাকার বাইরে:** চার্জ ৳১২০, সময় ২ থেকে ৪ দিন।\n• ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম চার্জ ছাড়াই পণ্য গ্রহণ করতে পারবেন!`;
+      return `🚚 **Kroyghor ডেলিভারি তথ্য:**\n• **ঢাকার ভিতরে:** চার্জ মাত্র ৳৬০, সময় ২৪ থেকে ৪৮ ঘণ্টা।\n• **ঢাকার বাইরে:** চার্জ ৳১২০, সময় ২ থেকে ৪ দিন।\n• ক্যাশ অন ডেলিভারিতে কোনো অগ্রিম চার্জ ছাড়াই পণ্য গ্রহণ করতে পারবেন!`;
     }
 
     if (q.includes('বিকাশ') || q.includes('নগদ') || q.includes('পেমেন্ট') || q.includes('bkash') || q.includes('nagad') || q.includes('trx')) {
-      return `💳 **পেমেন্ট পদ্ধতি:**\n১. **ক্যাশ অন ডেলিভারি (COD):** পণ্য হাতে পেয়ে সম্পূর্ণ মূল্য পরিশোধ করুন।\n২. **bKash & Nagad মার্চেন্ট / পার্সোনাল নম্বর:** 01883418309 নম্বরে Send Money বা Cash Out করে প্রাপ্ত TrxID চেকআউটে বসিয়ে দিন। কোনো সমস্যা হলে সরাসরি আমাদের সাথে যোগাযোগ করতে পারেন।`;
+      return `💳 **পেমেন্ট পদ্ধতি:**\n১. **ক্যাশ অন ডেলিভারি (COD):** পণ্য হাতে পেয়ে মূল্য পরিশোধ করুন।\n২. **bKash & Nagad:** 01883418309 নম্বরে পেমেন্ট করে TrxID বসালেই অর্ডার কনফার্ম হবে!`;
     }
 
     if (q.includes('কুপন') || q.includes('zest20') || q.includes('coupon') || q.includes('ছাড়') || q.includes('discount')) {
-      return `🎟️ **কুপন কোড অফার:**\nকার্ট পেজে কুপন বক্সে **ZEST20** লিখুন এবং Apply চাপুন। আপনি আপনার মোট পণ্যের মূল্যের উপর সাথে সাথে **১০% ফ্ল্যাট ডিসকাউন্ট** পেয়ে যাবেন!`;
+      return `🎟️ **কুপন অফার:**\nকার্ট পেজে কুপন বক্সে **ZEST20** প্রয়োগ করলে সাথে সাথে **১০% ফ্ল্যাট ডিসকাউন্ট** পাবেন!`;
     }
 
     if (q.includes('বোনাস') || q.includes('bonus') || q.includes('wallet') || q.includes('ওয়ালেট') || q.includes('২০')) {
-      return `🎁 **৳২০ ওয়ালেট সাইনআপ বোনাস:**\nZeropicBD-এ প্রথমবার একাউন্ট খুললেই আপনার ওয়ালেটে সাথে সাথে ৳২০ বোনাস ক্রেডিট হয়ে যাবে। কার্ট ওপেন করে 'Apply ৳20 Wallet Bonus' বক্সে টিক চিহ্ন দিলেই আপনার বিল থেকে সরাসরি ৳২০ মাইনাস হয়ে যাবে!`;
+      return `🎁 **৳২০ ওয়ালেট সাইনআপ বোনাস:**\nKroyghor-এ একাউন্ট খুললেই ৳২০ বোনাস পাবেন যা চেকআউটে সরাসরি ক্যাশ ডিসকাউন্ট হিসেবে কাটা যাবে।`;
     }
 
     if (q.includes('রিটার্ন') || q.includes('পরিবর্তন') || q.includes('পলিসি') || q.includes('return') || q.includes('refund')) {
-      return `🔄 **৭ দিনের সহজ রিটার্ন পলিসি:**\nপণ্য হাতে পাওয়ার পর যদি কোনো ত্রুটি বা সমস্যা দেখতে পান, ডেলিভারির ৭ দিনের মধ্যে আমাদের হোয়াটসঅ্যাপে (01798-245190) ভিডিও বা ছবি পাঠিয়ে ফ্রি রিপ্লেসমেন্ট বা ফুল রিফান্ড নিতে পারবেন।`;
+      return `🔄 **৭ দিনের সহজ রিটার্ন পলিসি:**\nযেকোনো ত্রুটিপূর্ণ পণ্যে ৭ দিনের মধ্যে ফ্রী রিপ্লেসমেন্ট বা ফুল রিফান্ড প্রযোজ্য।`;
     }
 
-    if (q.includes('ল্যাম্প') || q.includes('লাইট') || q.includes('lamp') || q.includes('glow') || q.includes('ক্যাপিবারা')) {
-      return `💡 **সিলিকন গ্লো ল্যাম্প কালেকশন:**\nআমাদের **Capybara Tap-Dim Lamp** এবং **Lazy Duck Touch Lamp** বর্তমানে সর্বাধিক জনপ্রিয়! এগুলো ফুড-গ্রেড নরম সিলিকন দিয়ে তৈরি, স্পর্শ করলেই ডিম বা লাইট অন-অফ হয় এবং টাইপ-সি রিচার্জেবল ব্যাটারিতে চলে।`;
-    }
-
-    if (q.includes('আতর') || q.includes('পারফিউম') || q.includes('attar') || q.includes('perfume') || q.includes('সুগন্ধি')) {
-      return `🌺 **প্রিমিয়াম আতর কালেকশন:**\nআমাদের সব আতর ১০০% অ্যালকোহল মুক্ত। বিশেষ করে **Royal White Musk** এবং **Golden Oudh Al-Amir** কাপড়ে ২৪ ঘণ্টার বেশি মিষ্টি ও মনোরম সুবাস বজায় রাখে।`;
-    }
-
-    if (q.includes('নোটবুক') || q.includes('খাতা') || q.includes('notebook') || q.includes('journal')) {
-      return `📓 **নিয়ন ও হলোগ্রাফিক নোটবুক:**\n১২০ GSM এর প্রিমিয়াম ব্লিডপ্রুফ পেপারের 'Cyberpunk Neon Edge Dot-Grid' ও 'Astral Constellation' জার্নালগুলো আপনার ডায়েরি বা নোট লেখার অভিজ্ঞতা অনন্য করে তুলবে!`;
-    }
-
-    if (q.includes('খেলনা') || q.includes('ব্রিক') || q.includes('brick') || q.includes('lego') || q.includes('টয়')) {
-      return `🧱 **ব্রিকস টয় কিট:**\nআমাদের মেকা রোবট, চেরি ব্লসম বনসাই এবং টোকিও রামেন বার মিনি মডেলগুলো অত্যন্ত নিখুঁত পার্টস ও এলইডি লাইট সহ আসে—উপহার বা ডেকোরেশনের জন্য দারুণ!`;
-    }
-
-    return `ধন্যবাদ আপনার মেসেজের জন্য! 😊\nআমরা সর্বদা সেরা মানের পণ্য ও দ্রুততম হোম ডেলিভারি দিতে প্রতিশ্রুতিবদ্ধ।\nআরও বিস্তারিত বা সরাসরি প্রতিনিধির সাথে কথা বলতে নিচের **WhatsApp** বাটনে ক্লিক করতে পারেন অথবা 01798-245190 এ কল করতে পারেন।`;
+    return `ধন্যবাদ আপনার বার্তার জন্য! 😊\nসরাসরি সাপোর্ট টিমের সাথে কথা বলতে উপরের **WhatsApp** বাটনে ক্লিক করুন।`;
   };
 
   const handleSendMessage = (textToSend?: string) => {
@@ -109,7 +89,6 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     if (!textToSend) setInputVal('');
     setIsTyping(true);
 
-    // AI typing delay simulation
     setTimeout(() => {
       const responseText = getAIAnswer(messageText);
       const aiMsg: ChatMessage = {
@@ -120,140 +99,52 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
       };
       setMessages((prev) => [...prev, aiMsg]);
       setIsTyping(false);
-    }, 700);
+    }, 600);
   };
 
   return (
     <>
-      {/* Floating Buttons Stack - Positioned above Mobile Bottom Nav (bottom-[72px] on mobile, bottom-6 on desktop) */}
+      {/* Floating Buttons Column - Fixed bottom-20 right-4 z-50 */}
       <div 
         id="floating-support-bar"
-        className="fixed bottom-[72px] right-3 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end gap-2 pointer-events-none"
+        className="fixed bottom-20 right-4 z-50 flex flex-col gap-2.5 items-center pointer-events-auto"
       >
-        {/* Support quick action channels - Expandable on mobile to avoid blocking screen content */}
-        <div 
-          className={`flex flex-col gap-2 items-end transition-all duration-300 pointer-events-auto ${
-            isMenuExpanded 
-              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' 
-              : 'opacity-0 translate-y-4 scale-95 pointer-events-none sm:opacity-100 sm:translate-y-0 sm:scale-100 sm:pointer-events-auto'
-          }`}
+        {/* 1. WhatsApp Direct Chat Button (ABOVE) */}
+        <button
+          type="button"
+          onClick={handleWhatsAppClick}
+          className="relative w-11 h-11 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          aria-label="Direct WhatsApp Chat"
+          title="Chat on WhatsApp (+880 1883-418309)"
         >
-          {/* WhatsApp Support Button */}
-          <a
-            href="https://wa.me/8801883418309?text=Hello%20Prime%20Vault%20Zone%2C%20I%20need%20support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="WhatsApp Support"
-            title="Chat on WhatsApp (+880 1883-418309)"
-          >
-            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-              WhatsApp: 01883-418309
-            </span>
-          </a>
+          <svg className="w-5 h-5 fill-current text-white" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.285-.143-1.689-.834-1.951-.929-.262-.095-.453-.143-.644.143-.191.286-.74.929-.908 1.12-.168.19-.334.214-.619.071-.285-.143-1.205-.444-2.296-1.416-.848-.757-1.421-1.692-1.588-1.978-.167-.286-.018-.44.125-.582.128-.128.285-.333.428-.499.143-.167.19-.286.285-.476.095-.19.048-.357-.024-.5-.071-.143-.644-1.552-.882-2.122-.231-.557-.468-.481-.644-.49-.167-.008-.357-.01-.548-.01s-.5.071-.762.357c-.262.286-1 002.977-1 2.381s1.024 4.714 1.167 4.905c.143.19 2.015 3.078 4.882 4.316.682.295 1.215.471 1.63.603.686.218 1.311.187 1.805.113.551-.083 1.689-.69 1.927-1.357.238-.667.238-1.238.167-1.357-.072-.119-.262-.19-.547-.333z"/>
+          </svg>
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-300 rounded-full border-2 border-white animate-pulse" />
+          
+          <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+            WhatsApp Support
+          </span>
+        </button>
 
-          {/* Live Phone Helpline Call */}
-          <a
-            href="tel:01883418309"
-            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-[#4F46E5] hover:bg-[#4338CA] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Call Customer Helpline"
-            title="Call Customer Care (01883-418309)"
-          >
-            <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
-            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-              Helpline: 01883-418309
-            </span>
-          </a>
+        {/* 2. Floating AI Assistant Button (BELOW) */}
+        <button
+          id="open-ai-chat-btn"
+          type="button"
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className="relative w-11 h-11 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer group border border-slate-700"
+          aria-label="Open AI Assistant"
+          aria-expanded={isChatOpen}
+        >
+          <Bot className="w-5 h-5 text-orange-400" />
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
+            <span className="w-1 h-1 bg-white rounded-full animate-ping" />
+          </span>
 
-          {/* Email Support */}
-          <a
-            href="mailto:support@primevaultzone.com"
-            className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Email Customer Support"
-            title="Email Support (support@primevaultzone.com)"
-          >
-            <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-300" />
-            <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-              support@primevaultzone.com
-            </span>
-          </a>
-
-          {/* FAQ Modal Trigger */}
-          {onOpenFaq && (
-            <button
-              type="button"
-              onClick={() => {
-                onOpenFaq();
-                setIsMenuExpanded(false);
-              }}
-              className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
-              aria-label="Open FAQ Center"
-              title="Frequently Asked Questions (FAQ)"
-            >
-              <HelpCircle className="w-5 h-5 text-white" />
-              <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-                সাধারণ প্রশ্নোত্তর (FAQ)
-              </span>
-            </button>
-          )}
-
-          {/* 7-Day Return Policy Trigger */}
-          {onOpenReturnPolicy && (
-            <button
-              type="button"
-              onClick={() => {
-                onOpenReturnPolicy();
-                setIsMenuExpanded(false);
-              }}
-              className="w-11 h-11 sm:w-11 sm:h-11 min-h-[44px] min-w-[44px] rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group relative cursor-pointer"
-              aria-label="7-Day Return Policy"
-              title="৭ দিনের রিটার্ন ও রিফান্ড পলিসি"
-            >
-              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
-              <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none shadow-xl">
-                ৭ দিনের রিটার্ন পলিসি
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* Primary Floating Support Trigger */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Mobile Quick Channels Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsMenuExpanded(!isMenuExpanded)}
-            aria-expanded={isMenuExpanded}
-            aria-controls="floating-support-bar"
-            className="sm:hidden w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg border border-slate-700 active:scale-95 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
-            aria-label={isMenuExpanded ? 'Hide contact channels' : 'Show contact channels'}
-            title="Customer Help Channels"
-          >
-            {isMenuExpanded ? (
-              <X className="w-5 h-5 text-amber-400" />
-            ) : (
-              <PhoneCall className="w-4 h-4 text-emerald-400" />
-            )}
-          </button>
-
-          {/* Primary AI Assistant Floating Trigger */}
-          <button
-            id="open-ai-chat-btn"
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            aria-expanded={isChatOpen}
-            aria-controls="ai-chat-modal"
-            className="flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs shadow-xl border border-indigo-500/30 hover:border-indigo-400 transition-all group cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
-            aria-label="Open AI Shop Assistant"
-          >
-            <div className="relative">
-              <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 border-2 border-[#0F172A] rounded-full" />
-            </div>
-            <span className="tracking-wide">AI চ্যাট</span>
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          </button>
-        </div>
+          <span className="absolute right-13 px-2.5 py-1 bg-slate-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+            Kroyghor AI Assistant
+          </span>
+        </button>
       </div>
 
       {/* --- INTERACTIVE AI CHAT MODAL --- */}
@@ -263,20 +154,20 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="AI Shopping Assistant & Customer Support"
-          className="fixed bottom-[72px] sm:bottom-20 right-2 sm:right-6 z-50 w-[calc(100vw-16px)] sm:w-96 max-w-[400px] max-h-[calc(100vh-90px)] h-[480px] sm:h-[520px] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-slideUp"
+          className="fixed bottom-36 right-3 sm:right-6 z-50 w-[calc(100vw-24px)] sm:w-96 max-w-[400px] h-[480px] sm:h-[520px] flex flex-col rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-slideUp"
         >
           {/* Chat Header */}
-          <div className="p-3.5 bg-[#0F172A] text-white border-b border-slate-800 flex items-center justify-between">
+          <div className="p-3.5 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="relative">
-                <div className="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700">
-                  <Bot className="w-5 h-5 text-[#F59E0B]" />
+                <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700">
+                  <Bot className="w-5 h-5 text-orange-400" />
                 </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#0F172A] rounded-full" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  ZeropicBD AI
+                  Kroyghor AI
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
                     বাংলা
                   </span>
@@ -290,23 +181,23 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
 
             <button
               onClick={() => setIsChatOpen(false)}
-              className="p-1.5 rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Messages Body */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#F9FAFB]">
+          <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-3.5 py-2.5 text-xs leading-relaxed ${
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                     msg.sender === 'user'
-                      ? 'bg-[#4F46E5] text-white rounded-tr-none shadow-2xs'
+                      ? 'bg-orange-600 text-white rounded-tr-none shadow-2xs font-medium'
                       : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none shadow-2xs'
                   }`}
                 >
@@ -321,7 +212,7 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(opt)}
-                        className="text-[10px] text-left px-2.5 py-1.5 rounded-md bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-[#4F46E5] transition-colors cursor-pointer"
+                        className="text-[10px] text-left px-2.5 py-1.5 rounded-lg bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 transition-colors cursor-pointer"
                       >
                         {opt}
                       </button>
@@ -332,10 +223,10 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-1.5 p-2 rounded-md bg-white border border-slate-200 w-16">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] animate-bounce" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] animate-bounce [animation-delay:0.4s]" />
+              <div className="flex items-center gap-1.5 p-2 rounded-lg bg-white border border-slate-200 w-16">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-bounce [animation-delay:0.2s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-bounce [animation-delay:0.4s]" />
               </div>
             )}
             <div ref={chatBottomRef} />
@@ -355,13 +246,13 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               placeholder="বাংলা বা ইংরেজিতে প্রশ্ন লিখুন..."
-              className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-[#4F46E5]"
+              className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500"
             />
             <button
               id="ai-chat-send-btn"
               type="submit"
               disabled={!inputVal.trim()}
-              className="p-2.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white disabled:opacity-40 transition-colors cursor-pointer"
+              className="p-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-40 transition-colors cursor-pointer shadow-2xs"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -371,3 +262,5 @@ export const CustomerSupport: React.FC<CustomerSupportProps> = ({
     </>
   );
 };
+
+export default CustomerSupport;

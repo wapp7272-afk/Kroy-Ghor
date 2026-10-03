@@ -24,7 +24,7 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(
   onClaimBonus,
   onOpenAuth,
 }) => {
-  const channelUrl = 'https://www.youtube.com/@zeropicbd';
+  const channelUrl = 'https://www.youtube.com/@kroy-ghor';
 
   const handleClaimClick = () => {
     if (!user || !user.isLoggedIn) {
@@ -69,12 +69,12 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(
 
             {/* Headline */}
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white">
-              Subscribe to <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-300 to-amber-300">@zeropicbd</span> & Get ৳20 Shopping Bonus!
+              Subscribe to <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-300 to-amber-300">@kroy-ghor</span> & Get ৳20 Shopping Bonus!
             </h2>
 
             {/* Subtext */}
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-              Join our growing lifestyle community on YouTube for 4K authentic perfume batch tests, smart tech unboxings, and exclusive discount codes. Subscribe to <strong>@zeropicbd</strong>, submit your handle, and enjoy ৳20 credited directly to your ZeropicBD digital wallet.
+              Join our growing lifestyle community on YouTube for 4K authentic perfume batch tests, smart tech unboxings, and exclusive discount codes. Subscribe to <strong>@kroy-ghor</strong>, submit your handle, and enjoy ৳20 credited directly to your Kroyghor digital wallet.
             </p>
 
             {/* 3 Step Micro Flow */}
@@ -85,7 +85,7 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-white">Subscribe</h3>
-                  <p className="text-[11px] text-slate-400">Visit @zeropicbd</p>
+                  <p className="text-[11px] text-slate-400">Visit @kroy-ghor</p>
                 </div>
               </div>
 
@@ -119,7 +119,7 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(
                 className="px-5 py-3 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold transition-all shadow-lg hover:shadow-red-600/30 flex items-center gap-2 cursor-pointer active:scale-98 group"
               >
                 <Youtube className="w-4 h-4 fill-white" />
-                <span>Visit @zeropicbd on YouTube</span>
+                <span>Visit @kroy-ghor on YouTube</span>
                 <ExternalLink className="w-3.5 h-3.5 text-white/80 group-hover:translate-x-0.5 transition-transform" />
               </a>
 
@@ -160,10 +160,10 @@ export const YouTubeBonusBanner: React.FC<YouTubeBonusBannerProps> = React.memo(
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                      ZeropicBD Official
+                      Kroyghor Official
                       <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center">✓</span>
                     </h3>
-                    <p className="text-xs text-slate-400 font-mono">@zeropicbd</p>
+                    <p className="text-xs text-slate-400 font-mono">@kroy-ghor</p>
                   </div>
                 </div>
 

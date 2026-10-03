@@ -82,6 +82,7 @@ export interface UserProfileProps {
   onOpenReturnPolicy?: () => void;
   onTrackOrder?: (orderId: string) => void;
   onOpenAdmin?: () => void;
+  onOpenYouTubeBonusModal?: () => void;
 }
 
 type AccountTab = 'profile' | 'orders' | 'wallet' | 'addresses' | 'wishlist' | 'security';
@@ -114,6 +115,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onOpenReturnPolicy,
   onTrackOrder,
   onOpenAdmin,
+  onOpenYouTubeBonusModal,
 }) => {
   // Normalize initialTab
   const normalizedInitialTab = useMemo<AccountTab>(() => {
@@ -1028,7 +1030,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
 
                     <a
-                      href="https://www.youtube.com/@zeropicbd"
+                      href="https://www.youtube.com/@kroy-ghor"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-xs shrink-0"
@@ -1061,40 +1063,72 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {ytFeedbackMsg && (
-                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
-                          {ytFeedbackMsg}
+                    <div className="space-y-4">
+                      {/* Prominent Instant Automatic Check Button */}
+                      {onOpenYouTubeBonusModal && (
+                        <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <h5 className="text-xs font-bold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+                              <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
+                              <span>তাত্ক্ষণিক অটো ভেরিফিকেশন (Instant Automated Check)</span>
+                            </h5>
+                            <p className="text-[11px] text-slate-500">
+                              Google অ্যাকাউন্ট কানেক্ট করে ১-সেকেন্ডে আপনার সাবস্ক্রিপশন নিশ্চিত করুন এবং ওয়ালেটে ৳২০ যোগ করুন।
+                            </p>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={onOpenYouTubeBonusModal}
+                            className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Youtube className="w-4 h-4 fill-white" />
+                            <span>১-ক্লিক অটো ভেরিফাই</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
 
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <div className="relative flex-1">
-                          <Youtube className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            placeholder="আপনার YouTube হ্যান্ডেল বা নাম লিখুন (যেমন: @yourhandle)"
-                            value={ytHandleInput}
-                            onChange={(e) => setYtHandleInput(e.target.value)}
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
-                          />
+                      {/* Manual Review Handle Fallback */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                        <p className="text-[11px] font-semibold text-slate-500">
+                          অথবা নিচে আপনার YouTube হ্যান্ডেল নাম লিখে ম্যানুয়াল ভেরিফিকেশনের জন্য পাঠান:
+                        </p>
+
+                        {ytFeedbackMsg && (
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
+                            {ytFeedbackMsg}
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="relative flex-1">
+                            <Youtube className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              placeholder="আপনার YouTube হ্যান্ডেল বা নাম লিখুন (যেমন: @yourhandle)"
+                              value={ytHandleInput}
+                              onChange={(e) => setYtHandleInput(e.target.value)}
+                              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleSubmitYtClaim}
+                            disabled={isSubmittingYt || !ytHandleInput.trim()}
+                            className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                          >
+                            {isSubmittingYt ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
+                            <span>ম্যানুয়াল ভেরিফাই রিকোয়েস্ট</span>
+                          </button>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={handleSubmitYtClaim}
-                          disabled={isSubmittingYt || !ytHandleInput.trim()}
-                          className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
-                        >
-                          {isSubmittingYt ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
-                          <span>বোনাস ক্লেইম করুন</span>
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                        <span>১. লিংকে ক্লিক করে চ্যানেল সাবস্ক্রাইব করুন</span>
-                        <span>•</span>
-                        <span>২. আপনার হ্যান্ডেল লিখে সাবমিট করুন</span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                          <span>১. চ্যানেল সাবস্ক্রাইব করুন</span>
+                          <span>•</span>
+                          <span>২. আপনার হ্যান্ডেল লিখে সাবমিট করুন</span>
+                        </div>
                       </div>
                     </div>
                   )}
