@@ -80,6 +80,10 @@ import {
   deductUserWalletInFirestore,
 } from './services/orderFirestoreService';
 import {
+  isDemoOrder,
+  purgeAllDemoAndMockData,
+} from './services/maintenanceService';
+import {
   subscribeToProductsFromFirestore,
   saveProductToFirestore,
   deleteProductFromFirestore,
@@ -271,46 +275,23 @@ export default function App() {
     };
   }, []);
 
-  // State: Vendor Payout Requests & Settlements
+  // State: Vendor Payout Requests & Settlements (Clean real data)
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>(() => {
     try {
       const saved = localStorage.getItem('primevault_payout_requests');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      {
-        id: 'PAY-1082',
-        sellerId: 'seller-1',
-        sellerName: 'Perfume Vault BD',
-        amount: 3200,
-        method: 'bkash',
-        account: '01883-418309',
-        requestedAt: '2026-09-21 16:30',
-        status: 'Completed',
-        trxId: 'TRX-9BKASH291'
-      },
-      {
-        id: 'PAY-1094',
-        sellerId: 'seller-2',
-        sellerName: 'Glow Lights Studio',
-        amount: 1450,
-        method: 'nagad',
-        account: '01712-345678',
-        requestedAt: '2026-09-23 11:15',
-        status: 'Pending'
-      },
-      {
-        id: 'PAY-1102',
-        sellerId: 'seller-3',
-        sellerName: 'Oudh & Attar Heritage',
-        amount: 2800,
-        method: 'bank',
-        account: '102.120.9841',
-        bankName: 'City Bank Ltd',
-        requestedAt: '2026-09-23 14:40',
-        status: 'Pending'
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(
+            (p: any) =>
+              !p.id?.startsWith('PAY-1082') &&
+              !p.id?.startsWith('PAY-1094') &&
+              !p.id?.startsWith('PAY-1102')
+          );
+        }
       }
-    ];
+    } catch {}
+    return [];
   });
 
   useEffect(() => {
@@ -535,63 +516,18 @@ export default function App() {
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [isYouTubeBonusModalOpen, setIsYouTubeBonusModalOpen] = useState(false);
 
-  // State: Orders with LocalStorage persistence
+  // State: Orders with LocalStorage persistence (Strictly real orders, purged of demo items)
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
-      const saved = localStorage.getItem('primevault_orders') || localStorage.getItem('zestflick_orders');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      return [];
-    }
-    return [
-      {
-        id: 'PVZ-91823',
-        date: '2026-09-24 18:32',
-        items: [
-          { product: PRODUCTS[0], quantity: 1, selectedSize: '100ml' },
-          { product: PRODUCTS[2], quantity: 2, selectedSize: 'Standard' }
-        ],
-        subtotal: 1850,
-        discount: 185,
-        walletDeducted: 20,
-        deliveryFee: 60,
-        total: 1705,
-        paymentMethod: 'bkash',
-        trxId: 'BKS90812391',
-        address: {
-          fullName: 'Tanvir Hossain',
-          phone: '01712345678',
-          cityDivision: 'Inside Dhaka',
-          fullAddress: 'House 14, Road 5, Dhanmondi, Dhaka',
-          notes: 'Call before delivery'
-        },
-        status: 'Delivered',
-        courierName: 'Pathao Express',
-        trackingNumber: 'PT-91823BD'
-      },
-      {
-        id: 'PVZ-82914',
-        date: '2026-09-22 14:15',
-        items: [
-          { product: PRODUCTS[1], quantity: 1, selectedSize: '100ml' }
-        ],
-        subtotal: 890,
-        discount: 0,
-        walletDeducted: 0,
-        deliveryFee: 120,
-        total: 1010,
-        paymentMethod: 'cod',
-        address: {
-          fullName: 'Rahim Ahmed',
-          phone: '01898765432',
-          cityDivision: 'Outside Dhaka',
-          fullAddress: 'Agrabad C/A, Chattogram'
-        },
-        status: 'Processing',
-        courierName: 'Steadfast Courier',
-        trackingNumber: 'ST-82914BD'
+      const saved = localStorage.getItem('primevault_orders') || localStorage.getItem('zeropicbd_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((o) => !isDemoOrder(o, o?.id));
+        }
       }
-    ];
+    } catch {}
+    return [];
   });
 
   const handleSubmitReturnRequest = (
@@ -625,46 +561,15 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    return [
-      {
-        id: 'seller-1',
-        storeName: 'PerfumeVault BD',
-        slug: 'perfume-vault-bd',
-        ownerName: 'Tanvir Ahmed',
-        phone: '01883418309',
-        email: 'tanvir@perfumevault.com',
-        category: 'Luxury Perfumes',
-        nidOrTradeLicense: '19942691234567890',
-        payoutMethod: 'bkash',
-        payoutAccount: '01883418309',
-        status: 'Approved',
-        createdAt: '2026-09-01 10:30',
-        description: 'Authorized importer of niche French and Arabian perfumes in Bangladesh.'
-      },
-      {
-        id: 'seller-2',
-        storeName: 'Apex Tech BD',
-        slug: 'apex-tech-bd',
-        ownerName: 'Farhan Kabir',
-        phone: '01711223344',
-        email: 'farhan@apextech.bd',
-        category: 'Electronic Gadgets',
-        nidOrTradeLicense: 'TR-DH-892147',
-        payoutMethod: 'bank',
-        payoutAccount: '2050123456789',
-        bankName: 'BRAC Bank Ltd',
-        status: 'Approved',
-        createdAt: '2026-09-10 14:00',
-        description: 'Original RGB neon lamps, smart accessories, and aesthetic desk setups.'
-      }
-    ];
+    return [];
   });
 
   const [currentSellerId, setCurrentSellerId] = useState<string>('seller-1');
 
-  // Seed permanent Super Admin / Owner account
+  // Seed permanent Super Admin / Owner account & clean demo data on mount
   useEffect(() => {
     seedSuperAdminAccount();
+    purgeAllDemoAndMockData().catch(() => {});
   }, []);
 
   useEffect(() => {

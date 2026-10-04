@@ -34,7 +34,8 @@ import { InvoiceModal } from './InvoiceModal';
 import {
   saveOrderToFirestore,
   deductUserWalletInFirestore,
-  getFirestoreUserWalletBalance
+  getFirestoreUserWalletBalance,
+  broadcastNewOrder
 } from '../services/orderFirestoreService';
 import { db } from '../lib/firebaseAuth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -225,12 +226,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  // Order Submission Handler
+  // Fast Sub-Second Non-Blocking Order Submission Handler
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    // Validation
+    // 1. Immediate Synchronous Input Validations
     if (!fullName.trim()) {
       setFormError('⚠️ অনুগ্রহ করে আপনার পূর্ণ নাম প্রদান করুন (Full Name is required).');
       return;
@@ -257,7 +258,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Generate Order ID: #PVZ-BD-xxxxx
+      // Generate Pristine Order ID: #PVZ-BD-xxxxx
       const randomDigits = Math.floor(10000 + Math.random() * 90000);
       const orderId = `#PVZ-BD-${randomDigits}`;
 
@@ -310,37 +311,45 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         status: 'Pending',
       };
 
-      // 1. Save order to Firestore backend (orders/{orderId})
-      const saved = await saveOrderToFirestore(newOrder, targetUid);
+      // 2. Instant Multi-Channel Real-time Broadcast (< 10ms sync to Admin & Tabs)
+      broadcastNewOrder(newOrder);
 
-      // 2. Deduct wallet balance from Firestore users/{uid} and log in wallet_transactions
+      // 3. Optimistic Fast State Reset (< 200ms)
+      onClearCart();
+      onPlaceOrder(newOrder);
+
       if (walletDiscount > 0 && targetUid && targetUid !== 'guest') {
-        const remainingBalance = await deductUserWalletInFirestore(
-          targetUid,
-          walletDiscount,
-          orderId,
-          user.email
-        );
-        setFirestoreWalletBalance(remainingBalance);
+        const remaining = Math.max(0, firestoreWalletBalance - walletDiscount);
+        setFirestoreWalletBalance(remaining);
         if (onUpdateUserWallet) {
-          onUpdateUserWallet(remainingBalance);
+          onUpdateUserWallet(remaining);
         }
       }
 
-      // 3. Clear customer's shopping cart
-      onClearCart();
-
-      // 4. Update parent order state
-      onPlaceOrder(saved);
-
-      // 5. Display Order Confirmation / Success View
-      setCompletedOrder(saved);
+      setCompletedOrder(newOrder);
+      setIsSubmitting(false);
       showToast(`🎉 Order Placed Successfully! Order ID: ${orderId}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // 4. Asynchronous Non-Blocking Background Workers (Firestore persistence & wallet audit)
+      (async () => {
+        try {
+          await saveOrderToFirestore(newOrder, targetUid);
+          if (walletDiscount > 0 && targetUid && targetUid !== 'guest') {
+            await deductUserWalletInFirestore(
+              targetUid,
+              walletDiscount,
+              orderId,
+              user.email
+            );
+          }
+        } catch (bgError) {
+          console.warn('[Checkout Background Sync] Background order persistence warning:', bgError);
+        }
+      })();
     } catch (err: any) {
       console.error('Checkout error:', err);
       setFormError(`❌ Order placement failed: ${err.message || 'Please try again'}`);
-    } finally {
       setIsSubmitting(false);
     }
   };

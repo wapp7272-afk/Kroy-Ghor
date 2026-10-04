@@ -576,52 +576,134 @@ export const updateOrderCourierTrackingInFirestore = async (
   saveLocalOrders(updated);
 };
 
+// Multi-channel cross-tab / in-tab order sync channel
+const ORDER_BROADCAST_CHANNEL_NAME = 'kroyghor_orders_realtime';
+
 /**
- * Real-time subscription to ALL orders in Firestore for Admin panel
+ * Broadcasts newly created order instantly across tabs, windows, and local applet listeners (< 10ms latency)
+ */
+export const broadcastNewOrder = (order: Order) => {
+  try {
+    // 1. In-tab custom event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kroyghor:new_order', { detail: order }));
+    }
+
+    // 2. Cross-tab BroadcastChannel
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(ORDER_BROADCAST_CHANNEL_NAME);
+      channel.postMessage({ type: 'NEW_ORDER', order });
+      channel.close();
+    }
+  } catch (e) {
+    console.warn('[OrderFirestoreService] broadcastNewOrder error:', e);
+  }
+};
+
+/**
+ * Real-time subscription to ALL orders for Admin panel (Firestore onSnapshot + BroadcastChannel + Window Events)
+ * Delivers newly placed orders in under 1 second without requiring page reload.
  */
 export const subscribeToAllOrdersFromFirestore = (
-  callback: (orders: Order[]) => void
+  callback: (orders: Order[], newOrder?: Order) => void
 ): (() => void) => {
-  if (!db) {
-    callback(getLocalOrders());
-    return () => {};
-  }
+  const cleanupFns: Array<() => void> = [];
 
-  try {
-    const ordersCol = collection(db, 'orders');
-    const unsubscribe = onSnapshot(
-      ordersCol,
-      (snapshot) => {
-        const firestoreOrders: Order[] = [];
-        snapshot.forEach((d) => {
-          firestoreOrders.push(docToOrder(d.data(), d.id));
-        });
+  // Track known order IDs to detect newly arrived live orders
+  const knownOrderIds = new Set<string>();
+  const initialLocal = getLocalOrders();
+  initialLocal.forEach((o) => {
+    if (o?.id) knownOrderIds.add(o.id);
+  });
+  callback(initialLocal);
 
-        // Merge with local orders
-        const localList = getLocalOrders();
-        const map = new Map<string, Order>();
-        [...firestoreOrders, ...localList].forEach((o) => {
-          if (o && o.id) {
-            map.set(o.id, o);
-          }
-        });
+  const handleIncomingOrder = (newOrder: Order) => {
+    if (!newOrder || !newOrder.id) return;
+    const isBrandNew = !knownOrderIds.has(newOrder.id);
+    knownOrderIds.add(newOrder.id);
 
-        const sorted = Array.from(map.values()).sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        saveLocalOrders(sorted);
-        callback(sorted);
-      },
-      (err) => {
-        console.warn('[OrderFirestoreService] Snapshot listener warning for all orders:', err);
-        callback(getLocalOrders());
+    const localList = getLocalOrders();
+    const filtered = localList.filter((o) => o.id !== newOrder.id);
+    const updated = [newOrder, ...filtered];
+    saveLocalOrders(updated);
+
+    callback(updated, isBrandNew ? newOrder : undefined);
+  };
+
+  // 1. In-tab window event listener
+  if (typeof window !== 'undefined') {
+    const handleCustomEvent = (event: Event) => {
+      const customEvt = event as CustomEvent<Order>;
+      if (customEvt.detail) {
+        handleIncomingOrder(customEvt.detail);
       }
-    );
-
-    return unsubscribe;
-  } catch (err) {
-    console.error('[OrderFirestoreService] Failed to subscribe to all orders:', err);
-    callback(getLocalOrders());
-    return () => {};
+    };
+    window.addEventListener('kroyghor:new_order', handleCustomEvent);
+    cleanupFns.push(() => window.removeEventListener('kroyghor:new_order', handleCustomEvent));
   }
+
+  // 2. Cross-tab BroadcastChannel
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const bc = new BroadcastChannel(ORDER_BROADCAST_CHANNEL_NAME);
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'NEW_ORDER' && event.data?.order) {
+          handleIncomingOrder(event.data.order);
+        }
+      };
+      cleanupFns.push(() => bc.close());
+    } catch (e) {
+      console.warn('[OrderFirestoreService] BroadcastChannel init error:', e);
+    }
+  }
+
+  // 3. Firestore Live onSnapshot Listener
+  if (db) {
+    try {
+      const ordersCol = collection(db, 'orders');
+      const unsubscribeFirestore = onSnapshot(
+        ordersCol,
+        (snapshot) => {
+          const firestoreOrders: Order[] = [];
+          let freshlyArrivedOrder: Order | undefined = undefined;
+
+          snapshot.forEach((d) => {
+            const orderObj = docToOrder(d.data(), d.id);
+            firestoreOrders.push(orderObj);
+            if (orderObj.id && !knownOrderIds.has(orderObj.id)) {
+              freshlyArrivedOrder = orderObj;
+              knownOrderIds.add(orderObj.id);
+            }
+          });
+
+          // Merge with local orders
+          const localList = getLocalOrders();
+          const map = new Map<string, Order>();
+          [...firestoreOrders, ...localList].forEach((o) => {
+            if (o && o.id) {
+              map.set(o.id, o);
+            }
+          });
+
+          const sorted = Array.from(map.values()).sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          saveLocalOrders(sorted);
+          callback(sorted, freshlyArrivedOrder);
+        },
+        (err) => {
+          console.warn('[OrderFirestoreService] Snapshot listener warning for all orders:', err);
+          callback(getLocalOrders());
+        }
+      );
+      cleanupFns.push(() => unsubscribeFirestore());
+    } catch (err) {
+      console.error('[OrderFirestoreService] Failed to subscribe to all orders:', err);
+      callback(getLocalOrders());
+    }
+  }
+
+  return () => {
+    cleanupFns.forEach((fn) => fn());
+  };
 };

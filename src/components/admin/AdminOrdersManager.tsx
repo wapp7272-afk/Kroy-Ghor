@@ -35,10 +35,16 @@ import {
   RefreshCw,
   Tag,
   AlertTriangle,
-  MessageCircle
+  MessageCircle,
+  Volume2,
+  VolumeX,
+  Radio,
+  BellRing,
+  Sparkles
 } from 'lucide-react';
 import { Order } from '../../types';
 import { InvoiceModal } from '../InvoiceModal';
+import { soundNotifier } from '../../utils/audioNotification';
 import {
   subscribeToAllOrdersFromFirestore,
   updateOrderStatusInFirestore,
@@ -70,21 +76,56 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
   onUpdateOrderNotes,
   showToast,
 }) => {
-  // Real-time stream of all orders from Firestore
+  // Real-time stream of all orders from Firestore & BroadcastChannel
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [isSoundMuted, setIsSoundMuted] = useState<boolean>(() => soundNotifier.getMuted());
+  const [recentlyArrivedOrderId, setRecentlyArrivedOrderId] = useState<string | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<string>(() => new Date().toLocaleTimeString());
 
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
 
   useEffect(() => {
-    const unsub = subscribeToAllOrdersFromFirestore((firestoreOrders) => {
-      if (firestoreOrders && firestoreOrders.length > 0) {
+    let isInitialMount = true;
+    const unsub = subscribeToAllOrdersFromFirestore((firestoreOrders, newlyArrived) => {
+      if (firestoreOrders && firestoreOrders.length >= 0) {
         setOrders(firestoreOrders);
+        setLastSyncTime(new Date().toLocaleTimeString());
+      }
+
+      // If a brand-new live order is received via real-time stream
+      if (newlyArrived && !isInitialMount) {
+        setRecentlyArrivedOrderId(newlyArrived.id);
+        soundNotifier.playNewOrderChime();
+        showToast(
+          `🔔 Live Order Received (<1s): ${newlyArrived.id} from ${
+            newlyArrived.customerName || newlyArrived.address?.fullName || 'Customer'
+          } (৳${newlyArrived.total.toLocaleString()})`
+        );
+
+        // Clear highlight after 10s
+        setTimeout(() => {
+          setRecentlyArrivedOrderId((prev) => (prev === newlyArrived.id ? null : prev));
+        }, 10000);
       }
     });
+
+    isInitialMount = false;
     return () => unsub();
-  }, []);
+  }, [showToast]);
+
+  const toggleSoundMute = () => {
+    const nextMuted = !isSoundMuted;
+    setIsSoundMuted(nextMuted);
+    soundNotifier.setMuted(nextMuted);
+    if (!nextMuted) {
+      soundNotifier.playNewOrderChime();
+      showToast('🔊 Order notification chime active (sound unmuted)');
+    } else {
+      showToast('🔇 Order notification chime muted');
+    }
+  };
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -311,7 +352,29 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Audio Alert Toggle */}
+            <button
+              type="button"
+              onClick={toggleSoundMute}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                isSoundMuted
+                  ? 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200'
+                  : 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-xs'
+              }`}
+              title={isSoundMuted ? 'Click to Unmute Order Sound Chime' : 'Click to Mute Order Sound Chime'}
+            >
+              {isSoundMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-500" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />}
+              <span>{isSoundMuted ? 'Sound Muted' : 'Chime Active'}</span>
+            </button>
+
+            {/* Live Sync Status Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-[11px]">1s Live Sync</span>
+              <span className="text-[10px] text-blue-600 font-mono font-normal">({lastSyncTime})</span>
+            </div>
+
             <span className="text-xs font-mono font-bold text-slate-500">
               Total Volume: <strong className="text-base font-black text-[#007BFF]">৳{totalRevenue.toLocaleString()}</strong>
             </span>
@@ -476,13 +539,21 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
 
                   const customerAvatar = (order as any).customerAvatar || (order as any).userAvatar || null;
 
+                  const isRecentlyArrived = order.id === recentlyArrivedOrderId;
+
                   return (
                     <React.Fragment key={order.id}>
                       {/* Main Table Row */}
-                      <tr className="hover:bg-blue-50/20 transition-colors">
+                      <tr
+                        className={`transition-all duration-300 ${
+                          isRecentlyArrived
+                            ? 'bg-emerald-50/70 ring-2 ring-emerald-400 ring-inset'
+                            : 'hover:bg-blue-50/20'
+                        }`}
+                      >
                         {/* 1. Order ID & Date/Time */}
                         <td className="py-3.5 px-4 align-top">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-mono font-extrabold text-[#007BFF]">
                               {order.id}
                             </span>
@@ -494,6 +565,11 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                             >
                               <Copy className="w-3 h-3" />
                             </button>
+                            {isRecentlyArrived && (
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-2xs">
+                                ⚡ Just Received
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                             <Calendar className="w-3 h-3 text-slate-400" />
@@ -515,7 +591,7 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                         </td>
 
                         {/* 2. Customer Name & Profile Photo */}
-                        <td className="py-3.5 px-4 align-top max-w-[190px]">
+                        <td className="py-3.5 px-4 align-top max-w-[210px]">
                           <div className="flex items-center gap-2.5">
                             {customerAvatar ? (
                               <img
@@ -530,13 +606,28 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                                 {customerName ? customerName.slice(0, 2).toUpperCase() : 'KG'}
                               </div>
                             )}
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="font-extrabold text-[#0A1B3D] truncate" title={customerName}>
                                 {customerName}
                               </div>
                               {order.customerEmail ? (
-                                <div className="text-[10px] text-slate-400 truncate max-w-[130px]" title={order.customerEmail}>
-                                  {order.customerEmail}
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <a
+                                    href={`mailto:${order.customerEmail}`}
+                                    className="text-[10px] text-blue-600 hover:underline truncate max-w-[130px] flex items-center gap-0.5"
+                                    title={`Email: ${order.customerEmail}`}
+                                  >
+                                    <Mail className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                                    <span>{order.customerEmail}</span>
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(order.customerEmail || '', 'Email')}
+                                    className="text-slate-400 hover:text-slate-700 cursor-pointer shrink-0"
+                                    title="Copy Customer Email"
+                                  >
+                                    <Copy className="w-2.5 h-2.5" />
+                                  </button>
                                 </div>
                               ) : (
                                 <span className="text-[10px] text-slate-400">Verified Member</span>

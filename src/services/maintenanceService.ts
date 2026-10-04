@@ -29,23 +29,42 @@ const DEMO_EMAIL_PATTERNS = [
   'example.com',
   'john.doe@',
   'jane.doe@',
-  'placeholder@'
+  'placeholder@',
+  'tanvir@perfumevault.com',
+  'farhan@apextech.bd'
 ];
 
 /**
  * Checks whether an order is considered a demo/test order
  */
 export const isDemoOrder = (orderData: any, docId: string): boolean => {
+  if (!orderData) return false;
   if (orderData.isDemo === true) return true;
-  if (docId.startsWith('DEMO-') || docId.startsWith('ORD-DEMO') || docId.startsWith('TEST-')) return true;
+  if (
+    docId === 'PVZ-91823' ||
+    docId === 'PVZ-82914' ||
+    docId === 'PVZ-91824' ||
+    docId === 'PVZ-91825' ||
+    docId.startsWith('DEMO-') ||
+    docId.startsWith('ORD-DEMO') ||
+    docId.startsWith('TEST-')
+  ) {
+    return true;
+  }
   
   const email = (orderData.customerEmail || orderData.email || '').toLowerCase();
   if (email && DEMO_EMAIL_PATTERNS.some((pattern) => email.includes(pattern))) {
     return true;
   }
 
-  const name = (orderData.customerName || '').toLowerCase();
-  if (name.includes('demo user') || name.includes('test customer') || name.includes('sample order')) {
+  const name = (orderData.customerName || orderData.address?.fullName || '').toLowerCase();
+  if (
+    name.includes('demo user') ||
+    name.includes('test customer') ||
+    name.includes('sample order') ||
+    name.includes('tanvir hossain') ||
+    name.includes('rahim ahmed')
+  ) {
     return true;
   }
 
@@ -56,11 +75,64 @@ export const isDemoOrder = (orderData: any, docId: string): boolean => {
  * Checks whether a product is considered a demo product
  */
 export const isDemoProduct = (productData: any, docId: string): boolean => {
+  if (!productData) return false;
   if (productData.isDemo === true) return true;
   if (docId.startsWith('demo-') || docId.startsWith('test-')) return true;
-  const title = (productData.title || '').toLowerCase();
+  const title = (productData.title || productData.name || '').toLowerCase();
   if (title.includes('[demo]') || title.includes('[test]')) return true;
   return false;
+};
+
+/**
+ * Complete purge of all demo / mock items across all stores and local storage
+ */
+export const purgeAllDemoAndMockData = async (): Promise<{
+  ordersPurged: number;
+  payoutsPurged: number;
+}> => {
+  let ordersPurged = 0;
+  let payoutsPurged = 0;
+
+  // 1. Clean localStorage mock orders & payouts
+  try {
+    const rawOrders = localStorage.getItem('primevault_orders') || localStorage.getItem('zeropicbd_orders');
+    if (rawOrders) {
+      const parsed = JSON.parse(rawOrders);
+      if (Array.isArray(parsed)) {
+        const cleanOrders = parsed.filter((o) => !isDemoOrder(o, o.id));
+        ordersPurged = parsed.length - cleanOrders.length;
+        saveLocalOrders(cleanOrders);
+      }
+    }
+
+    const rawPayouts = localStorage.getItem('primevault_payout_requests');
+    if (rawPayouts) {
+      const parsed = JSON.parse(rawPayouts);
+      if (Array.isArray(parsed)) {
+        const cleanPayouts = parsed.filter((p) => !p.id?.startsWith('PAY-1082') && !p.id?.startsWith('PAY-1094') && !p.id?.startsWith('PAY-1102'));
+        payoutsPurged = parsed.length - cleanPayouts.length;
+        localStorage.setItem('primevault_payout_requests', JSON.stringify(cleanPayouts));
+      }
+    }
+
+    // Clean mock sellers
+    localStorage.removeItem('primevault_sellers');
+    localStorage.removeItem('zeropicbd_sellers');
+  } catch (e) {
+    console.warn('[MaintenanceService] Error purging local mock data:', e);
+  }
+
+  // 2. Clean Firestore demo orders
+  if (db) {
+    try {
+      const res = await purgeDemoOrdersFromFirestore();
+      ordersPurged = Math.max(ordersPurged, res.deletedCount);
+    } catch (e) {
+      console.warn('[MaintenanceService] Firestore demo order purge error:', e);
+    }
+  }
+
+  return { ordersPurged, payoutsPurged };
 };
 
 /**

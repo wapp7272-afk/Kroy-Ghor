@@ -7,7 +7,6 @@ import {
   MapPin, 
   ShieldCheck, 
   CheckCircle2, 
-  XCircle,
   Phone, 
   Mail, 
   Calendar, 
@@ -15,36 +14,30 @@ import {
   Copy, 
   Check, 
   Printer, 
-  Download, 
   RotateCcw, 
   Sparkles, 
   Clock, 
   Truck, 
   ArrowRight, 
-  ChevronRight, 
   LogOut, 
   Plus, 
   Trash2, 
   Edit3, 
   ShoppingBag, 
   Search, 
-  Tag, 
   Coins, 
   History, 
-  AlertCircle,
-  Building2,
-  Gift,
-  Star,
-  Navigation,
-  Youtube,
-  RefreshCw,
-  Lock,
-  ArrowLeft,
-  X,
-  CreditCard,
-  FileText,
-  Camera,
-  CheckCircle
+  Youtube, 
+  RefreshCw, 
+  Lock, 
+  ArrowLeft, 
+  X, 
+  CreditCard, 
+  FileText, 
+  Camera, 
+  CheckCircle,
+  Save,
+  Upload
 } from 'lucide-react';
 import { 
   UserProfile as UserProfileType, 
@@ -88,16 +81,7 @@ export interface UserProfileProps {
   onProceedToCheckout?: () => void;
 }
 
-type AccountTab = 'profile' | 'orders' | 'cart' | 'wallet' | 'addresses' | 'wishlist' | 'security';
-
-const AVATAR_PRESETS = [
-  { id: '1', name: 'Luxury Fragrance VIP', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-  { id: '2', name: 'Executive Noir', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-  { id: '3', name: 'Velvet Style', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' },
-  { id: '4', name: 'Modern Minimalist', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  { id: '5', name: 'Aroma Connoisseur', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
-  { id: '6', name: 'Signature Member', url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80' },
-];
+export type AccountTab = 'profile' | 'orders' | 'cart' | 'wallet' | 'addresses' | 'security';
 
 export const UserProfile: React.FC<UserProfileProps> = ({
   user,
@@ -130,7 +114,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     if (initialTab === 'cart') return 'cart';
     if (initialTab === 'wallet') return 'wallet';
     if (initialTab === 'addresses') return 'addresses';
-    if (initialTab === 'wishlist') return 'wishlist';
     if (initialTab === 'security') return 'security';
     return 'profile';
   }, [initialTab]);
@@ -141,25 +124,32 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const cartTotalQty = useMemo(() => cartItems.reduce((acc, item) => acc + item.quantity, 0), [cartItems]);
   const cartSubtotal = useMemo(() => cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0), [cartItems]);
 
-  // Sync tab with initialTab prop when updated
   useEffect(() => {
     if (initialTab) {
       if (initialTab === 'overview') setActiveTab('profile');
       else if (initialTab === 'cart') setActiveTab('cart');
-      else setActiveTab(initialTab as AccountTab);
+      else if (['profile', 'orders', 'cart', 'wallet', 'addresses', 'security'].includes(initialTab)) {
+        setActiveTab(initialTab as AccountTab);
+      }
     }
   }, [initialTab]);
 
   // Order Details Modal state
   const [selectedDetailOrder, setSelectedDetailOrder] = useState<Order | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
-  const [returnTargetOrder, setReturnTargetOrder] = useState<Order | null>(null);
 
-  // Profile Edit State
+  // Profile Edit State (Name, Phone, Email, Avatar, Delivery Address)
   const [profileName, setProfileName] = useState(user.name || '');
   const [profileEmail, setProfileEmail] = useState(user.email || '');
   const [profilePhone, setProfilePhone] = useState(user.phone || '');
   const [profileAvatar, setProfileAvatar] = useState(user.avatar || '');
+  const [profileAddress, setProfileAddress] = useState(user.address?.fullAddress || '');
+  const [profileDivision, setProfileDivision] = useState<'Inside Dhaka' | 'Outside Dhaka'>(
+    user.address?.cityDivision || 'Inside Dhaka'
+  );
+  const [profileDistrict, setProfileDistrict] = useState(user.address?.district || 'Dhaka');
+  const [profileNotes, setProfileNotes] = useState(user.address?.notes || '');
+
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
 
@@ -168,7 +158,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setProfileEmail(user.email || '');
     setProfilePhone(user.phone || '');
     setProfileAvatar(user.avatar || '');
+    setProfileAddress(user.address?.fullAddress || '');
+    setProfileDivision(user.address?.cityDivision || 'Inside Dhaka');
+    setProfileDistrict(user.address?.district || 'Dhaka');
+    setProfileNotes(user.address?.notes || '');
   }, [user]);
+
+  // File upload handler for avatar
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Please upload an image smaller than 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setProfileAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Real-time Firestore Lifetime Orders
   const [realtimeOrders, setRealtimeOrders] = useState<Order[]>(orders);
@@ -179,11 +192,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
   useEffect(() => {
     if (user.isLoggedIn) {
+      const targetUid = (user as any).uid || user.email;
       const unsub = subscribeToUserOrdersFromFirestore(
-        (user as any).uid || user.email,
+        targetUid,
         user.email,
         (liveOrders) => {
-          if (liveOrders && liveOrders.length > 0) {
+          if (liveOrders && liveOrders.length >= 0) {
             setRealtimeOrders(liveOrders);
           }
         }
@@ -300,15 +314,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setTimeout(() => setCopiedText(null), 2000);
   };
 
-  // User Wishlist Products
-  const wishlistProducts = useMemo(() => {
-    return products.filter((p) => wishlist.includes(p.id));
-  }, [products, wishlist]);
-
   // Summary Metrics
   const totalOrdersCount = displayOrders.length;
   const totalSpent = displayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const deliveredOrdersCount = displayOrders.filter((o) => o.status === 'Delivered').length;
 
   // Order status progress helper
   const getStepProgress = (status: Order['status']) => {
@@ -318,7 +326,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       case 'Confirmed':
         return { step: 2, percent: 40, label: 'Order Confirmed', bangla: 'অর্ডার নিশ্চিত করা হয়েছে' };
       case 'Processing':
-        return { step: 3, percent: 65, label: 'Processing & Packed', bangla: 'ভল্টে প্যাকিং সম্পন্ন হয়েছে' };
+        return { step: 3, percent: 65, label: 'Processing & Packed', bangla: 'প্যাকিং সম্পন্ন হয়েছে' };
       case 'Shipped':
         return { step: 4, percent: 85, label: 'In Transit / With Courier', bangla: 'কুরিয়ারে ডেলিভারির পথে' };
       case 'Delivered':
@@ -330,20 +338,31 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  // Save Profile Changes
+  // Save Profile Changes (Updates Name, Avatar, Phone, and Delivery Address)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProfile(true);
     setProfileSuccessMsg(null);
 
+    const updatedAddress: Address = {
+      fullName: profileName.trim() || user.name || 'Member',
+      phone: profilePhone.trim() || user.phone || '',
+      cityDivision: profileDivision,
+      district: profileDistrict,
+      fullAddress: profileAddress.trim(),
+      notes: profileNotes.trim() || undefined,
+      isDefault: true,
+    };
+
     const updatedData = {
       name: profileName.trim() || user.name,
       avatar: profileAvatar.trim() || user.avatar,
       phone: profilePhone.trim() || user.phone,
+      address: updatedAddress,
     };
 
     try {
-      // Update Firestore `users/{uid}` if available
+      // Update Firestore `users/{uid}`
       const targetUid = (user as any).uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : null);
       if (db && targetUid) {
         const userRef = doc(db, 'users', targetUid);
@@ -351,24 +370,35 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           displayName: updatedData.name,
           photoURL: updatedData.avatar,
           phone: updatedData.phone,
+          address: updatedAddress,
         }).catch(async () => {
           await setDoc(userRef, {
             displayName: updatedData.name,
             photoURL: updatedData.avatar,
             phone: updatedData.phone,
+            address: updatedAddress,
           }, { merge: true });
         });
       }
 
-      // Update primary address fullName if matches
-      onUpdateAddress({
-        ...user.address,
-        fullName: updatedData.name,
-        phone: updatedData.phone || user.address.phone,
-      });
+      // Update primary address in app state
+      onUpdateAddress(updatedAddress);
 
-      setProfileSuccessMsg('✓ প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে!');
-      setTimeout(() => setProfileSuccessMsg(null), 3000);
+      // Also persist to localStorage
+      try {
+        const currentUserData = {
+          ...user,
+          name: updatedData.name,
+          avatar: updatedData.avatar,
+          phone: updatedData.phone,
+          address: updatedAddress,
+        };
+        localStorage.setItem('primevault_user', JSON.stringify(currentUserData));
+        localStorage.setItem('zeropicbd_user', JSON.stringify(currentUserData));
+      } catch {}
+
+      setProfileSuccessMsg('✓ প্রোফাইল ও ডেলিভারি ঠিকানা সফলভাবে আপডেট হয়েছে!');
+      setTimeout(() => setProfileSuccessMsg(null), 3500);
     } catch (err) {
       console.error('Error updating profile:', err);
       setProfileSuccessMsg('✓ লোকাল প্রোফাইল সংরক্ষিত হয়েছে!');
@@ -421,7 +451,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4 bg-[#F8FAFC]">
         <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 text-center shadow-xl space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#007BFF] mx-auto shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#007BFF] mx-auto shadow-xs">
             <User className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-black text-[#0A1B3D]">সাইন ইন প্রয়োজন</h2>
@@ -454,7 +484,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-4 sm:pt-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* ========================================================================= */}
-        {/* BREADCRUMB & STORE TITLE */}
+        {/* BREADCRUMB & ACCOUNT HEADER */}
         {/* ========================================================================= */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
           <div className="flex items-center gap-2">
@@ -473,7 +503,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 <span className="text-xs font-bold text-[#007BFF] uppercase tracking-wider">My Account</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-[#0A1B3D] tracking-tight">
-                স্বাগতম, {user.name || 'সম্মানিত মেম্বার'}!
+                স্বাগতম, {user.name || 'সম্মানিত গ্রাহক'}!
               </h1>
             </div>
           </div>
@@ -483,7 +513,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('wallet')}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-800 text-xs font-black flex items-center gap-1.5 shadow-xs hover:border-emerald-300 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black flex items-center gap-1.5 shadow-xs hover:bg-emerald-100 transition-all cursor-pointer"
             >
               <Wallet className="w-3.5 h-3.5 text-emerald-600" />
               <span>ওয়ালেট: ৳{user.walletBalance.toLocaleString()}</span>
@@ -507,9 +537,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         {/* MAIN RESPONSIVE LAYOUT (SIDEBAR + CONTENT) */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================= LEFT RESPONSIVE SIDEBAR ================= */}
+          {/* ================= LEFT STREAMLINED SIDEBAR ================= */}
           <aside className="lg:col-span-4 xl:col-span-3 space-y-4">
-            {/* User Identity Card */}
+            {/* User Identity Card (Clean Summary: Name, Email, Phone, Avatar, Address) */}
             <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center gap-3.5">
                 <div className="relative shrink-0">
@@ -519,13 +549,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       alt={user.name}
                       width={56}
                       height={56}
-                      loading="lazy"
-                      decoding="async"
                       className="w-14 h-14 rounded-2xl object-cover border-2 border-[#007BFF]/20 shadow-xs"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#007BFF] to-indigo-600 text-white font-black flex items-center justify-center text-xl shadow-xs">
-                      {user.name ? user.name.charAt(0).toUpperCase() : 'Z'}
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#007BFF] to-blue-600 text-white font-black flex items-center justify-center text-xl shadow-xs">
+                      {user.name ? user.name.charAt(0).toUpperCase() : 'K'}
                     </div>
                   )}
                   {user.role === 'super_admin' && (
@@ -535,54 +563,41 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   )}
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-extrabold text-[#0A1B3D] text-sm truncate max-w-[150px]">
-                      {user.name || 'Member'}
+                      {user.name || 'Kroyghor Member'}
                     </p>
-                    <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      {user.role}
-                    </span>
                   </div>
                   <p className="text-[11px] text-slate-500 truncate mt-0.5">{user.email || 'No email'}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {user.isPhoneVerified ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200">
-                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                        <span>ভেরিফাইড</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded-full border border-amber-200">
-                        <Clock className="w-2.5 h-2.5 text-amber-600" />
-                        <span>আনভেরিফাইড</span>
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-[11px] font-mono text-slate-600 mt-0.5">{user.phone || 'No phone'}</p>
                 </div>
               </div>
 
-              {/* Mini Stats Banner */}
-              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 text-center">
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">মোট অর্ডার</p>
-                  <p className="text-base font-black text-[#0A1B3D]">{totalOrdersCount}</p>
+              {/* Delivery Address Snapshot */}
+              <div className="pt-3 border-t border-slate-100 space-y-1">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-400">
+                  <MapPin className="w-3 h-3 text-[#007BFF]" />
+                  <span>ডিফল্ট ডেলিভারি ঠিকানা</span>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold">মোট খরচ</p>
-                  <p className="text-base font-black text-emerald-600 font-mono">৳{totalSpent.toLocaleString()}</p>
-                </div>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  {user.address?.fullAddress ? (
+                    <span>{user.address.fullAddress}, {user.address.district || user.address.cityDivision}</span>
+                  ) : (
+                    <span className="text-slate-400 italic">ঠিকানা যুক্ত করা হয়নি</span>
+                  )}
+                </p>
               </div>
             </div>
 
-            {/* Navigation Tabs (Desktop Side Menu) */}
+            {/* Functional Navigation Tabs (Desktop Side Menu: Orders, Cart, Wallet, Addresses, Security) */}
             <div className="p-2 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1 hidden lg:block">
               {[
-                { id: 'profile' as AccountTab, label: 'আমার প্রোফাইল (Profile)', icon: User },
-                { id: 'orders' as AccountTab, label: 'আমার অর্ডার হিস্ট্রি (My Orders)', icon: Package, badge: totalOrdersCount },
-                { id: 'cart' as AccountTab, label: 'শপিং কার্ট সামারি (Cart Summary)', icon: ShoppingBag, badge: cartTotalQty },
-                { id: 'wallet' as AccountTab, label: 'আমার ওয়ালেট ও বোনাস (My Wallet)', icon: Wallet, badge: `৳${user.walletBalance}` },
-                { id: 'addresses' as AccountTab, label: 'ডেলিভারি ঠিকানা (Addresses)', icon: MapPin, badge: savedAddressesList.length },
-                { id: 'wishlist' as AccountTab, label: 'উইশলিস্ট (Wishlist)', icon: Heart, badge: wishlist.length },
+                { id: 'profile' as AccountTab, label: 'এডিট প্রোফাইল (Edit Profile)', icon: User },
+                { id: 'orders' as AccountTab, label: 'অর্ডারসমূহ (My Orders)', icon: Package, badge: totalOrdersCount },
+                { id: 'cart' as AccountTab, label: 'শপিং কার্ট (Cart Summary)', icon: ShoppingBag, badge: cartTotalQty },
+                { id: 'wallet' as AccountTab, label: 'ওয়ালেট ও বোনাস (My Wallet)', icon: Wallet, badge: `৳${user.walletBalance}` },
+                { id: 'addresses' as AccountTab, label: 'সংরক্ষিত ঠিকানা (Addresses)', icon: MapPin, badge: savedAddressesList.length },
                 { id: 'security' as AccountTab, label: 'সিকিউরিটি ও লগআউট (Security)', icon: ShieldCheck },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -628,7 +643,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 { id: 'cart' as AccountTab, label: 'Cart', icon: ShoppingBag, count: cartTotalQty },
                 { id: 'wallet' as AccountTab, label: 'Wallet', icon: Wallet, count: `৳${user.walletBalance}` },
                 { id: 'addresses' as AccountTab, label: 'Addresses', icon: MapPin },
-                { id: 'wishlist' as AccountTab, label: 'Wishlist', icon: Heart, count: wishlist.length },
                 { id: 'security' as AccountTab, label: 'Security', icon: ShieldCheck },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -658,18 +672,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </div>
 
             {/* ========================================================================= */}
-            {/* TAB 1: PROFILE TAB */}
+            {/* TAB 1: PROFILE & STREAMLINED EDIT PROFILE TAB */}
             {/* ========================================================================= */}
             {activeTab === 'profile' && (
               <div className="space-y-6">
-                <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-6">
+                <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-6">
                   <div>
-                    <h3 className="text-base font-black text-[#0A1B3D] flex items-center gap-2">
+                    <h3 className="text-lg font-black text-[#0A1B3D] flex items-center gap-2">
                       <User className="w-5 h-5 text-[#007BFF]" />
-                      <span>কাস্টমার প্রোফাইল ইনফরমেশন</span>
+                      <span>গ্রাহক প্রোফাইল তথ্য ও সেটিংস</span>
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      আপনার ব্যক্তিগত তথ্য, প্রোফাইল ছবি এবং যোগাযোগের বিবরণ আপডেট করুন।
+                    <p className="text-xs text-slate-500 mt-1">
+                      আপনার প্রোফাইল ছবি, নাম, মোবাইল নম্বর এবং ডিফল্ট ডেলিভারি ঠিকানা আপডেট করুন।
                     </p>
                   </div>
 
@@ -680,59 +694,67 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                   )}
 
-                  <form onSubmit={handleSaveProfile} className="space-y-5">
-                    {/* Avatar Preset Chooser */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-2">
-                        প্রোফাইল অ্যাভাটার বেছে নিন বা কাস্টম URL দিন:
-                      </label>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-3">
-                        {AVATAR_PRESETS.map((preset) => (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => setProfileAvatar(preset.url)}
-                            className={`p-1 rounded-2xl border-2 transition-all cursor-pointer relative overflow-hidden group ${
-                              profileAvatar === preset.url
-                                ? 'border-[#007BFF] ring-2 ring-[#007BFF]/20 shadow-xs'
-                                : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            <img
-                              src={preset.url}
-                              alt={preset.name}
-                              width={48}
-                              height={48}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-12 rounded-xl object-cover"
-                            />
-                            {profileAvatar === preset.url && (
-                              <div className="absolute inset-0 bg-[#007BFF]/30 flex items-center justify-center text-white">
-                                <Check className="w-4 h-4 drop-shadow-md" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
+                  <form onSubmit={handleSaveProfile} className="space-y-6">
+                    {/* Profile Picture Upload & Preview */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative shrink-0">
+                        {profileAvatar ? (
+                          <img
+                            src={profileAvatar}
+                            alt={profileName || 'Avatar'}
+                            width={72}
+                            height={72}
+                            className="w-18 h-18 rounded-2xl object-cover border-2 border-[#007BFF] shadow-xs"
+                          />
+                        ) : (
+                          <div className="w-18 h-18 rounded-2xl bg-[#007BFF] text-white font-black flex items-center justify-center text-2xl shadow-xs">
+                            {profileName ? profileName.charAt(0).toUpperCase() : 'K'}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="relative">
-                        <Camera className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+                        <label className="block text-xs font-bold text-slate-700">
+                          প্রোফাইল ছবি (Profile Picture)
+                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="py-2 px-4 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-xs transition-all cursor-pointer inline-flex items-center gap-2">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>ছবি আপলোড করুন</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAvatarFileUpload}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {profileAvatar && (
+                            <button
+                              type="button"
+                              onClick={() => setProfileAvatar('')}
+                              className="py-2 px-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer"
+                            >
+                              রিমুভ করুন
+                            </button>
+                          )}
+                        </div>
                         <input
                           type="url"
-                          placeholder="Custom Avatar Image URL (https://...)"
+                          placeholder="অথবা সরাসরি ছবির লিঙ্ক (Image URL) পেস্ট করুন..."
                           value={profileAvatar}
                           onChange={(e) => setProfileAvatar(e.target.value)}
-                          className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
+                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-white text-slate-700"
                         />
                       </div>
                     </div>
 
+                    {/* Personal & Contact Info */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Name */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          আপনার পূর্ণ নাম *
+                          পূর্ণ নাম (Full Name) *
                         </label>
                         <div className="relative">
                           <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -741,8 +763,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             required
                             value={profileName}
                             onChange={(e) => setProfileName(e.target.value)}
-                            placeholder="Full Name"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
+                            placeholder="আপনার নাম লিখুন"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 text-slate-800 font-semibold"
                           />
                         </div>
                       </div>
@@ -750,24 +772,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       {/* Phone */}
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          মোবাইল নম্বর
+                          মোবাইল নম্বর (Mobile Number) *
                         </label>
                         <div className="relative">
                           <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="tel"
+                            required
                             value={profilePhone}
                             onChange={(e) => setProfilePhone(e.target.value)}
-                            placeholder="017xxxxxxxx"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-mono"
+                            placeholder="01XXXXXXXXX"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-mono text-slate-800 font-bold"
                           />
                         </div>
                       </div>
 
-                      {/* Email (Readonly info) */}
+                      {/* Email (Readonly) */}
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          রেজিস্টার্ড ইমেইল অ্যাড্রেস
+                          রেজিস্টার্ড ইমেইল অ্যাড্রেস (Gmail / Email)
                         </label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -778,9 +801,58 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-100 text-slate-500 font-mono cursor-not-allowed"
                           />
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          ইমেইল অ্যাকাউন্ট পরিবর্তন করতে কাস্টমার সাপোর্টে যোগাযোগ করুন।
-                        </p>
+                      </div>
+                    </div>
+
+                    {/* Delivery Address Section */}
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#007BFF]" />
+                        <h4 className="text-xs font-black uppercase tracking-wide text-slate-700">
+                          ডিফল্ট ডেলিভারি ঠিকানা (Default Delivery Address)
+                        </h4>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            সিটি / ডেলিভারি অঞ্চল *
+                          </label>
+                          <select
+                            value={profileDivision}
+                            onChange={(e) => setProfileDivision(e.target.value as any)}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-semibold text-slate-700 cursor-pointer"
+                          >
+                            <option value="Inside Dhaka">Inside Dhaka (ঢাকা সিটির ভেতরে - ৳৬০)</option>
+                            <option value="Outside Dhaka">Outside Dhaka (ঢাকা সিটির বাইরে - ৳১২০)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            জেলা (District) *
+                          </label>
+                          <input
+                            type="text"
+                            value={profileDistrict}
+                            onChange={(e) => setProfileDistrict(e.target.value)}
+                            placeholder="যেমন: Dhaka, Chattogram, Sylhet"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-semibold text-slate-800"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            পূর্ণ ঠিকানা (বাসা নং, রোড নং, এলাকা / থানা) *
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={profileAddress}
+                            onChange={(e) => setProfileAddress(e.target.value)}
+                            placeholder="বিস্তারিত ডেলিভারি ঠিকানা লিখুন..."
+                            className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 text-slate-800"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -788,10 +860,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       <button
                         type="submit"
                         disabled={isSavingProfile}
-                        className="py-2.5 px-6 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
+                        className="py-3 px-8 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 active:scale-98"
                       >
-                        {isSavingProfile ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        <span>প্রোফাইল পরিবর্তন সংরক্ষণ করুন</span>
+                        {isSavingProfile ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        <span>প্রোফাইল তথ্য সংরক্ষণ করুন</span>
                       </button>
                     </div>
                   </form>
@@ -848,7 +920,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
                     <h3 className="text-base font-black text-[#0A1B3D]">কোন অর্ডার পাওয়া যায়নি</h3>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      {orderSearchQuery ? 'সার্চ ফিল্টারের সাথে কোন অর্ডার মিলেনি।' : 'আপনি এখনও কোন পার্সেল অর্ডার করেননি।'}
+                      {orderSearchQuery ? 'সার্চ ফিল্টারের সাথে কোন অর্ডার মিলেনি।' : 'আপনার অ্যাকাউন্টে এখনও কোন অর্ডার রেকর্ড হয়নি।'}
                     </p>
                     <button
                       type="button"
@@ -862,7 +934,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 ) : (
                   <div className="space-y-3.5">
                     {filteredOrders.map((order) => {
-                      const progress = getStepProgress(order.status);
                       const statusBadgeColors: Record<string, string> = {
                         Pending: 'bg-amber-50 text-amber-700 border-amber-200',
                         Confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -928,12 +999,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               <div key={idx} className="flex items-center justify-between gap-3 text-xs">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <img
-                                    src={item.product?.image || '/kroyghor-logo.png'}
+                                    src={item.product?.image || '/kroyghor-icon.svg'}
                                     alt={item.product?.title || 'Product'}
                                     width={40}
                                     height={40}
-                                    loading="lazy"
-                                    decoding="async"
                                     className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
                                   />
                                   <div className="truncate">
@@ -960,7 +1029,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             </div>
 
                             <div className="flex items-center gap-2">
-                              {/* Track parcel */}
                               {onTrackOrder && (
                                 <button
                                   type="button"
@@ -972,7 +1040,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                 </button>
                               )}
 
-                              {/* Reorder button */}
                               <button
                                 type="button"
                                 onClick={() => onReorder(order)}
@@ -992,7 +1059,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* TAB: CART SUMMARY TAB */}
+            {/* TAB 3: CART SUMMARY TAB */}
             {/* ========================================================================= */}
             {activeTab === 'cart' && (
               <div className="space-y-6">
@@ -1001,114 +1068,71 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <div>
                       <h3 className="text-base font-black text-[#0A1B3D] flex items-center gap-2">
                         <ShoppingBag className="w-5 h-5 text-[#007BFF]" />
-                        <span>শপিং কার্ট সামারি (Current Cart)</span>
+                        <span>আমার শপিং কার্ট সামারি ({cartTotalQty} টি আইটেম)</span>
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        আপনার ব্যাগে সংরক্ষিত পণ্যের বিবরণ, মোট মূল্য ও দ্রুত চেকআউট করুন।
+                        আপনার কার্টে থাকা পণ্যগুলোর তালিকা পর্যালোচনা করুন এবং চেকআউটে যান।
                       </p>
                     </div>
 
-                    {cartItems.length > 0 && onOpenCart && (
+                    {cartItems.length > 0 && onProceedToCheckout && (
                       <button
                         type="button"
-                        onClick={onOpenCart}
-                        className="py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                        onClick={onProceedToCheckout}
+                        className="py-2.5 px-5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 shrink-0"
                       >
-                        <span>সম্পূর্ণ কার্ট ভিউ দেখুন</span>
-                        <ChevronRight className="w-4 h-4" />
+                        <span>সরাসরি চেকআউট</span>
+                        <ArrowRight className="w-4 h-4" />
                       </button>
                     )}
                   </div>
 
                   {cartItems.length === 0 ? (
-                    <div className="text-center py-12 px-4 space-y-4">
-                      <div className="w-16 h-16 rounded-3xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto border border-orange-200 shadow-2xs">
-                        <ShoppingBag className="w-8 h-8 stroke-[1.6]" />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="font-extrabold text-slate-900 text-base">আপনার কার্ট বর্তমানে খালি আছে</h4>
-                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                          আমাদের নতুন কালেকশন থেকে আপনার পছন্দের পণ্য কার্টে যুক্ত করুন।
-                        </p>
-                      </div>
+                    <div className="p-12 text-center space-y-3">
+                      <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
+                      <h4 className="text-base font-black text-[#0A1B3D]">আপনার কার্ট বর্তমানে খালি</h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        পছন্দের পণ্য কার্টে যুক্ত করে দ্রুত ও সহজে অর্ডার সম্পন্ন করুন।
+                      </p>
                       <button
                         type="button"
                         onClick={onBackToShop}
-                        className="py-2.5 px-6 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                        className="py-2.5 px-6 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
                       >
-                        শপিং শুরু করুন
+                        <span>শপিং করুন</span>
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Cart Items List */}
-                      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-slate-50/50 p-3 sm:p-4 space-y-3">
+                      <div className="divide-y divide-slate-100">
                         {cartItems.map((item, idx) => (
-                          <div key={idx} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
+                          <div key={idx} className="py-3.5 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                               <img
-                                src={item.product.image}
+                                src={item.product.image || '/kroyghor-icon.svg'}
                                 alt={item.product.title}
-                                width={56}
-                                height={56}
-                                className="w-14 h-14 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
                               />
-                              <div className="min-w-0">
-                                <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-                                  {item.product.title}
-                                </p>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
-                                  {item.quantity} x ৳{item.product.price.toLocaleString()}
-                                  {item.selectedSize && <span className="ml-1.5 font-semibold text-indigo-600">({item.selectedSize})</span>}
+                              <div className="truncate">
+                                <p className="font-extrabold text-xs text-[#0A1B3D] truncate">{item.product.title}</p>
+                                <p className="text-[11px] text-slate-500">
+                                  পরিমাণ: {item.quantity} × ৳{item.product.price.toLocaleString()}
+                                  {item.selectedSize ? ` • সাইজ: ${item.selectedSize}` : ''}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0 font-mono font-black text-slate-900 text-sm">
+                            <span className="font-mono font-black text-sm text-[#0A1B3D]">
                               ৳{(item.product.price * item.quantity).toLocaleString()}
-                            </div>
+                            </span>
                           </div>
                         ))}
                       </div>
 
-                      {/* Summary Breakdown */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <div className="flex justify-between text-xs text-slate-600">
-                          <span>সাবটোটাল ({cartTotalQty} টি পণ্য):</span>
-                          <span className="font-mono font-bold text-slate-800">৳{cartSubtotal.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-xs text-slate-600">
-                          <span>ডেলিভারি চার্জ:</span>
-                          <span className="font-mono font-bold text-slate-800">৳৬০ (ঢাকা) / ৳১২০ (ঢাকার বাইরে)</span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline font-bold text-sm text-slate-900">
-                          <span>সর্বমোট আনুমানিক বিল:</span>
-                          <span className="text-base font-black text-[#007BFF] font-mono">
-                            ৳{(cartSubtotal + 60).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                        {onProceedToCheckout && (
-                          <button
-                            type="button"
-                            onClick={onProceedToCheckout}
-                            className="flex-1 py-3 px-5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
-                          >
-                            <span>চেকআউট সম্পন্ন করুন</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        )}
-                        {onOpenCart && (
-                          <button
-                            type="button"
-                            onClick={onOpenCart}
-                            className="py-3 px-5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
-                          >
-                            কার্ট আপডেট ও কুপন অ্যাপ্লাই
-                          </button>
-                        )}
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-600">কার্ট সাবটোটাল:</span>
+                        <span className="text-base font-black text-[#007BFF] font-mono">৳{cartSubtotal.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
@@ -1117,157 +1141,73 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* TAB 3: MY WALLET TAB */}
+            {/* TAB 4: WALLET & YOUTUBE BONUS TAB */}
             {/* ========================================================================= */}
             {activeTab === 'wallet' && (
               <div className="space-y-6">
-                {/* Large Balance Card (Clean Light Theme) */}
-                <div className="p-6 rounded-3xl bg-gradient-to-tr from-blue-50/90 via-indigo-50/40 to-white text-slate-900 border border-blue-200/80 shadow-md relative overflow-hidden">
-                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-[#007BFF] text-xs font-bold uppercase tracking-wider">
-                        <Wallet className="w-4 h-4" />
-                        <span>Kroyghor ডিজিটাল ওয়ালেট ব্যালেন্স</span>
-                      </div>
-                      <p className="text-3xl sm:text-4xl font-black text-[#0A1B3D] font-mono tracking-tight">
-                        ৳{user.walletBalance.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        যেকোনো অর্ডারে চেকআউটে তাৎক্ষণিক ডিসকাউন্ট হিসেবে ব্যবহারযোগ্য।
-                      </p>
+                {/* Main Balance Card */}
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-[#0A1B3D] to-slate-950 text-white shadow-xl space-y-4 relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-5 h-5 text-emerald-400" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Kroyghor Wallet Balance
+                      </span>
                     </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Live Balance
+                    </span>
+                  </div>
 
-                    <div className="flex flex-col sm:items-end gap-2">
-                      <div className="px-3.5 py-1.5 rounded-2xl bg-white border border-emerald-200 text-xs text-emerald-800 shadow-2xs">
-                        <span className="font-black text-emerald-600">✓ ১০০% ইনস্ট্যান্ট রিডিমযোগ্য</span>
-                      </div>
+                  <div>
+                    <div className="text-3xl sm:text-4xl font-mono font-black text-emerald-400 tracking-tight">
+                      ৳{user.walletBalance.toLocaleString()}
                     </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      প্রতিটি চেকআউটে আপনার ওয়ালেট ব্যালেন্স স্বয়ংক্রিয়ভাবে ডিসকাউন্ট হিসেবে ব্যবহার করতে পারবেন।
+                    </p>
                   </div>
                 </div>
 
-                {/* Claim ৳20 YouTube Bonus Card */}
+                {/* YouTube Signup Bonus Card */}
                 <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0 shadow-xs">
-                        <Youtube className="w-7 h-7" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm sm:text-base font-black text-[#0A1B3D]">
-                            YouTube সাবস্ক্রিপশন বোনাস (৳২০)
-                          </h4>
-                          <span className="px-2 py-0.2 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200">
-                            বোনাস রিওয়ার্ড
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          আমাদের অফিশিয়াল ইউটিউব চ্যানেল সাবস্ক্রাইব করে আপনার ওয়ালেটে ৳২০ বোনাস গ্রহণ করুন।
-                        </p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Youtube className="w-5 h-5 text-rose-600 fill-rose-600" />
+                      <h4 className="text-sm font-black text-[#0A1B3D]">YouTube সাবস্ক্রাইবার বোনাস (৳২০)</h4>
                     </div>
-
-                    <a
-                      href="https://www.youtube.com/@kroy-ghor"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-xs shrink-0"
-                    >
-                      <Youtube className="w-3.5 h-3.5" />
-                      <span>ভিজিট চ্যানেল</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {user.hasReceivedBonus ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        ✓ প্রাপ্ত হয়েছে
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                        উপহার অফার
+                      </span>
+                    )}
                   </div>
 
-                  {/* Submission Status & Handle Form */}
-                  {user.hasClaimedYouTubeBonus || ytClaimStatus?.status === 'approved' ? (
-                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                      <div>
-                        <p className="font-black text-sm">৳২০ ইউটিউব বোনাস সফলভাবে ওয়ালেটে যুক্ত হয়েছে!</p>
-                        <p className="text-[11px] text-emerald-700 mt-0.5">
-                          আপনার অ্যাকাউন্টে YouTube সাবস্ক্রাইবার বোনাস অ্যাক্টিভ রয়েছে।
-                        </p>
-                      </div>
-                    </div>
-                  ) : ytClaimStatus?.status === 'pending' ? (
-                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2.5">
-                      <Clock className="w-5 h-5 text-amber-600 shrink-0" />
-                      <div>
-                        <p className="font-black">যাচাইকরণ প্রক্রিয়াধীন (Pending Verification)</p>
-                        <p className="text-[11px] text-amber-700 mt-0.5">
-                          হ্যান্ডেল <code className="font-mono font-bold bg-amber-100 px-1 py-0.2 rounded">{ytClaimStatus.youtubeHandle}</code> জমা হয়েছে। অ্যাডমিন ভেরিফিকেশন সম্পন্ন হলে ৳২০ যোগ হবে।
-                        </p>
-                      </div>
+                  {user.hasReceivedBonus ? (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs text-emerald-900 font-semibold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>আপনি ইতোমধ্যে ৳২০ রেজিস্ট্রেশন বোনাস পেয়েছেন!</span>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {/* Prominent Instant Automatic Check Button */}
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        আমাদের অফিসিয়াল YouTube চ্যানেল সাবস্ক্রাইব করুন এবং সাথে সাথে আপনার ওয়ালেটে ৳২০ বোনাস গ্রহণ করুন।
+                      </p>
+
                       {onOpenYouTubeBonusModal && (
-                        <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="space-y-1">
-                            <h5 className="text-xs font-bold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
-                              <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
-                              <span>তাত্ক্ষণিক অটো ভেরিফিকেশন (Instant Automated Check)</span>
-                            </h5>
-                            <p className="text-[11px] text-slate-500">
-                              Google অ্যাকাউন্ট কানেক্ট করে ১-সেকেন্ডে আপনার সাবস্ক্রিপশন নিশ্চিত করুন এবং ওয়ালেটে ৳২০ যোগ করুন।
-                            </p>
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={onOpenYouTubeBonusModal}
-                            className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                          >
-                            <Youtube className="w-4 h-4 fill-white" />
-                            <span>১-ক্লিক অটো ভেরিফাই</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={onOpenYouTubeBonusModal}
+                          className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          <Youtube className="w-4 h-4 fill-white" />
+                          <span>১-ক্লিক বোনাস ভেরিফাই করুন</span>
+                        </button>
                       )}
-
-                      {/* Manual Review Handle Fallback */}
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                        <p className="text-[11px] font-semibold text-slate-500">
-                          অথবা নিচে আপনার YouTube হ্যান্ডেল নাম লিখে ম্যানুয়াল ভেরিফিকেশনের জন্য পাঠান:
-                        </p>
-
-                        {ytFeedbackMsg && (
-                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
-                            {ytFeedbackMsg}
-                          </div>
-                        )}
-
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                          <div className="relative flex-1">
-                            <Youtube className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="text"
-                              placeholder="আপনার YouTube হ্যান্ডেল বা নাম লিখুন (যেমন: @yourhandle)"
-                              value={ytHandleInput}
-                              onChange={(e) => setYtHandleInput(e.target.value)}
-                              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={handleSubmitYtClaim}
-                            disabled={isSubmittingYt || !ytHandleInput.trim()}
-                            className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
-                          >
-                            {isSubmittingYt ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Gift className="w-4 h-4" />}
-                            <span>ম্যানুয়াল ভেরিফাই রিকোয়েস্ট</span>
-                          </button>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-                          <span>১. চ্যানেল সাবস্ক্রাইব করুন</span>
-                          <span>•</span>
-                          <span>২. আপনার হ্যান্ডেল লিখে সাবমিট করুন</span>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1308,7 +1248,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* TAB 4: SAVED ADDRESSES TAB */}
+            {/* TAB 5: SAVED ADDRESSES TAB */}
             {/* ========================================================================= */}
             {activeTab === 'addresses' && (
               <div className="space-y-4">
@@ -1362,7 +1302,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="font-extrabold text-[#0A1B3D] text-sm">{addr.fullName}</span>
-                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black uppercase bg-blue-50 text-[#007BFF] border border-blue-200">
                             {addr.label || 'Saved'}
                           </span>
                           {addr.isDefault && (
@@ -1407,84 +1347,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* ========================================================================= */}
-            {/* TAB 5: WISHLIST TAB */}
-            {/* ========================================================================= */}
-            {activeTab === 'wishlist' && (
-              <div className="space-y-4">
-                <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-xs">
-                  <h3 className="text-base font-black text-[#0A1B3D] flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-rose-500" />
-                    <span>সংরক্ষিত উইশলিস্ট ({wishlistProducts.length})</span>
-                  </h3>
-                </div>
-
-                {wishlistProducts.length === 0 ? (
-                  <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 space-y-3">
-                    <Heart className="w-12 h-12 text-slate-300 mx-auto" />
-                    <h3 className="text-base font-black text-[#0A1B3D]">উইশলিস্ট খালি</h3>
-                    <p className="text-xs text-slate-500">
-                      আপনার পছন্দের পণ্যগুলোতে হার্ট আইকন ক্লিক করে উইশলিস্টে যুক্ত করুন।
-                    </p>
-                    <button
-                      type="button"
-                      onClick={onBackToShop}
-                      className="mt-2 py-2 px-5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
-                    >
-                      <span>কালেকশন এক্সপ্লোর করুন</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {wishlistProducts.map((prod) => (
-                      <div
-                        key={prod.id}
-                        className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between space-y-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={prod.image}
-                            alt={prod.title}
-                            width={64}
-                            height={64}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <p className="font-extrabold text-xs text-[#0A1B3D] truncate">{prod.title}</p>
-                            <p className="text-[11px] text-slate-400 truncate">{prod.category}</p>
-                            <p className="text-sm font-black text-emerald-600 font-mono mt-1">৳{prod.price.toLocaleString()}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onAddToCart(prod);
-                            }}
-                            className="flex-1 py-2 px-3 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>কার্টে নিন</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onToggleWishlist(prod.id)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title="Remove from Wishlist"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
 
@@ -1582,7 +1444,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   <span className="font-bold text-[#0A1B3D]">ডেলিভারি ট্র্যাকিং স্ট্যাটাস:</span>
                   <span className="font-bold text-[#007BFF]">{getStepProgress(selectedDetailOrder.status).label}</span>
                 </div>
-                {/* Progress Bar */}
                 <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#007BFF] to-emerald-500 transition-all duration-500 rounded-full"
@@ -1602,12 +1463,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={item.product?.image || '/kroyghor-logo.png'}
+                          src={item.product?.image || '/kroyghor-icon.svg'}
                           alt={item.product?.title || 'Product'}
                           width={48}
                           height={48}
-                          loading="lazy"
-                          decoding="async"
                           className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
                         />
                         <div className="truncate">
@@ -1638,7 +1497,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   <span>৳{selectedDetailOrder.deliveryFee}</span>
                 </div>
                 {selectedDetailOrder.walletDeducted > 0 && (
-                  <div className="flex justify-between text-cyan-600 font-bold">
+                  <div className="flex justify-between text-emerald-600 font-bold">
                     <span>ওয়ালেট ডিসকাউন্ট:</span>
                     <span>-৳{selectedDetailOrder.walletDeducted}</span>
                   </div>
@@ -1649,186 +1508,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <span>-৳{selectedDetailOrder.discount}</span>
                   </div>
                 )}
-                <div className="pt-2 border-t border-slate-200 flex justify-between text-sm font-black text-[#0A1B3D]">
+                <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-[#0A1B3D] text-sm">
                   <span>সর্বমোট প্রদেয়:</span>
-                  <span className="text-emerald-600">৳{selectedDetailOrder.total?.toLocaleString()}</span>
+                  <span>৳{selectedDetailOrder.total?.toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* Shipping Address & Payment Method */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">ডেলিভারি ঠিকানা</p>
-                  <p className="font-bold text-[#0A1B3D]">{selectedDetailOrder.address?.fullName}</p>
-                  <p className="text-slate-600 leading-relaxed">{selectedDetailOrder.address?.fullAddress}</p>
-                  <p className="text-slate-500 font-mono">{selectedDetailOrder.address?.cityDivision} • {selectedDetailOrder.address?.phone}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-slate-400">পেমেন্ট মেথড ও স্ট্যাটাস</p>
-                  <p className="font-bold text-[#0A1B3D] uppercase">{selectedDetailOrder.paymentMethod}</p>
-                  <p className="text-emerald-600 font-bold">পেমেন্ট স্ট্যাটাস: {selectedDetailOrder.paymentStatus || 'Pending'}</p>
-                  {selectedDetailOrder.trxId && (
-                    <p className="text-slate-500 font-mono text-[10px]">TrxID: {selectedDetailOrder.trxId}</p>
-                  )}
-                </div>
+              {/* Delivery Address Details */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                <h4 className="font-black text-slate-700 uppercase tracking-wider text-[11px]">ডেলিভারি ঠিকানা</h4>
+                <p className="font-bold text-[#0A1B3D]">{selectedDetailOrder.address?.fullName}</p>
+                <p className="text-slate-600 leading-relaxed">{selectedDetailOrder.address?.fullAddress}</p>
+                <p className="text-slate-500 font-mono">
+                  {selectedDetailOrder.address?.cityDivision} • ফোন: {selectedDetailOrder.address?.phone}
+                </p>
               </div>
             </div>
-
-            {/* Modal Bottom Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedInvoiceOrder(selectedDetailOrder)}
-                className="py-2 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>প্রিন্ট ইনভয়েস</span>
-              </button>
-
-              <div className="flex items-center gap-2">
-                {onSubmitReturnRequest && selectedDetailOrder.status === 'Delivered' && !selectedDetailOrder.returnRequest && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReturnTargetOrder(selectedDetailOrder);
-                      setSelectedDetailOrder(null);
-                    }}
-                    className="py-2 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>৭-দিনের রিটার্ন আবেদন</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onReorder(selectedDetailOrder);
-                    setSelectedDetailOrder(null);
-                  }}
-                  className="py-2 px-5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>পুনরায় অর্ডার করুন</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* ADDRESS CREATE/EDIT MODAL */}
-      {/* ========================================================================= */}
-      {showAddressModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-black text-[#0A1B3D] text-base">
-                {editingAddressIndex !== null ? 'ডেলিভারি ঠিকানা এডিট করুন' : 'নতুন ডেলিভারি ঠিকানা যোগ করুন'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddressModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveAddress} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">পূর্ণ নাম *</label>
-                <input
-                  type="text"
-                  required
-                  value={addressForm.fullName}
-                  onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
-                  placeholder="Receiver Name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">মোবাইল নম্বর *</label>
-                <input
-                  type="tel"
-                  required
-                  value={addressForm.phone}
-                  onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-mono"
-                  placeholder="017xxxxxxxx"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">এরিয়া</label>
-                  <select
-                    value={addressForm.cityDivision}
-                    onChange={(e) => setAddressForm({ ...addressForm, cityDivision: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
-                  >
-                    <option value="Inside Dhaka">Inside Dhaka</option>
-                    <option value="Outside Dhaka">Outside Dhaka</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">লেবেল</label>
-                  <input
-                    type="text"
-                    value={addressForm.label || 'Home'}
-                    onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
-                    placeholder="Home / Office"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">পূর্ণ ঠিকানা *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={addressForm.fullAddress}
-                  onChange={(e) => setAddressForm({ ...addressForm, fullAddress: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50"
-                  placeholder="House, Road, Flat, Area, Thana, District"
-                />
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={addressForm.isDefault}
-                  onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
-                  className="rounded text-[#007BFF]"
-                />
-                <span>ডিফল্ট প্রাইমারি ঠিকানা হিসেবে নির্ধারণ করুন</span>
-              </label>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddressModal(false)}
-                  className="py-2 px-4 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="submit"
-                  className="py-2 px-5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md"
-                >
-                  সংরক্ষণ করুন
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
@@ -1845,21 +1540,119 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 7-DAY RETURN REQUEST MODAL */}
+      {/* ADD / EDIT ADDRESS MODAL */}
       {/* ========================================================================= */}
-      {returnTargetOrder && (
-        <ReturnRequestModal
-          isOpen={Boolean(returnTargetOrder)}
-          onClose={() => setReturnTargetOrder(null)}
-          order={returnTargetOrder}
-          onSubmit={(orderId, returnData) => {
-            if (onSubmitReturnRequest) {
-              onSubmitReturnRequest(orderId, returnData);
-            }
-            setReturnTargetOrder(null);
-          }}
-          onOpenReturnPolicy={onOpenReturnPolicy}
-        />
+      {showAddressModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto space-y-4">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-black text-base text-[#0A1B3D] flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-[#007BFF]" />
+                <span>{editingAddressIndex !== null ? 'ঠিকানা সম্পাদন করুন' : 'নতুন ডেলিভারি ঠিকানা'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddressModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddress} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">প্রাপকের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={addressForm.fullName}
+                  onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#007BFF]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">মোবাইল নম্বর *</label>
+                <input
+                  type="tel"
+                  required
+                  value={addressForm.phone}
+                  onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#007BFF] font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">অঞ্চল *</label>
+                  <select
+                    value={addressForm.cityDivision}
+                    onChange={(e) => setAddressForm({ ...addressForm, cityDivision: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#007BFF]"
+                  >
+                    <option value="Inside Dhaka">Inside Dhaka</option>
+                    <option value="Outside Dhaka">Outside Dhaka</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">জেলা (District) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={addressForm.district || 'Dhaka'}
+                    onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#007BFF]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">পূর্ণ ঠিকানা (বাড়ি/রোড/এলাকা) *</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={addressForm.fullAddress}
+                  onChange={(e) => setAddressForm({ ...addressForm, fullAddress: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#007BFF]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="make-default"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                  className="rounded text-[#007BFF] focus:ring-[#007BFF]"
+                />
+                <label htmlFor="make-default" className="text-slate-700 font-semibold cursor-pointer">
+                  এটি আমার প্রাথমিক (Primary) ডেলিভারি ঠিকানা হিসেবে সেট করুন
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddressModal(false)}
+                  className="py-2 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-5 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold shadow-md cursor-pointer"
+                >
+                  সংরক্ষণ করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

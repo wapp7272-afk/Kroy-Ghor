@@ -179,16 +179,36 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
     document.body.removeChild(link);
   };
 
-  // Day bars
-  const dayBars = [
-    { day: 'Wed', amount: Math.round(totalGMV * 0.11), orders: Math.max(1, Math.round(filteredOrders.length * 0.12)) },
-    { day: 'Thu', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(filteredOrders.length * 0.15)) },
-    { day: 'Fri', amount: Math.round(totalGMV * 0.22), orders: Math.max(2, Math.round(filteredOrders.length * 0.24)) },
-    { day: 'Sat', amount: Math.round(totalGMV * 0.18), orders: Math.max(1, Math.round(filteredOrders.length * 0.19)) },
-    { day: 'Sun', amount: Math.round(totalGMV * 0.12), orders: Math.max(1, Math.round(filteredOrders.length * 0.11)) },
-    { day: 'Mon', amount: Math.round(totalGMV * 0.09), orders: Math.max(1, Math.round(filteredOrders.length * 0.08)) },
-    { day: 'Today', amount: Math.round(totalGMV * 0.14), orders: Math.max(1, Math.round(filteredOrders.length * 0.11)) },
-  ];
+  // Day bars strictly computed from actual real order dates
+  const dayBars = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const now = new Date();
+    const result = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayName = i === 0 ? 'Today' : days[d.getDay()];
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+      const dayOrders = filteredOrders.filter((o) => {
+        const rawCreatedAt = (o as any).createdAt;
+        const time = rawCreatedAt
+          ? new Date(rawCreatedAt.seconds ? rawCreatedAt.seconds * 1000 : rawCreatedAt).getTime()
+          : (o.date ? new Date(o.date).getTime() : 0);
+        return time >= dayStart && time < dayEnd;
+      });
+
+      const amount = dayOrders.reduce((sum, o) => sum + o.subtotal, 0);
+      result.push({
+        day: dayName,
+        amount,
+        orders: dayOrders.length,
+      });
+    }
+    return result;
+  }, [filteredOrders]);
+
   const maxDayAmount = Math.max(...dayBars.map((d) => d.amount), 1000);
 
   return (
