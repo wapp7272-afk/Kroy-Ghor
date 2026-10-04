@@ -43,26 +43,26 @@ export const Logo: React.FC<LogoProps> = React.memo(({
       tagline: 'text-[8px]',
     },
     sm: {
-      img: 'h-8 w-auto max-h-8',
-      iconImg: 'h-8 w-auto max-h-8 max-w-[110px]',
+      img: 'h-9 w-auto max-h-9',
+      iconImg: 'h-9 w-auto max-h-9 max-w-[130px]',
       text: 'text-xl',
       tagline: 'text-[9px]',
     },
     md: {
-      img: 'h-10 w-auto max-h-10',
-      iconImg: 'h-9 sm:h-10 w-auto max-h-10 max-w-[140px]',
+      img: 'h-11 sm:h-12 w-auto max-h-12',
+      iconImg: 'h-11 sm:h-12 w-auto max-h-12 max-w-[170px]',
       text: 'text-2xl',
       tagline: 'text-[10px]',
     },
     lg: {
-      img: 'h-12 w-auto max-h-12',
-      iconImg: 'h-11 sm:h-12 w-auto max-h-12 max-w-[160px]',
+      img: 'h-11 sm:h-13 w-auto max-h-13',
+      iconImg: 'h-11 sm:h-13 w-auto max-h-13 max-w-[190px]',
       text: 'text-3xl',
       tagline: 'text-[11px]',
     },
     xl: {
-      img: 'h-16 w-auto max-h-16',
-      iconImg: 'h-14 sm:h-16 w-auto max-h-16 max-w-[200px]',
+      img: 'h-13 sm:h-14 md:h-15 w-auto max-h-16',
+      iconImg: 'h-13 sm:h-14 md:h-15 w-auto max-h-16 max-w-[220px]',
       text: 'text-4xl',
       tagline: 'text-[12px]',
     },
@@ -70,10 +70,10 @@ export const Logo: React.FC<LogoProps> = React.memo(({
 
   const numericDimensions = {
     xs: { width: 80, height: 24 },
-    sm: { width: 110, height: 32 },
-    md: { width: 140, height: 40 },
-    lg: { width: 160, height: 48 },
-    xl: { width: 200, height: 64 },
+    sm: { width: 130, height: 36 },
+    md: { width: 170, height: 48 },
+    lg: { width: 210, height: 60 },
+    xl: { width: 250, height: 72 },
   };
 
   const currentSize = sizeDimensions[size] || sizeDimensions.md;

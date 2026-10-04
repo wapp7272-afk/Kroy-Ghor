@@ -282,7 +282,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = React.memo(({
             <div className="p-3.5 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/50 space-y-2.5">
               <div className="flex items-center gap-2">
                 <Youtube className="w-5 h-5 text-red-600 fill-current" />
-                <span className="text-xs font-extrabold text-slate-900 dark:text-white">@kroy-ghor Official</span>
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">@kroy-ghor-office</span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                 আমাদের চ্যানেল সাবস্ক্রাইব করলেই ওয়ালেটে সাথে সাথে পেয়ে যাবেন <strong className="text-emerald-600 dark:text-[#10B981] font-bold">৳২০ বোনাস</strong>!

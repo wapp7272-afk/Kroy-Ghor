@@ -42,15 +42,20 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
   const filteredOrders = useMemo(() => {
     if (timeRange === 'all') return orders;
     
-    // Simulated realistic subsets for demonstration
-    if (timeRange === 'today') {
-      return orders.slice(0, Math.max(1, Math.round(orders.length * 0.2)));
-    }
-    if (timeRange === 'week') {
-      return orders.slice(0, Math.max(2, Math.round(orders.length * 0.55)));
-    }
-    // month
-    return orders.slice(0, Math.max(3, Math.round(orders.length * 0.85)));
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const weekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
+    const monthStart = todayStart - 30 * 24 * 60 * 60 * 1000;
+
+    return orders.filter((o) => {
+      const rawCreatedAt = (o as any).createdAt;
+      const orderTime = rawCreatedAt ? new Date(rawCreatedAt).getTime() : (o.date ? new Date(o.date).getTime() : 0);
+      if (!orderTime) return true;
+      if (timeRange === 'today') return orderTime >= todayStart;
+      if (timeRange === 'week') return orderTime >= weekStart;
+      if (timeRange === 'month') return orderTime >= monthStart;
+      return true;
+    });
   }, [orders, timeRange]);
 
   // Financial computations
@@ -76,13 +81,15 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
   const insideDhakaGMV = insideDhakaOrders.reduce((sum, o) => sum + o.subtotal, 0);
   const outsideDhakaGMV = outsideDhakaOrders.reduce((sum, o) => sum + o.subtotal, 0);
 
-  // Unique Customers count
+  // Unique Customers count from real orders
   const customerSet = new Set<string>();
   filteredOrders.forEach((o) => {
     if (o.address?.phone) customerSet.add(o.address.phone);
-    if (o.address?.fullName) customerSet.add(o.address.fullName.toLowerCase());
+    else if (o.customerPhone) customerSet.add(o.customerPhone);
+    else if (o.customerEmail) customerSet.add(o.customerEmail.toLowerCase());
+    else if (o.address?.fullName) customerSet.add(o.address.fullName.toLowerCase());
   });
-  const totalCustomersCount = Math.max(customerSet.size, timeRange === 'today' ? 18 : 142);
+  const totalCustomersCount = customerSet.size;
 
   // Payment Breakdown
   const paymentCounts = filteredOrders.reduce((acc, o) => {
@@ -96,7 +103,7 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
   const cardCount = paymentCounts['card'] || 0;
   const totalOrdersCount = filteredOrders.length || 1;
 
-  // Top 5 Best-Selling Products Leaderboard
+  // Top 5 Best-Selling Products Leaderboard based on real order sales
   const topProducts = useMemo(() => {
     const salesMap = new Map<string, { product: Product; unitsSold: number; revenue: number }>();
     filteredOrders.forEach((o) => {
@@ -116,8 +123,8 @@ export const AdminOverviewAnalytics: React.FC<AdminOverviewAnalyticsProps> = ({
       if (!salesMap.has(p.id) && (p.soldCount || 0) > 0) {
         salesMap.set(p.id, {
           product: p,
-          unitsSold: p.soldCount || 10,
-          revenue: (p.soldCount || 10) * p.price,
+          unitsSold: p.soldCount || 0,
+          revenue: (p.soldCount || 0) * p.price,
         });
       }
     });

@@ -20,7 +20,9 @@ import {
   Smartphone,
   RefreshCw,
   Coins,
-  ExternalLink
+  ExternalLink,
+  Youtube,
+  Gift
 } from 'lucide-react';
 import { UserProfile, Address, WalletTransaction } from '../types';
 import { isFirebaseConfigured, signInWithGoogle } from '../lib/firebaseAuth';
@@ -723,7 +725,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* ================= REGISTER FORM ================= */}
           {!user.isLoggedIn && tab === 'signup' && (
-            <form onSubmit={handleSignUpSubmit} className="space-y-3.5">
+            <div className="space-y-4">
+              {/* Clear YouTube Signup Bonus Banner Notice */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-red-500/10 via-amber-500/10 to-orange-500/10 border border-red-200/90 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                    <Youtube className="w-4.5 h-4.5 fill-current" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug">
+                      Get 20 BDT Signup Bonus after subscribing to our YouTube channel
+                    </h4>
+                    <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                      রেজিস্ট্রেশন করে আমাদের অফিশিয়াল YouTube চ্যানেল সাবস্ক্রাইব করলেই সাথে সাথে ওয়ালেটে ৳২০ বোনাস যুক্ত হবে।
+                    </p>
+                    <a
+                      href="https://www.youtube.com/@kroy-ghor-office"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline"
+                    >
+                      <span>Visit Channel (@kroy-ghor-office)</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleSignUpSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Full Name*
@@ -852,7 +881,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
               </button>
             </form>
-          )}
+          </div>
+        )}
 
           {/* ================= PHONE VERIFICATION STEP ================= */}
           {!user.isLoggedIn && tab === 'phone_verify' && (

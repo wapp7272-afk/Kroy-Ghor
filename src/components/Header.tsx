@@ -428,14 +428,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               className="flex items-center text-left focus:outline-none cursor-pointer shrink-0 transition-opacity hover:opacity-95 group"
               aria-label="Kroyghor Home"
             >
-              {/* Desktop Logo */}
-              <div className="hidden md:block">
-                <Logo variant="full" size="md" theme="light" />
+              {/* Desktop Logo - Prominently Sized */}
+              <div className="hidden md:flex items-center py-1">
+                <Logo variant="full" size="xl" theme="light" className="transition-transform duration-200 hover:scale-[1.02]" />
               </div>
 
-              {/* Mobile Logo */}
-              <div className="block md:hidden">
-                <Logo variant="compact" size="sm" theme="light" />
+              {/* Mobile Logo - Crisp & Prominent */}
+              <div className="flex md:hidden items-center py-1">
+                <Logo variant="compact" size="lg" theme="light" />
               </div>
             </button>
           </div>
@@ -736,7 +736,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               id="header-wallet-btn"
               onClick={onOpenAuth}
               className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#F3F7FF] hover:bg-blue-50 border border-blue-200/80 text-[#007BFF] text-xs font-semibold transition-colors cursor-pointer active:scale-98 shrink-0"
-              title="ZeropicBD Wallet Balance"
+              title="Kroyghor Wallet Balance"
             >
               <Wallet className="w-3.5 h-3.5 text-[#007BFF] shrink-0" />
               <span className="font-mono text-xs font-bold">৳{user.walletBalance}</span>
@@ -820,13 +820,16 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               )}
             </button>
 
-            {/* Mobile Menu Toggle Button */}
+            {/* Mobile Animated 3-Bar Hamburger Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 md:hidden text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 cursor-pointer"
+              className="relative w-10 h-10 md:hidden flex flex-col items-center justify-center gap-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer border border-slate-200"
               aria-label="Toggle mobile menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-slate-800" /> : <Menu className="w-5 h-5 text-slate-700" />}
+              <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+              <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all duration-200 ${mobileMenuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+              <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
             </button>
           </div>
         </div>
@@ -1284,110 +1287,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= 7. MOBILE CATEGORIES BOTTOM SHEET DRAWER ================= */}
-      {isCategorySheetOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end animate-fadeIn">
-          {/* Backdrop Dismiss Trigger */}
-          <div className="flex-1" onClick={handleCloseCategorySheet} />
-
-          {/* Slide-Up Sheet Container */}
-          <div className="bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp">
-            {/* Sheet Header */}
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-[#4F46E5] text-white">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#0F172A]">Explore Categories</h3>
-                  <p className="text-[11px] text-slate-500">8 curated lifestyle & luxury departments</p>
-                </div>
-              </div>
-              <button
-                onClick={handleCloseCategorySheet}
-                className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Category Cards List */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {/* Reset to All */}
-              <button
-                onClick={() => {
-                  handleCategoryPillClick('All');
-                  handleCloseCategorySheet();
-                }}
-                className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-colors cursor-pointer ${
-                  selectedCategory === 'All'
-                    ? 'bg-indigo-50 border-[#4F46E5] text-[#4F46E5]'
-                    : 'bg-white border-slate-200 text-slate-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">⚡</span>
-                  <div>
-                    <span className="text-xs font-bold block">All Departments (সমস্ত পণ্য)</span>
-                    <span className="text-[10px] text-slate-500">View complete catalog across all items</span>
-                  </div>
-                </div>
-                {selectedCategory === 'All' && <Check className="w-4 h-4 text-[#4F46E5]" />}
-              </button>
-
-              {CATEGORY_DROPDOWN_ITEMS.map((item) => {
-                const isSelected = selectedCategory === item.name;
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => {
-                      handleCategoryPillClick(item.name);
-                      handleCloseCategorySheet();
-                    }}
-                    className={`w-full p-3 rounded-xl border flex items-center justify-between text-left transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-50 border-[#4F46E5] text-[#4F46E5]'
-                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xl shrink-0">{item.icon}</span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold truncate block">{item.name}</span>
-                          <span className="px-1.5 py-0.2 bg-amber-100 text-amber-900 text-[9px] font-bold rounded">
-                            {item.badge}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-500 block truncate">{item.desc}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <span className="text-[10px] font-mono text-slate-400">{item.count}</span>
-                      {isSelected ? (
-                        <Check className="w-4 h-4 text-[#4F46E5]" />
-                      ) : (
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Bottom Dismiss Button */}
-            <div className="p-3 border-t border-slate-200 bg-slate-50">
-              <button
-                onClick={handleCloseCategorySheet}
-                className="w-full py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-xs font-semibold cursor-pointer"
-              >
-                Close & Browse Products
-              </button>
             </div>
           </div>
         </div>

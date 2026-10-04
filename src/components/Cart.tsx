@@ -153,26 +153,26 @@ export const Cart: React.FC<CartProps> = React.memo(({
 
   // Cart Core Content Component (reusable in Drawer and Page modes)
   const cartContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-50/50">
       {/* Header Bar */}
-      <div className="p-4 sm:p-5 border-b border-[#E5E7EB] flex items-center justify-between bg-white sticky top-0 z-10">
+      <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white sticky top-0 z-10 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[#EDE9FE] text-[#5B21B6] border border-purple-200">
+          <div className="p-2.5 rounded-2xl bg-orange-50 text-orange-600 border border-orange-200/80 shadow-2xs">
             <ShoppingBag className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-extrabold text-[#171717] text-base sm:text-lg flex items-center gap-2">
+            <h3 className="font-extrabold text-slate-900 text-base sm:text-lg flex items-center gap-2">
               <span>Shopping Cart</span>
               {totalItemsCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#EDE9FE] text-[#5B21B6] border border-purple-200">
+                <span className="px-2 py-0.5 rounded-full text-xs font-black bg-orange-100 text-orange-700 border border-orange-200">
                   {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'}
                 </span>
               )}
             </h3>
-            <p className="text-xs text-[#525252]">
+            <p className="text-xs text-slate-500">
               {vendorCount > 1 
                 ? `Multi-Vendor Checkout (${vendorCount} Verified Stores)` 
-                : 'Kroyghor Bangladesh Official'}
+                : 'Kroyghor Bangladesh Official Store'}
             </p>
           </div>
         </div>
@@ -182,7 +182,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
             <button
               onClick={onClearCart}
               title="Clear all cart items"
-              className="text-xs font-semibold text-gray-500 hover:text-rose-600 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50"
+              className="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50"
             >
               Clear Cart
             </button>
@@ -191,7 +191,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
           {isDrawer && onClose && (
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-gray-400 hover:text-[#171717] hover:bg-gray-100 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               aria-label="Close cart"
             >
               <X className="w-5 h-5" />
@@ -202,29 +202,29 @@ export const Cart: React.FC<CartProps> = React.memo(({
 
       {/* Free Shipping Progress Indicator */}
       {items.length > 0 && (
-        <div className="px-4 py-2.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-b border-purple-100 text-xs">
-          <div className="flex items-center justify-between font-semibold text-[#5B21B6] mb-1.5">
+        <div className="px-4 py-2.5 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border-b border-orange-100 text-xs">
+          <div className="flex items-center justify-between font-semibold text-orange-950 mb-1.5">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#5B21B6]" />
+              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
               {remainingForFreeShipping === 0 ? (
                 <span className="font-bold text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   অভিনন্দন! আপনি ফ্রি ডেলিভারি (ঢাকা) আনলক করেছেন!
                 </span>
               ) : (
                 <span>
-                  আর মাত্র <strong className="font-black">৳{remainingForFreeShipping.toLocaleString()}</strong> শপিং করলেই ফ্রি ঢাকা ডেলিভারি!
+                  আর মাত্র <strong className="font-black text-orange-600">৳{remainingForFreeShipping.toLocaleString()}</strong> শপিং করলেই ফ্রি ঢাকা ডেলিভারি!
                 </span>
               )}
             </span>
-            <span className="font-mono text-[11px] text-gray-500">
+            <span className="font-mono text-[11px] text-slate-500 font-bold">
               ৳{subtotal.toLocaleString()} / ৳{freeShippingThreshold.toLocaleString()}
             </span>
           </div>
-          <div className="w-full bg-purple-200/60 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-orange-200/60 rounded-full h-1.5 overflow-hidden">
             <div 
               className={`h-full transition-all duration-500 rounded-full ${
-                remainingForFreeShipping === 0 ? 'bg-emerald-600' : 'bg-[#5B21B6]'
+                remainingForFreeShipping === 0 ? 'bg-emerald-600' : 'bg-orange-600'
               }`}
               style={{ width: `${freeShippingProgress}%` }}
             />
@@ -235,36 +235,73 @@ export const Cart: React.FC<CartProps> = React.memo(({
       {/* Main Body / Items List */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
         {items.length === 0 ? (
-          <div className="text-center py-12 space-y-4">
-            <div className="flex justify-center mb-2">
-              <BrandLogo size="md" />
+          <div className="text-center py-10 px-4 space-y-6 my-auto">
+            <div className="relative mx-auto w-24 h-24">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-100 via-amber-50 to-orange-50 text-orange-600 flex items-center justify-center mx-auto border-2 border-orange-200/80 shadow-md">
+                <ShoppingBag className="w-12 h-12 stroke-[1.6]" />
+              </div>
+              <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center shadow-xs text-sm">
+                0
+              </span>
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-[#EDE9FE] text-[#5B21B6] flex items-center justify-center mx-auto border border-purple-200 shadow-xs">
-              <ShoppingBag className="w-8 h-8 stroke-[1.5]" />
-            </div>
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-[#171717] text-base">আপনার শপিং কার্ট খালি আছে</h4>
-              <p className="text-xs text-[#525252] max-w-xs mx-auto">
-                Kroyghor-এর লাইফস্টাইল, ফ্যাশন এক্সেসরিজ, লাইটিং, জুয়েলারি ও ট্রেন্ডিং কালেকশন ঘুরে দেখুন।
+
+            <div className="space-y-2 max-w-sm mx-auto">
+              <h4 className="font-black text-slate-900 text-lg sm:text-xl tracking-tight">
+                আপনার শপিং কার্ট খালি আছে
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                আপনার পছন্দের পণ্য কার্টে যুক্ত করুন এবং ইনস্ট্যান্ট ৳২০ ওয়েলকাম বোনাস উপভোগ করুন।
               </p>
             </div>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+
+            {/* Quick Department Shortcuts */}
+            <div className="pt-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                জনপ্রিয় ডিপার্টমেন্ট সমূহ
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {[
+                  { name: 'Perfume & Fragrances', label: 'পারফিউম ও আতর', icon: '✨' },
+                  { name: 'Fashion & Lifestyle', label: 'ফ্যাশন ও লাইফস্টাইল', icon: '👔' },
+                  { name: 'Electronics & Gadgets', label: 'গ্যাজেট ও টেক', icon: '📱' },
+                  { name: 'Watches & Accessories', label: 'ঘড়ি ও এক্সেসরিজ', icon: '⌚' },
+                ].map((dept) => (
+                  <button
+                    key={dept.name}
+                    type="button"
+                    onClick={() => {
+                      if (onClose) onClose();
+                      if (onContinueShopping) onContinueShopping();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 text-slate-700 hover:text-orange-600 text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>{dept.icon}</span>
+                    <span>{dept.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-2.5">
               <button
+                type="button"
                 onClick={() => {
                   if (onClose) onClose();
                   if (onContinueShopping) onContinueShopping();
                 }}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#5B21B6] hover:bg-[#4C1D95] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-xs sm:text-sm font-extrabold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 active:scale-98"
               >
-                শপিং শুরু করুন (Explore Catalog)
+                <ShoppingBag className="w-4 h-4" />
+                <span>শপিং শুরু করুন (Explore Catalog)</span>
               </button>
               {onViewOrders && (
                 <button
+                  type="button"
                   onClick={() => {
                     if (onClose) onClose();
                     onViewOrders();
                   }}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                 >
                   পূর্ববর্তী অর্ডার দেখুন
                 </button>
@@ -632,7 +669,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                 <span className="block text-[10px] text-gray-500">VAT & Taxes Included</span>
               </div>
               <div className="text-right">
-                <span className="text-xl font-black text-[#5B21B6]">
+                <span className="text-xl font-black text-orange-600">
                   ৳{grandTotal.toLocaleString()}
                 </span>
                 {(couponDiscount > 0 || walletDeduction > 0) && (
@@ -648,37 +685,32 @@ export const Cart: React.FC<CartProps> = React.memo(({
           <button
             id="cart-drawer-checkout-btn"
             onClick={onProceedToCheckout}
-            className="w-full min-h-[48px] py-4 px-4 rounded-xl font-extrabold text-white bg-[#5B21B6] hover:bg-[#4C1D95] shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="w-full min-h-[48px] py-4 px-4 rounded-2xl font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             <span>Proceed to Express Checkout (অর্ডার সম্পন্ন করুন)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           {/* 4 Marketplace Trust Badges */}
-          <div className="grid grid-cols-2 gap-1.5 pt-2 text-[10px] text-gray-600 border-t border-gray-200">
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-gray-200/80">
+          <div className="grid grid-cols-2 gap-1.5 pt-2 text-[10px] text-slate-600 border-t border-slate-200">
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-semibold text-gray-800 truncate" title="100% Authentic Quality Guarantee">100% Authentic</span>
+              <span className="font-semibold text-slate-800 truncate" title="100% Authentic Quality Guarantee">100% Authentic</span>
             </div>
 
-            <button
-              type="button"
-              onClick={onOpenReturnPolicy}
-              className={`flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-gray-200/80 text-left transition-colors ${onOpenReturnPolicy ? 'hover:border-purple-300 hover:text-[#5B21B6] cursor-pointer' : ''}`}
-              title="7-Day Hassle-Free Replacement / Return Policy"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="font-semibold text-gray-800 truncate">7-Day Return</span>
-            </button>
-
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-gray-200/80">
-              <Truck className="w-3.5 h-3.5 text-[#5B21B6] shrink-0" />
-              <span className="font-semibold text-gray-800 truncate" title="Express Nationwide Shipping (64 Districts)">64 Districts Fast</span>
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="font-semibold text-slate-800 truncate" title="Quality Checked by Inspection Team">Quality Inspected</span>
             </div>
 
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-gray-200/80">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="font-semibold text-gray-800 truncate" title="Secure Payment & Cash on Delivery Assurance">Secure COD & Pay</span>
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
+              <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="font-semibold text-slate-800 truncate" title="Express Nationwide Shipping (64 Districts)">64 Districts Fast</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="font-semibold text-slate-800 truncate" title="Secure Payment & Cash on Delivery Assurance">Secure COD & Pay</span>
             </div>
           </div>
         </div>

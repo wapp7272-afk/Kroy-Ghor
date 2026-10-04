@@ -34,7 +34,8 @@ import {
   Coins,
   RefreshCw,
   Tag,
-  AlertTriangle
+  AlertTriangle,
+  MessageCircle
 } from 'lucide-react';
 import { Order } from '../../types';
 import { InvoiceModal } from '../InvoiceModal';
@@ -445,9 +446,11 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-black uppercase tracking-wider text-[10px]">
                   <th className="py-3.5 px-4">Order ID & Date</th>
-                  <th className="py-3.5 px-4">Customer Details</th>
-                  <th className="py-3.5 px-4">Purchased Items</th>
-                  <th className="py-3.5 px-4">Total Amount & Payment</th>
+                  <th className="py-3.5 px-4">Customer & Photo</th>
+                  <th className="py-3.5 px-4">Contact & WhatsApp</th>
+                  <th className="py-3.5 px-4">Items Bought</th>
+                  <th className="py-3.5 px-4">Total Amount</th>
+                  <th className="py-3.5 px-4">Delivery Address</th>
                   <th className="py-3.5 px-4">Order Status</th>
                   <th className="py-3.5 px-4 text-right pr-4">Actions</th>
                 </tr>
@@ -461,6 +464,17 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                     order.paymentStatus || (order.paymentMethod === 'cod' ? 'Paid (COD on Delivery)' : 'Verified');
 
                   const isPaid = paymentStatusLabel.includes('Paid') || paymentStatusLabel === 'Verified';
+
+                  const customerName = order.address?.fullName || order.customerName || 'Kroyghor Member';
+                  const rawPhone = order.address?.phone || order.customerPhone || '';
+                  const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+                  const formattedWhatsAppNumber = cleanPhone.startsWith('880') 
+                    ? cleanPhone 
+                    : cleanPhone.startsWith('0') 
+                      ? `88${cleanPhone}` 
+                      : `880${cleanPhone}`;
+
+                  const customerAvatar = (order as any).customerAvatar || (order as any).userAvatar || null;
 
                   return (
                     <React.Fragment key={order.id}>
@@ -500,64 +514,114 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                           )}
                         </td>
 
-                        {/* 2. Customer Info */}
-                        <td className="py-3.5 px-4 align-top max-w-[220px]">
-                          <div className="font-extrabold text-[#0A1B3D] truncate">
-                            {order.address?.fullName || order.customerName || 'ZeropicBD Member'}
-                          </div>
-                          <div className="flex items-center gap-1 text-[11px] font-mono text-slate-600 mt-0.5">
-                            <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                            <a href={`tel:${order.address?.phone || order.customerPhone}`} className="hover:underline">
-                              {order.address?.phone || order.customerPhone}
-                            </a>
-                          </div>
-                          {order.customerEmail && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-500 truncate mt-0.5">
-                              <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{order.customerEmail}</span>
+                        {/* 2. Customer Name & Profile Photo */}
+                        <td className="py-3.5 px-4 align-top max-w-[190px]">
+                          <div className="flex items-center gap-2.5">
+                            {customerAvatar ? (
+                              <img
+                                src={customerAvatar}
+                                alt={customerName}
+                                width={36}
+                                height={36}
+                                className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                                {customerName ? customerName.slice(0, 2).toUpperCase() : 'KG'}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-extrabold text-[#0A1B3D] truncate" title={customerName}>
+                                {customerName}
+                              </div>
+                              {order.customerEmail ? (
+                                <div className="text-[10px] text-slate-400 truncate max-w-[130px]" title={order.customerEmail}>
+                                  {order.customerEmail}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">Verified Member</span>
+                              )}
                             </div>
-                          )}
-                          <div className="flex items-start gap-1 text-[10px] text-slate-500 mt-1 line-clamp-2" title={order.address?.fullAddress}>
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
-                            <span>
-                              {order.address?.cityDivision}: {order.address?.fullAddress}
-                            </span>
                           </div>
                         </td>
 
-                        {/* 3. Items Summary */}
-                        <td className="py-3.5 px-4 align-top max-w-[240px]">
-                          <div className="font-bold text-slate-800">
-                            {order.items.length} item{order.items.length > 1 ? 's' : ''} ({totalItemsQty} pcs)
+                        {/* 3. Phone Number & WhatsApp Number */}
+                        <td className="py-3.5 px-4 align-top max-w-[170px]">
+                          <div className="space-y-1.5">
+                            {/* Phone Call Link */}
+                            {rawPhone ? (
+                              <a
+                                href={`tel:${rawPhone}`}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-mono font-bold text-[11px] transition-colors"
+                                title="Click to Call Phone"
+                              >
+                                <Phone className="w-3 h-3 text-indigo-600 shrink-0" />
+                                <span>{rawPhone}</span>
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">No phone</span>
+                            )}
+
+                            {/* Direct WhatsApp Chat Action */}
+                            {cleanPhone && (
+                              <a
+                                href={`https://wa.me/${formattedWhatsAppNumber}?text=Hello%20${encodeURIComponent(customerName)}%2C%20thank%20you%20for%20your%20Kroyghor%20Order%20${order.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[10px] transition-all shadow-2xs"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0 fill-[#25D366]/20" />
+                                <span>WhatsApp Chat</span>
+                              </a>
+                            )}
                           </div>
-                          <div className="mt-1 space-y-1">
+                        </td>
+
+                        {/* 4. Items Bought (with thumbnails) */}
+                        <td className="py-3.5 px-4 align-top max-w-[220px]">
+                          <div className="font-bold text-slate-800 mb-1 flex items-center justify-between">
+                            <span>{order.items.length} item{order.items.length > 1 ? 's' : ''} ({totalItemsQty} pcs)</span>
+                          </div>
+                          <div className="space-y-1.5">
                             {order.items.slice(0, 2).map((it, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-[11px] text-slate-600">
-                                <span className="truncate max-w-[170px]" title={it.product.title}>
-                                  {it.quantity}x {it.product.title}
-                                </span>
-                                <span className="font-mono text-slate-500 font-bold">
-                                  ৳{(it.product.price * it.quantity).toLocaleString()}
-                                </span>
+                              <div key={idx} className="flex items-center gap-2 text-[11px] text-slate-700 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                {it.product.image && (
+                                  <img
+                                    src={it.product.image}
+                                    alt={it.product.title}
+                                    width={28}
+                                    height={28}
+                                    className="w-7 h-7 rounded-md object-cover bg-white border border-slate-200 shrink-0"
+                                  />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <span className="truncate block font-semibold" title={it.product.title}>
+                                    {it.quantity}x {it.product.title}
+                                  </span>
+                                  <span className="font-mono text-[10px] text-slate-500">
+                                    ৳{(it.product.price * it.quantity).toLocaleString()}
+                                  </span>
+                                </div>
                               </div>
                             ))}
                             {order.items.length > 2 && (
-                              <span className="text-[10px] text-[#007BFF] font-semibold block">
-                                +{order.items.length - 2} more item(s)...
+                              <span className="text-[10px] text-[#007BFF] font-semibold block px-1">
+                                +{order.items.length - 2} more product(s)...
                               </span>
                             )}
                           </div>
                           <button
                             type="button"
                             onClick={() => toggleRowExpand(order.id)}
-                            className="mt-1.5 text-[10px] text-[#007BFF] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                            className="mt-1 text-[10px] text-[#007BFF] hover:underline font-bold flex items-center gap-1 cursor-pointer"
                           >
-                            <span>{isExpanded ? 'Hide Details' : 'View Item Breakdown'}</span>
+                            <span>{isExpanded ? 'Hide Items' : 'View All Items'}</span>
                             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                           </button>
                         </td>
 
-                        {/* 4. Total Amount & Payment */}
+                        {/* 5. Total Amount & Payment */}
                         <td className="py-3.5 px-4 align-top">
                           <div className="font-mono text-sm font-black text-[#0A1B3D]">
                             ৳{order.total.toLocaleString()}
@@ -598,6 +662,19 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                               </button>
                             </div>
                           )}
+                        </td>
+
+                        {/* 6. Delivery Address */}
+                        <td className="py-3.5 px-4 align-top max-w-[200px]">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#007BFF] border border-blue-200 mb-1">
+                            {order.address?.cityDivision || 'Inside Dhaka'}
+                          </span>
+                          <div className="flex items-start gap-1 text-[11px] text-slate-600 leading-snug" title={order.address?.fullAddress}>
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                            <span className="line-clamp-3">
+                              {order.address?.fullAddress || 'No full address provided'}
+                            </span>
+                          </div>
                         </td>
 
                         {/* 5. Order Status Lifecycle Dropdown */}
@@ -807,7 +884,7 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
                   <option value="Paperfly Courier">Paperfly Smart Logistics</option>
                   <option value="Sundarban Courier">Sundarban Courier Service</option>
                   <option value="eCourier">eCourier Bangladesh</option>
-                  <option value="ZeropicBD Rider (Dhaka)">ZeropicBD Dedicated Rider</option>
+                  <option value="Kroyghor Rider (Dhaka)">Kroyghor Dedicated Rider</option>
                 </select>
               </div>
 

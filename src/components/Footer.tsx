@@ -12,7 +12,8 @@ import {
   Gift,
   Facebook,
   Instagram,
-  Youtube
+  Youtube,
+  MessageCircle
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { VaultLogo } from './VaultLogo';
@@ -113,7 +114,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
             <div className="space-y-2 pt-2 text-xs text-gray-300">
               <div className="flex items-center gap-2.5">
                 <PhoneCall className="w-4 h-4 text-cyan-400" />
-                <span className="font-semibold text-white">হটলাইন: +880 1700-000000</span>
+                <span className="font-semibold text-white">হটলাইন: 01883418309</span>
                 <span className="text-[11px] text-gray-400">(সকাল ৯টা - রাত ১০টা)</span>
               </div>
               <div className="flex items-center gap-2.5">
@@ -238,25 +239,19 @@ export const Footer: React.FC<FooterProps> = React.memo(({
                 ইনস্ট্যান্ট কনফার্মেশনের সাথে ১০০% সুরক্ষিত পেমেন্ট:
               </p>
 
-              {/* Bangladesh Payment Badges */}
-              <div className="grid grid-cols-3 gap-1.5 text-center">
-                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#E2136E]">
-                  bKash
+              {/* Official Payment Badges: Only bKash, Nagad, and Cash on Delivery (COD) */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 rounded-xl border border-pink-500/40 bg-[#E2136E]/10 text-white flex flex-col items-center justify-center shadow-xs">
+                  <span className="text-xs font-black text-[#E2136E]">bKash</span>
+                  <span className="text-[9px] text-gray-400">বিকাশ পেমেন্ট</span>
                 </div>
-                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#F7941D]">
-                  Nagad
+                <div className="p-2 rounded-xl border border-orange-500/40 bg-[#F7941D]/10 text-white flex flex-col items-center justify-center shadow-xs">
+                  <span className="text-xs font-black text-[#F7941D]">Nagad</span>
+                  <span className="text-[9px] text-gray-400">নগদ পেমেন্ট</span>
                 </div>
-                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#8C1E70]">
-                  Rocket
-                </div>
-                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#1A1F71]">
-                  VISA
-                </div>
-                <div className="p-1.5 rounded-md border border-gray-700 bg-white text-[10px] font-bold text-[#EB001B]">
-                  Mastercard
-                </div>
-                <div className="p-1.5 rounded-md border border-blue-500 bg-blue-500/20 text-[10px] font-bold text-cyan-400">
-                  Cash on Del.
+                <div className="p-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-white flex flex-col items-center justify-center shadow-xs">
+                  <span className="text-xs font-black text-emerald-400">COD</span>
+                  <span className="text-[9px] text-gray-400">ক্যাশ অন ডেলিভারি</span>
                 </div>
               </div>
 
@@ -286,25 +281,16 @@ export const Footer: React.FC<FooterProps> = React.memo(({
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400 mr-1 hidden sm:inline">যুক্ত থাকুন:</span>
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/share/1JtHfFNhmx/"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#007BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#1877F2] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
               aria-label="Facebook"
             >
               <Facebook className="w-4 h-4" />
             </a>
             <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#7A3BFF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
-              aria-label="Instagram"
-            >
-              <Instagram className="w-4 h-4" />
-            </a>
-            <a
-              href="https://www.youtube.com/@kroy-ghor"
+              href="https://www.youtube.com/@kroy-ghor-office"
               target="_blank"
               rel="noopener noreferrer"
               className="w-8 h-8 rounded-full bg-gray-800 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
@@ -313,13 +299,13 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <Youtube className="w-4 h-4" />
             </a>
             <a
-              href="https://tiktok.com"
+              href="https://wa.me/8801883418309"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#00C6FF] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
-              aria-label="TikTok"
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-[#25D366] text-white flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
+              aria-label="WhatsApp"
             >
-              <span className="font-bold text-xs">♪</span>
+              <MessageCircle className="w-4 h-4" />
             </a>
           </div>
         </div>

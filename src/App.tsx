@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { 
   Sparkles, 
   Zap, 
@@ -175,7 +175,22 @@ export default function App() {
   const [selectedProductDetail, setSelectedProductDetail] = useState<Product | null>(null);
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>('perfume-vault-bd');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
-  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
+        setIsSortDropdownOpen(false);
+      }
+    };
+    if (isSortDropdownOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isSortDropdownOpen]);
 
   // Dynamic Slider Banners State (Admin Controlled)
   const [sliderBanners, setSliderBanners] = useState<PromoSlideBanner[]>(INITIAL_SLIDER_BANNERS);
@@ -1220,7 +1235,7 @@ export default function App() {
 
     const updatedUser: UserProfile = {
       isLoggedIn: true,
-      name: name || synced.displayName || matched?.name || 'ZeropicBD Member',
+      name: name || synced.displayName || matched?.name || 'Kroyghor Member',
       email: email || synced.email || matched?.email || '',
       phone: cleanPhone || matched?.phone || '',
       role,
@@ -1274,7 +1289,7 @@ export default function App() {
 
     const newUser: UserProfile = {
       isLoggedIn: true,
-      name: name || synced.displayName || 'ZeropicBD Member',
+      name: name || synced.displayName || 'Kroyghor Member',
       email: email || synced.email || '',
       phone: cleanPhone,
       role,
@@ -1917,10 +1932,13 @@ export default function App() {
             onOpenAuth={() => setIsAuthOpen(true)}
             initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
             onSubmitReturnRequest={handleSubmitReturnRequest}
-            onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+            onOpenReturnPolicy={() => setIsFaqOpen(true)}
             onTrackOrder={handleOpenTrackOrder}
             onOpenAdmin={handleOpenAdmin}
             onOpenYouTubeBonusModal={handleOpenBonusClaim}
+            cartItems={cart}
+            onOpenCart={() => setIsCartOpen(true)}
+            onProceedToCheckout={handleOpenCheckout}
           />
         ) : activePage === 'TrackOrder' ? (
           <OrderTrackingPortal
@@ -2024,16 +2042,58 @@ export default function App() {
                     )}
                   </button>
 
-                  {/* Dynamic Glassmorphic Sorting Modal Trigger */}
-                  <button
-                    type="button"
-                    onClick={() => setIsSortModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-                  >
-                    <ArrowUpDown className="w-3.5 h-3.5 text-orange-600" />
-                    <span>{SORT_OPTIONS.find((s) => s.id === catalogFilters.sortBy)?.label || 'Sort'}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
+                  {/* Smooth Inline Sorting Dropdown Menu Directly Underneath */}
+                  <div className="relative" ref={sortDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsSortDropdownOpen((prev) => !prev)}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${
+                        isSortDropdownOpen
+                          ? 'bg-orange-50 text-orange-600 border border-orange-300'
+                          : 'bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800'
+                      }`}
+                      aria-expanded={isSortDropdownOpen}
+                      aria-label="Select Sorting Option"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5 text-orange-600" />
+                      <span>{SORT_OPTIONS.find((s) => s.id === catalogFilters.sortBy)?.label || 'Sort'}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isSortDropdownOpen ? 'rotate-180 text-orange-600' : ''}`} />
+                    </button>
+
+                    {isSortDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-40 animate-fadeIn divide-y divide-slate-100">
+                        <div className="px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                          Sort Products By
+                        </div>
+                        <div className="py-1">
+                          {SORT_OPTIONS.map((option) => {
+                            const isSelected = catalogFilters.sortBy === option.id;
+                            return (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => {
+                                  setCatalogFilters((prev) => ({ ...prev, sortBy: option.id }));
+                                  setIsSortDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer text-left ${
+                                  isSelected
+                                    ? 'bg-orange-50/80 text-orange-600 font-bold'
+                                    : 'text-slate-700 hover:bg-slate-50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">{option.iconLabel}</span>
+                                  <span>{option.label}</span>
+                                </div>
+                                {isSelected && <Check className="w-4 h-4 text-orange-600" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2246,32 +2306,26 @@ export default function App() {
         cartCount={totalCartCount}
         user={user}
         onGoHome={handleGoHome}
-        onOpenCategories={() => setIsMobileCategoriesOpen(true)}
+        onOpenCategories={() => {
+          handleGoHome();
+          setTimeout(() => {
+            document.getElementById('categories-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
         onOpenSearch={() => setIsMobileSearchActive(true)}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAccount={user.isLoggedIn ? handleOpenUserProfile : () => setIsAuthOpen(true)}
         isSearchOpen={isMobileSearchActive}
-        isCategoriesDrawerOpen={isMobileCategoriesOpen}
+        isCategoriesDrawerOpen={false}
       />
 
       {/* Floating Customer Support Widget */}
       <Suspense fallback={null}>
         <CustomerSupport
           onOpenFaq={() => setIsFaqOpen(true)}
-          onOpenReturnPolicy={() => setIsReturnPolicyOpen(true)}
+          onOpenReturnPolicy={() => setIsFaqOpen(true)}
         />
       </Suspense>
-
-      {/* Code-Split 7-Day Hassle-Free Replacement & Return Policy Modal */}
-      {isReturnPolicyOpen && (
-        <Suspense fallback={<ModalSuspenseFallback />}>
-          <ReturnPolicyModal
-            isOpen={isReturnPolicyOpen}
-            onClose={() => setIsReturnPolicyOpen(false)}
-            onOpenOrders={handleOpenOrders}
-          />
-        </Suspense>
-      )}
 
       {/* Code-Split Interactive FAQ & Help Center Modal */}
       {isFaqOpen && (
@@ -2279,10 +2333,6 @@ export default function App() {
           <FaqModal
             isOpen={isFaqOpen}
             onClose={() => setIsFaqOpen(false)}
-            onOpenReturnPolicy={() => {
-              setIsFaqOpen(false);
-              setIsReturnPolicyOpen(true);
-            }}
           />
         </Suspense>
       )}
@@ -2303,18 +2353,6 @@ export default function App() {
               }));
             }}
             showToast={showToast}
-          />
-        </Suspense>
-      )}
-
-      {/* Glassmorphic iOS Bottom Sheet Sort Modal */}
-      {isSortModalOpen && (
-        <Suspense fallback={null}>
-          <SortModal
-            isOpen={isSortModalOpen}
-            onClose={() => setIsSortModalOpen(false)}
-            currentSort={catalogFilters.sortBy}
-            onSelectSort={(newSort) => setCatalogFilters((prev) => ({ ...prev, sortBy: newSort }))}
           />
         </Suspense>
       )}

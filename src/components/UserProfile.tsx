@@ -77,15 +77,18 @@ export interface UserProfileProps {
   onLogout: () => void;
   onBackToShop: () => void;
   onOpenAuth: () => void;
-  initialTab?: 'overview' | 'profile' | 'orders' | 'wallet' | 'wishlist' | 'addresses' | 'security';
+  initialTab?: 'overview' | 'profile' | 'orders' | 'cart' | 'wallet' | 'wishlist' | 'addresses' | 'security';
   onSubmitReturnRequest?: (orderId: string, returnData: Omit<ReturnRequest, 'id' | 'requestedAt' | 'status'>) => void;
   onOpenReturnPolicy?: () => void;
   onTrackOrder?: (orderId: string) => void;
   onOpenAdmin?: () => void;
   onOpenYouTubeBonusModal?: () => void;
+  cartItems?: { product: Product; quantity: number; selectedSize?: string }[];
+  onOpenCart?: () => void;
+  onProceedToCheckout?: () => void;
 }
 
-type AccountTab = 'profile' | 'orders' | 'wallet' | 'addresses' | 'wishlist' | 'security';
+type AccountTab = 'profile' | 'orders' | 'cart' | 'wallet' | 'addresses' | 'wishlist' | 'security';
 
 const AVATAR_PRESETS = [
   { id: '1', name: 'Luxury Fragrance VIP', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
@@ -116,11 +119,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onTrackOrder,
   onOpenAdmin,
   onOpenYouTubeBonusModal,
+  cartItems = [],
+  onOpenCart,
+  onProceedToCheckout,
 }) => {
   // Normalize initialTab
   const normalizedInitialTab = useMemo<AccountTab>(() => {
     if (initialTab === 'overview' || initialTab === 'profile') return 'profile';
     if (initialTab === 'orders') return 'orders';
+    if (initialTab === 'cart') return 'cart';
     if (initialTab === 'wallet') return 'wallet';
     if (initialTab === 'addresses') return 'addresses';
     if (initialTab === 'wishlist') return 'wishlist';
@@ -131,10 +138,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [activeTab, setActiveTab] = useState<AccountTab>(normalizedInitialTab);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  const cartTotalQty = useMemo(() => cartItems.reduce((acc, item) => acc + item.quantity, 0), [cartItems]);
+  const cartSubtotal = useMemo(() => cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0), [cartItems]);
+
   // Sync tab with initialTab prop when updated
   useEffect(() => {
     if (initialTab) {
       if (initialTab === 'overview') setActiveTab('profile');
+      else if (initialTab === 'cart') setActiveTab('cart');
       else setActiveTab(initialTab as AccountTab);
     }
   }, [initialTab]);
@@ -457,7 +468,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">ZeropicBD Customer Portal</span>
+                <span className="text-xs font-bold text-slate-400">Kroyghor Customer Portal</span>
                 <span className="text-slate-300">•</span>
                 <span className="text-xs font-bold text-[#007BFF] uppercase tracking-wider">My Account</span>
               </div>
@@ -567,7 +578,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <div className="p-2 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1 hidden lg:block">
               {[
                 { id: 'profile' as AccountTab, label: 'আমার প্রোফাইল (Profile)', icon: User },
-                { id: 'orders' as AccountTab, label: 'আমার অর্ডার হিস্ট্রি (My Orders)', icon: ShoppingBag, badge: totalOrdersCount },
+                { id: 'orders' as AccountTab, label: 'আমার অর্ডার হিস্ট্রি (My Orders)', icon: Package, badge: totalOrdersCount },
+                { id: 'cart' as AccountTab, label: 'শপিং কার্ট সামারি (Cart Summary)', icon: ShoppingBag, badge: cartTotalQty },
                 { id: 'wallet' as AccountTab, label: 'আমার ওয়ালেট ও বোনাস (My Wallet)', icon: Wallet, badge: `৳${user.walletBalance}` },
                 { id: 'addresses' as AccountTab, label: 'ডেলিভারি ঠিকানা (Addresses)', icon: MapPin, badge: savedAddressesList.length },
                 { id: 'wishlist' as AccountTab, label: 'উইশলিস্ট (Wishlist)', icon: Heart, badge: wishlist.length },
@@ -612,7 +624,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             <div className="lg:hidden p-1.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               {[
                 { id: 'profile' as AccountTab, label: 'Profile', icon: User },
-                { id: 'orders' as AccountTab, label: 'Orders', icon: ShoppingBag, count: totalOrdersCount },
+                { id: 'orders' as AccountTab, label: 'Orders', icon: Package, count: totalOrdersCount },
+                { id: 'cart' as AccountTab, label: 'Cart', icon: ShoppingBag, count: cartTotalQty },
                 { id: 'wallet' as AccountTab, label: 'Wallet', icon: Wallet, count: `৳${user.walletBalance}` },
                 { id: 'addresses' as AccountTab, label: 'Addresses', icon: MapPin },
                 { id: 'wishlist' as AccountTab, label: 'Wishlist', icon: Heart, count: wishlist.length },
@@ -979,29 +992,154 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
 
             {/* ========================================================================= */}
+            {/* TAB: CART SUMMARY TAB */}
+            {/* ========================================================================= */}
+            {activeTab === 'cart' && (
+              <div className="space-y-6">
+                <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-[#0A1B3D] flex items-center gap-2">
+                        <ShoppingBag className="w-5 h-5 text-[#007BFF]" />
+                        <span>শপিং কার্ট সামারি (Current Cart)</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        আপনার ব্যাগে সংরক্ষিত পণ্যের বিবরণ, মোট মূল্য ও দ্রুত চেকআউট করুন।
+                      </p>
+                    </div>
+
+                    {cartItems.length > 0 && onOpenCart && (
+                      <button
+                        type="button"
+                        onClick={onOpenCart}
+                        className="py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                      >
+                        <span>সম্পূর্ণ কার্ট ভিউ দেখুন</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {cartItems.length === 0 ? (
+                    <div className="text-center py-12 px-4 space-y-4">
+                      <div className="w-16 h-16 rounded-3xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto border border-orange-200 shadow-2xs">
+                        <ShoppingBag className="w-8 h-8 stroke-[1.6]" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-extrabold text-slate-900 text-base">আপনার কার্ট বর্তমানে খালি আছে</h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                          আমাদের নতুন কালেকশন থেকে আপনার পছন্দের পণ্য কার্টে যুক্ত করুন।
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onBackToShop}
+                        className="py-2.5 px-6 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                      >
+                        শপিং শুরু করুন
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Cart Items List */}
+                      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-slate-50/50 p-3 sm:p-4 space-y-3">
+                        {cartItems.map((item, idx) => (
+                          <div key={idx} className="pt-3 first:pt-0 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={item.product.image}
+                                alt={item.product.title}
+                                width={56}
+                                height={56}
+                                className="w-14 h-14 rounded-xl object-cover bg-white border border-slate-200 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                                  {item.product.title}
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                  {item.quantity} x ৳{item.product.price.toLocaleString()}
+                                  {item.selectedSize && <span className="ml-1.5 font-semibold text-indigo-600">({item.selectedSize})</span>}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0 font-mono font-black text-slate-900 text-sm">
+                              ৳{(item.product.price * item.quantity).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Summary Breakdown */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="flex justify-between text-xs text-slate-600">
+                          <span>সাবটোটাল ({cartTotalQty} টি পণ্য):</span>
+                          <span className="font-mono font-bold text-slate-800">৳{cartSubtotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-600">
+                          <span>ডেলিভারি চার্জ:</span>
+                          <span className="font-mono font-bold text-slate-800">৳৬০ (ঢাকা) / ৳১২০ (ঢাকার বাইরে)</span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline font-bold text-sm text-slate-900">
+                          <span>সর্বমোট আনুমানিক বিল:</span>
+                          <span className="text-base font-black text-[#007BFF] font-mono">
+                            ৳{(cartSubtotal + 60).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        {onProceedToCheckout && (
+                          <button
+                            type="button"
+                            onClick={onProceedToCheckout}
+                            className="flex-1 py-3 px-5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                          >
+                            <span>চেকআউট সম্পন্ন করুন</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onOpenCart && (
+                          <button
+                            type="button"
+                            onClick={onOpenCart}
+                            className="py-3 px-5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                          >
+                            কার্ট আপডেট ও কুপন অ্যাপ্লাই
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
             {/* TAB 3: MY WALLET TAB */}
             {/* ========================================================================= */}
             {activeTab === 'wallet' && (
               <div className="space-y-6">
-                {/* Large Balance Card */}
-                <div className="p-6 rounded-3xl bg-gradient-to-tr from-[#0A1B3D] via-slate-900 to-indigo-950 text-white border border-slate-800 shadow-xl relative overflow-hidden">
+                {/* Large Balance Card (Clean Light Theme) */}
+                <div className="p-6 rounded-3xl bg-gradient-to-tr from-blue-50/90 via-indigo-50/40 to-white text-slate-900 border border-blue-200/80 shadow-md relative overflow-hidden">
                   <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-2 text-[#007BFF] text-xs font-bold uppercase tracking-wider">
                         <Wallet className="w-4 h-4" />
-                        <span>ZeropicBD ডিজিটাল ওয়ালেট ব্যালেন্স</span>
+                        <span>Kroyghor ডিজিটাল ওয়ালেট ব্যালেন্স</span>
                       </div>
-                      <p className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                      <p className="text-3xl sm:text-4xl font-black text-[#0A1B3D] font-mono tracking-tight">
                         ৳{user.walletBalance.toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-slate-600">
                         যেকোনো অর্ডারে চেকআউটে তাৎক্ষণিক ডিসকাউন্ট হিসেবে ব্যবহারযোগ্য।
                       </p>
                     </div>
 
                     <div className="flex flex-col sm:items-end gap-2">
-                      <div className="px-3.5 py-1.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-xs text-white">
-                        <span className="text-emerald-400 font-bold">✓ ১০০% ইনস্ট্যান্ট রিডিমযোগ্য</span>
+                      <div className="px-3.5 py-1.5 rounded-2xl bg-white border border-emerald-200 text-xs text-emerald-800 shadow-2xs">
+                        <span className="font-black text-emerald-600">✓ ১০০% ইনস্ট্যান্ট রিডিমযোগ্য</span>
                       </div>
                     </div>
                   </div>
