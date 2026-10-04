@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, ShoppingCart, Check, Eye, Zap, Heart, ShieldCheck, RotateCcw, Truck } from 'lucide-react';
+import { Star, ShoppingCart, Check, Eye, Zap, Heart, ShieldCheck, RotateCcw, Truck, Sparkles } from 'lucide-react';
 import { Product } from '../types';
 
 export interface ProductCardProps {
@@ -22,6 +22,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   onOpenSellerStore,
 }) => {
   const [isAdded, setIsAdded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,12 +52,29 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   const storeName = product.storeName || product.sellerName || (() => {
     if (product.category.includes('Perfume') || product.category === 'Attar Perfumes') return 'PerfumeVault BD';
     if (product.category.includes('Gadgets') || product.category === 'Glow Lights') return 'Apex Tech BD';
-    if (product.category.includes('Fashion')) return 'ZeropicBD Atelier';
+    if (product.category.includes('Fashion')) return 'Kroyghor Atelier';
     if (product.category.includes('Watches')) return 'Chronos Official';
     if (product.category.includes('Beauty')) return 'Glow & Glam BD';
     if (product.category.includes('Home')) return 'Nordic Living';
-    return 'ZeropicBD Official';
+    return 'Kroyghor Official';
   })();
+
+  // Optimized responsive image source
+  const optimizedSrc = React.useMemo(() => {
+    if (!product.image) return '/placeholder.png';
+    if (product.image.includes('unsplash.com')) {
+      return `${product.image.split('?')[0]}?auto=format&fit=crop&w=400&q=80`;
+    }
+    return product.image;
+  }, [product.image]);
+
+  const optimizedSrcSet = React.useMemo(() => {
+    if (product.image && product.image.includes('unsplash.com')) {
+      const base = product.image.split('?')[0];
+      return `${base}?auto=format&fit=crop&w=260&q=75 260w, ${base}?auto=format&fit=crop&w=400&q=80 400w, ${base}?auto=format&fit=crop&w=600&q=80 600w`;
+    }
+    return undefined;
+  }, [product.image]);
 
   // Discount is calculated only when an explicit Original Price is present and greater than Sale Price
   const hasValidDiscount = Boolean(product.originalPrice && product.originalPrice > product.price);
@@ -87,14 +105,24 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
       onClick={() => onQuickView(product)}
       className="group relative flex flex-col justify-between h-full rounded-xl overflow-hidden bg-white border border-slate-200/90 hover:border-[#4F46E5]/40 transition-all duration-300 hover:shadow-md cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
     >
-      {/* ================= Top: Product Image Container ================= */}
-      <div className="relative w-full aspect-square overflow-hidden bg-slate-100/60">
+      {/* ================= Top: Product Image Container with Zero-CLS Skeleton ================= */}
+      <div className="relative w-full aspect-square overflow-hidden bg-slate-100">
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-slate-200/70 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-indigo-600 animate-spin opacity-50" />
+          </div>
+        )}
         <img
-          src={product.image}
+          src={optimizedSrc}
+          srcSet={optimizedSrcSet}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           alt={product.title}
           width={400}
           height={400}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-cover object-center group-hover:scale-105 transition-all duration-500 ease-out ${
+            imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-98'
+          }`}
           loading="lazy"
           decoding="async"
         />
@@ -214,9 +242,9 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
               <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
               <span>Genuine</span>
             </span>
-            <span className="flex items-center gap-0.5 font-medium text-slate-600 truncate" title="7-Day Hassle-Free Replacement Policy">
-              <RotateCcw className="w-3 h-3 text-amber-600 shrink-0" />
-              <span>7d Return</span>
+            <span className="flex items-center gap-0.5 font-medium text-amber-700 truncate" title="Express Same-Day Dispatch from Warehouse">
+              <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>Fast Dispatch</span>
             </span>
             <span className="flex items-center gap-0.5 font-medium text-indigo-700 shrink-0" title="Cash on Delivery & Express Nationwide Shipping">
               <Truck className="w-3 h-3 text-[#4F46E5] shrink-0" />

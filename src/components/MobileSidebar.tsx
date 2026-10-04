@@ -47,7 +47,7 @@ export interface MobileSidebarProps {
   onOpenYouTubeBonusModal?: () => void;
 }
 
-export const MobileSidebar: React.FC<MobileSidebarProps> = ({
+export const MobileSidebar: React.FC<MobileSidebarProps> = React.memo(({
   isOpen,
   onClose,
   user,
@@ -96,8 +96,15 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
         onClick={onClose}
       />
 
-      {/* Slide-out Drawer Panel */}
-      <div className="relative w-full max-w-xs sm:max-w-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-full shadow-2xl z-10 flex flex-col overflow-y-auto animate-slideRight border-r border-slate-200 dark:border-slate-800">
+      {/* Slide-out Drawer Panel with Hardware Acceleration */}
+      <div 
+        className="relative w-full max-w-xs sm:max-w-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-full shadow-2xl z-10 flex flex-col overflow-y-auto animate-slideRight border-r border-slate-200 dark:border-slate-800 transform-gpu"
+        style={{
+          touchAction: 'pan-y',
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+        }}
+      >
         
         {/* Drawer Header with Transparent Logo Container */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-transparent sticky top-0 backdrop-blur-md z-10">
@@ -382,6 +389,6 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default MobileSidebar;

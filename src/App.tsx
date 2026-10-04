@@ -87,7 +87,6 @@ import {
   getLocalProducts,
 } from './services/productFirestoreService';
 import { HeroBannerSlider } from './components/HeroBannerSlider';
-import { SortModal } from './components/SortModal';
 import { 
   subscribeBannersFromFirestore, 
   PromoSlideBanner, 
@@ -95,6 +94,7 @@ import {
 } from './services/bannerService';
 
 // Code-split heavy secondary views, below-the-fold sections, drawers, modals, and admin components with React.lazy
+const SortModal = lazy(() => import('./components/SortProducts').then((m) => ({ default: m.SortProducts })));
 const StorefrontCampaignBanner = lazy(() => import('./components/StorefrontCampaignBanner').then((m) => ({ default: m.StorefrontCampaignBanner })));
 const FlashSaleSection = lazy(() => import('./components/FlashSaleSection').then((m) => ({ default: m.FlashSaleSection })));
 const YouTubeBonusBanner = lazy(() => import('./components/YouTubeBonusBanner').then((m) => ({ default: m.YouTubeBonusBanner })));
@@ -353,15 +353,23 @@ export default function App() {
   const [catalogFilters, setCatalogFilters] = useState<CatalogFilterState>(INITIAL_FILTER_STATE);
   const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState<boolean>(false);
 
-  const handleResetAllFilters = () => {
+  // State: Toast notification
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  }, []);
+
+  const handleResetAllFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedCategory('All');
     setActiveFilterTab('All');
     setCatalogFilters(INITIAL_FILTER_STATE);
     showToast('✓ All filters cleared');
-  };
+  }, [showToast]);
 
-  const handleSelectCategoryFromNav = (cat: string) => {
+  const handleSelectCategoryFromNav = useCallback((cat: string) => {
     setSelectedCategory(cat);
     setActiveFilterTab('All');
     if (cat === 'All') {
@@ -374,7 +382,7 @@ export default function App() {
     setActivePage('Home');
     const el = document.getElementById('explore');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   // State: Wishlist with LocalStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -391,14 +399,14 @@ export default function App() {
     localStorage.setItem('primevault_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  const handleToggleWishlist = (productId: string) => {
+  const handleToggleWishlist = useCallback((productId: string) => {
     setWishlist((prev) => {
       const exists = prev.includes(productId);
       const updated = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
       showToast(exists ? 'Removed from Wishlist' : '❤️ Added to your Wishlist!');
       return updated;
     });
-  };
+  }, [showToast]);
 
   // State: Dynamic Products with Firestore real-time sync + LocalStorage persistence
   const [products, setProducts] = useState<Product[]>(() => getLocalProducts());
@@ -639,9 +647,6 @@ export default function App() {
 
   const [currentSellerId, setCurrentSellerId] = useState<string>('seller-1');
 
-  // State: Toast notification
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-
   // Seed permanent Super Admin / Owner account
   useEffect(() => {
     seedSuperAdminAccount();
@@ -751,11 +756,6 @@ export default function App() {
         });
     }
   }, []);
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3000);
-  };
 
   // Product Management (Admin Handlers with Firestore Persistence)
   const handleAddProduct = async (newProductData: Omit<Product, 'id'>) => {
@@ -888,7 +888,7 @@ export default function App() {
   };
 
   // Add to Cart handler
-  const handleAddToCart = (product: Product, quantity = 1, selectedSize?: string) => {
+  const handleAddToCart = useCallback((product: Product, quantity = 1, selectedSize?: string) => {
     if (product.inStock === false) {
       showToast(`⚠️ Sorry, "${product.title}" is out of stock!`);
       return;
@@ -937,7 +937,7 @@ export default function App() {
       ];
     });
     showToast(`🛒 "${itemToAdd.title}" added to cart!`);
-  };
+  }, [showToast]);
 
   // Dedicated /checkout navigation handler
   const handleOpenCheckout = useCallback(() => {
@@ -952,10 +952,10 @@ export default function App() {
   }, []);
 
   // Instant Buy Now trigger
-  const handleBuyNow = (product: Product, quantity = 1, selectedSize?: string) => {
+  const handleBuyNow = useCallback((product: Product, quantity = 1, selectedSize?: string) => {
     handleAddToCart(product, quantity, selectedSize);
     handleOpenCheckout();
-  };
+  }, [handleAddToCart, handleOpenCheckout]);
 
   // Navigation Handlers memoized with useCallback to prevent re-renders
   const handleGoHome = useCallback(() => {
@@ -2100,7 +2100,7 @@ export default function App() {
                           key={product.id}
                           product={product}
                           onAddToCart={handleAddToCart}
-                          onQuickView={(p) => handleSelectProductDetail(p)}
+                          onQuickView={handleSelectProductDetail}
                           onBuyNow={handleBuyNow}
                           isWishlisted={wishlist.includes(product.id)}
                           onToggleWishlist={handleToggleWishlist}
@@ -2308,12 +2308,16 @@ export default function App() {
       )}
 
       {/* Glassmorphic iOS Bottom Sheet Sort Modal */}
-      <SortModal
-        isOpen={isSortModalOpen}
-        onClose={() => setIsSortModalOpen(false)}
-        currentSort={catalogFilters.sortBy}
-        onSelectSort={(newSort) => setCatalogFilters((prev) => ({ ...prev, sortBy: newSort }))}
-      />
+      {isSortModalOpen && (
+        <Suspense fallback={null}>
+          <SortModal
+            isOpen={isSortModalOpen}
+            onClose={() => setIsSortModalOpen(false)}
+            currentSort={catalogFilters.sortBy}
+            onSelectSort={(newSort) => setCatalogFilters((prev) => ({ ...prev, sortBy: newSort }))}
+          />
+        </Suspense>
+      )}
 
       {/* PWA Install Banner & Network Connection Ribbon */}
       <Suspense fallback={null}>

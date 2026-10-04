@@ -33,8 +33,9 @@ import {
 import { UserProfile, SystemBannerSettings, Product } from '../types';
 import { Logo } from './Logo';
 import { VaultLogo } from './VaultLogo';
-import { MobileSidebar } from './MobileSidebar';
 import { checkIsAdmin, checkIsSuperAdmin } from '../services/authService';
+
+const MobileSidebar = React.lazy(() => import('./MobileSidebar').then((m) => ({ default: m.MobileSidebar })));
 
 interface HeaderProps {
   searchQuery: string;
@@ -1096,27 +1097,31 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         </div>
 
         {/* ================= 5. RESPONSIVE MOBILE SIDEBAR DRAWER MENU ================= */}
-        <MobileSidebar
-          isOpen={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          user={user}
-          activeNav={activeNav}
-          ordersCount={ordersCount}
-          wishlistCount={wishlistCount}
-          selectedCategory={selectedCategory}
-          onSelectCategory={(cat) => {
-            if (onSelectCategory) onSelectCategory(cat);
-          }}
-          onOpenAuth={onOpenAuth}
-          onOpenOrders={onOpenOrders}
-          onOpenWishlist={onOpenWishlist}
-          onOpenTrackOrder={onOpenTrackOrder}
-          onOpenFaq={() => {}}
-          onOpenSellerCenter={onOpenSellerCenter}
-          onOpenAdmin={onOpenAdmin}
-          onGoHome={onGoHome}
-          onOpenYouTubeBonusModal={onOpenYouTubeBonusModal}
-        />
+        {mobileMenuOpen && (
+          <React.Suspense fallback={null}>
+            <MobileSidebar
+              isOpen={mobileMenuOpen}
+              onClose={() => setMobileMenuOpen(false)}
+              user={user}
+              activeNav={activeNav}
+              ordersCount={ordersCount}
+              wishlistCount={wishlistCount}
+              selectedCategory={selectedCategory}
+              onSelectCategory={(cat) => {
+                if (onSelectCategory) onSelectCategory(cat);
+              }}
+              onOpenAuth={onOpenAuth}
+              onOpenOrders={onOpenOrders}
+              onOpenWishlist={onOpenWishlist}
+              onOpenTrackOrder={onOpenTrackOrder}
+              onOpenFaq={() => {}}
+              onOpenSellerCenter={onOpenSellerCenter}
+              onOpenAdmin={onOpenAdmin}
+              onGoHome={onGoHome}
+              onOpenYouTubeBonusModal={onOpenYouTubeBonusModal}
+            />
+          </React.Suspense>
+        )}
       </header>
 
       {/* ================= 6. MOBILE MULTI-CATEGORY SEARCH MODAL / OVERLAY ================= */}

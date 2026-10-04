@@ -146,8 +146,14 @@ export const CategorySlider: React.FC<CategorySliderProps> = React.memo(({
         {/* Circular Horizontal Scrollable Container */}
         <div
           ref={scrollContainerRef}
-          className="flex items-start gap-4 sm:gap-6 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex items-start gap-4 sm:gap-6 overflow-x-auto scrollbar-none py-2 px-1 scroll-smooth transform-gpu"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            touchAction: 'pan-x pan-y',
+            WebkitOverflowScrolling: 'touch',
+            willChange: 'scroll-position',
+          }}
         >
           {HOME_CATEGORIES.map((cat) => {
             const isSelected =

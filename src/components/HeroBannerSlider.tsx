@@ -108,7 +108,19 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
     }
   };
 
-  if (totalSlides === 0) return null;
+  if (totalSlides === 0) {
+    return (
+      <section className="relative w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-4 select-none">
+        <div className="relative w-full h-[220px] sm:h-[320px] md:h-[380px] lg:h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-slate-900 animate-pulse flex items-center p-6 sm:p-12">
+          <div className="space-y-3 max-w-md">
+            <div className="h-5 w-24 bg-orange-500/40 rounded-full" />
+            <div className="h-8 w-64 bg-slate-700 rounded-xl" />
+            <div className="h-4 w-48 bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const currentBanner = activeBanners[currentIndex];
 
@@ -118,30 +130,42 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Slider Viewport Container */}
+      {/* Slider Viewport Container with Hardware Acceleration */}
       <div 
-        className="relative w-full h-[220px] sm:h-[320px] md:h-[380px] lg:h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-slate-900 group"
+        className="relative w-full h-[220px] sm:h-[320px] md:h-[380px] lg:h-[420px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-slate-900 group transform-gpu"
+        style={{
+          touchAction: 'pan-y',
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {/* Slides Container with Smooth Slide Transition */}
         <div 
-          className="w-full h-full flex transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          className="w-full h-full flex transition-transform duration-700 ease-out transform-gpu"
+          style={{ 
+            transform: `translateX(-${currentIndex * 100}%) translateZ(0)`,
+            willChange: 'transform',
+          }}
         >
           {activeBanners.map((banner, index) => (
             <div
               key={banner.id || index}
               className="w-full h-full shrink-0 relative flex items-center"
             >
-              {/* Responsive Background Image */}
+              {/* Responsive Background Image with Priority LCP Loading */}
               <img
                 src={banner.imageUrl}
                 alt={banner.title || 'Promotional Banner'}
                 className="absolute inset-0 w-full h-full object-cover object-center"
                 loading={index === 0 ? 'eager' : 'lazy'}
+                // @ts-ignore - React 19 / Modern DOM fetchPriority support
+                fetchPriority={index === 0 ? 'high' : 'low'}
                 decoding="async"
+                width={1280}
+                height={420}
               />
 
               {/* Dark Gradient Overlay for Maximum Text Contrast */}

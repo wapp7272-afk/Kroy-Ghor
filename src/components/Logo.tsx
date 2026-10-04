@@ -103,6 +103,8 @@ export const Logo: React.FC<LogoProps> = React.memo(({
           height={currentNumeric.height}
           className={`${imageClasses} object-contain transition-transform duration-200 group-hover:scale-102 mix-blend-multiply dark:mix-blend-normal bg-transparent`}
           loading="eager"
+          // @ts-ignore
+          fetchPriority="high"
           decoding="async"
         />
       </div>

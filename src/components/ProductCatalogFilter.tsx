@@ -84,7 +84,7 @@ export const CURATED_BRANDS = [
   'Gucci',
   'Calvin Klein',
   'AeroChronos',
-  'ZeropicBD Atelier',
+  'Kroyghor Atelier',
   'Cyberpunk Lab',
   'Royal Oudh'
 ];
@@ -613,7 +613,14 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = React.memo(
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-2 sm:pl-10">
-        <div className="w-screen max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div 
+          className="w-screen max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transform-gpu"
+          style={{
+            touchAction: 'pan-y',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+          }}
+        >
           {/* Header */}
           <div className="p-3.5 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
             <div className="flex items-center gap-2">
@@ -635,7 +642,10 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = React.memo(
           </div>
 
           {/* Drawer Body Scroll */}
-          <div className="flex-1 overflow-y-auto p-3.5 sm:p-4">
+          <div 
+            className="flex-1 overflow-y-auto p-3.5 sm:p-4"
+            style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+          >
             <FilterSidebarContent
               filters={filters}
               onChange={onChange}
