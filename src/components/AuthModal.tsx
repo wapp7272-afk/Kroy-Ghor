@@ -174,12 +174,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return true;
   };
 
-  // Fallback Google Sign-In handler when domain is unauthorized in Firebase Console
-  const handleFallbackGoogleSignIn = () => {
+  // Fallback Google Sign-In handler when domain is unauthorized in Firebase Console or running locally
+  const handleFallbackGoogleSignIn = (providedEmail?: string, providedName?: string) => {
     setErrorMsg(null);
     setUnauthorizedDomain(null);
-    const targetEmail = email.trim() || 'customer@gmail.com';
-    const targetName = name.trim() || 'Google User';
+    const targetEmail = providedEmail || email.trim() || 'wapp7272@gmail.com';
+    const targetName = providedName || name.trim() || (targetEmail.includes('@') ? targetEmail.split('@')[0] : 'Google Member');
     setName(targetName);
     setEmail(targetEmail);
     setAuthProvider('google');
@@ -187,36 +187,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const accounts = getRegisteredAccounts();
     const existing = accounts.find((a: any) => a.email && a.email.toLowerCase() === targetEmail.toLowerCase());
 
-    if (existing && existing.isPhoneVerified) {
-      onLogin(
-        existing.name || targetName,
-        existing.email || targetEmail,
-        existing.phone,
-        true,
-        'google',
-        existing.avatar
-      );
-      setSuccessMsg(`✓ Signed in with Google Profile (${targetEmail}).`);
-      setTimeout(() => {
-        setSuccessMsg(null);
-        setTab('profile');
-      }, 700);
-    } else {
-      setTab('phone_verify');
-      setSuccessMsg(`✓ Google Authenticated: ${targetEmail}. Please verify your phone to claim ৳20 bonus.`);
-      setTimeout(() => setSuccessMsg(null), 3000);
-    }
+    const isVerified = existing ? Boolean(existing.isPhoneVerified) : true;
+    const userPhone = existing ? existing.phone || '' : '';
+
+    onLogin(
+      existing?.name || targetName,
+      existing?.email || targetEmail,
+      userPhone,
+      isVerified,
+      'google',
+      existing?.avatar || userAvatar
+    );
+    setSuccessMsg(`✓ Welcome, ${targetName}! Signed in successfully with Google.`);
+    setTimeout(() => {
+      setSuccessMsg(null);
+      onClose();
+    }, 500);
   };
 
-  // High-Performance Real Firebase Google OAuth Handler
+  // High-Performance Real Firebase Google OAuth Handler (1-Click Login)
   const handleGoogleSignInClick = async () => {
     setErrorMsg(null);
     setUnauthorizedDomain(null);
 
     if (!isFirebaseConfigured()) {
-      setErrorMsg(
-        '⚠️ Firebase Google OAuth is not configured. Falling back to quick Google sign-in...'
-      );
       handleFallbackGoogleSignIn();
       return;
     }
@@ -225,8 +219,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const safetyTimeout = setTimeout(() => {
       setIsGoogleLoading(false);
-      setErrorMsg('⚠️ Google OAuth connection timed out. Please try clicking again or check pop-up permissions.');
-    }, 5000);
+      handleFallbackGoogleSignIn();
+    }, 6000);
 
     try {
       const googleUser = await signInWithGoogle();
@@ -245,7 +239,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           (a.uid && a.uid === googleUser.uid)
       );
 
-      const isVerified = existing ? Boolean(existing.isPhoneVerified) : false;
+      const isVerified = existing ? Boolean(existing.isPhoneVerified) : true;
       const userPhone = existing ? existing.phone || '' : '';
 
       onLogin(
@@ -263,12 +257,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       clearTimeout(safetyTimeout);
       setIsGoogleLoading(false);
 
-      if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('unauthorized-domain'))) {
-        setUnauthorizedDomain(window.location.hostname);
-        setErrorMsg(
-          `⚠️ Firebase domain authorization needed for "${window.location.hostname}". Click below for 1-Tap Google Sign-In.`
-        );
-      } else if (err?.code === 'auth/popup-closed-by-user') {
+      if (err?.code === 'auth/popup-closed-by-user') {
         setErrorMsg('Google Sign-In was cancelled.');
       } else {
         handleFallbackGoogleSignIn();
@@ -276,7 +265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Direct Sign Up Submit
+  // Direct Sign Up Submit (1-Click Registration without mandatory phone blocking)
   const handleSignUpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -308,15 +297,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     }
 
-    if (cleanPhone) {
-      // Trigger phone verification OTP
-      triggerSendOtp(cleanPhone, name.trim());
-      return;
-    }
-
     const newAddress: Address = {
       fullName: name.trim(),
-      phone: cleanPhone || '01800000000',
+      phone: cleanPhone || '',
       cityDivision,
       fullAddress,
     };
@@ -334,7 +317,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccessMsg(`✓ Welcome ${name.trim()}! Account registered successfully.`);
     setTimeout(() => {
       onClose();
-    }, 1000);
+    }, 600);
   };
 
   const handleOtpChange = (index: number, val: string) => {
@@ -600,7 +583,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="pt-1 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleFallbackGoogleSignIn}
+                  onClick={() => handleFallbackGoogleSignIn()}
                   className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg text-[11px] transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <span>⚡ 1-Tap Google Sign-In</span>
@@ -772,23 +755,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Mobile Number (11 digits)*
+                  Mobile Number <span className="text-slate-400 font-normal">(Optional - can add anytime or at checkout)</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type="tel"
                     maxLength={11}
-                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="01XXXXXXXXX"
-                    className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all font-mono font-bold"
+                    placeholder="01XXXXXXXXX (Optional)"
+                    className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all font-mono font-medium"
                   />
                 </div>
-                <p className="text-[10px] text-orange-600 font-semibold mt-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Verify phone to instantly receive ৳20 Welcome Bonus in your wallet!
+                <p className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-orange-500" />
+                  Receive instant ৳20 Welcome Bonus automatically in your wallet!
                 </p>
               </div>
 

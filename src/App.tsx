@@ -69,7 +69,9 @@ import {
   firebaseSignOut,
   getUserRoleFromFirestore,
   syncUserDocumentInFirestore,
+  db,
 } from './lib/firebaseAuth';
+import { doc, updateDoc } from 'firebase/firestore';
 import { UserRole } from './types';
 import { AdminRoute } from './components/AdminRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -1346,6 +1348,35 @@ export default function App() {
     }
 
     api.cart.clear().catch(() => {});
+
+    // If logged in and didn't have phone/address yet, save the checkout phone/address to profile
+    if (user.isLoggedIn) {
+      const checkoutPhone = order.customerPhone || order.address.phone || '';
+      setUser((prev) => {
+        const needsPhoneUpdate = !prev.phone && checkoutPhone;
+        const needsAddressUpdate = !prev.address?.fullAddress && order.address?.fullAddress;
+        if (needsPhoneUpdate || needsAddressUpdate) {
+          const updated: UserProfile = {
+            ...prev,
+            phone: prev.phone || checkoutPhone,
+            address: prev.address?.fullAddress ? prev.address : order.address,
+          };
+          const targetUid = prev.email ? prev.email.replace(/[^a-zA-Z0-9]/g, '_') : (prev.phone || 'user');
+          if (db && targetUid) {
+            try {
+              const userRef = doc(db, 'users', targetUid);
+              updateDoc(userRef, {
+                phone: updated.phone,
+                address: updated.address,
+                updatedAt: new Date().toISOString()
+              }).catch(() => {});
+            } catch {}
+          }
+          return updated;
+        }
+        return prev;
+      });
+    }
 
     if (order.walletDeducted > 0) {
       // Deduct from Firestore users/{uid} and log DEBIT in wallet_transactions
