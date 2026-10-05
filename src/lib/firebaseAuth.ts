@@ -7,6 +7,8 @@ import {
   getRedirectResult,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   User as FirebaseUser,
   Auth,
 } from 'firebase/auth';
@@ -420,4 +422,61 @@ export const subscribeToFirebaseAuthState = (
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
+};
+
+/**
+ * Signs up a new user with Email & Password in Firebase Authentication
+ */
+export const signUpWithEmailAndPassword = async (
+  email: string,
+  pass: string,
+  displayName?: string
+): Promise<{ uid: string; email: string; displayName: string }> => {
+  if (!isFirebaseConfigured() || !auth) {
+    throw new Error('Firebase Auth is not configured.');
+  }
+
+  const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+  const user = userCredential.user;
+  const name = displayName || email.split('@')[0] || 'Kroy Ghor Member';
+
+  await syncUserDocumentInFirestore({
+    uid: user.uid,
+    email: user.email || email,
+    displayName: name,
+  });
+
+  return {
+    uid: user.uid,
+    email: user.email || email,
+    displayName: name,
+  };
+};
+
+/**
+ * Signs in an existing user with Email & Password in Firebase Authentication
+ */
+export const signInUserWithEmailAndPassword = async (
+  email: string,
+  pass: string
+): Promise<{ uid: string; email: string; displayName: string }> => {
+  if (!isFirebaseConfigured() || !auth) {
+    throw new Error('Firebase Auth is not configured.');
+  }
+
+  const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  const user = userCredential.user;
+  const displayName = user.displayName || email.split('@')[0] || 'Kroy Ghor Member';
+
+  await syncUserDocumentInFirestore({
+    uid: user.uid,
+    email: user.email || email,
+    displayName,
+  });
+
+  return {
+    uid: user.uid,
+    email: user.email || email,
+    displayName,
+  };
 };

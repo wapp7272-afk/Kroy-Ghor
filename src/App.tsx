@@ -1103,7 +1103,8 @@ export default function App() {
     phone: string,
     isPhoneVerified?: boolean,
     authProvider?: 'google' | 'phone' | 'email',
-    avatar?: string
+    avatar?: string,
+    uid?: string
   ) => {
     // Lookup stored account in registered accounts
     const accounts = (() => {
@@ -1124,7 +1125,7 @@ export default function App() {
     const history: WalletTransaction[] = matched?.walletHistory || user.walletHistory || [];
 
     // Sync/retrieve Firestore user document in users/{uid}
-    const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
+    const targetUid = uid || (auth as any)?.currentUser?.uid || matched?.uid || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user');
     const synced = await syncUserDocumentInFirestore({
       uid: targetUid,
       email,
@@ -1143,7 +1144,8 @@ export default function App() {
     const session = createSession(email, cleanPhone, role);
     setStoredSession(session);
 
-    const updatedUser: UserProfile = {
+    const updatedUser: UserProfile & { uid?: string } = {
+      uid: targetUid,
       isLoggedIn: true,
       name: name || synced.displayName || matched?.name || 'Kroyghor Member',
       email: email || synced.email || matched?.email || '',
@@ -1172,11 +1174,12 @@ export default function App() {
     address: Address,
     isPhoneVerified?: boolean,
     authProvider?: 'google' | 'phone' | 'email',
-    avatar?: string
+    avatar?: string,
+    uid?: string
   ) => {
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
 
-    const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
+    const targetUid = uid || (auth as any)?.currentUser?.uid || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user');
     const synced = await syncUserDocumentInFirestore({
       uid: targetUid,
       email,
@@ -1189,7 +1192,8 @@ export default function App() {
     const session = createSession(email, cleanPhone, role);
     setStoredSession(session);
 
-    const newUser: UserProfile = {
+    const newUser: UserProfile & { uid?: string } = {
+      uid: targetUid,
       isLoggedIn: true,
       name: name || synced.displayName || 'Kroyghor Member',
       email: email || synced.email || '',

@@ -25,7 +25,12 @@ import {
   Gift
 } from 'lucide-react';
 import { UserProfile, Address, WalletTransaction } from '../types';
-import { isFirebaseConfigured, signInWithGoogle } from '../lib/firebaseAuth';
+import { 
+  isFirebaseConfigured, 
+  signInWithGoogle, 
+  signUpWithEmailAndPassword, 
+  signInUserWithEmailAndPassword 
+} from '../lib/firebaseAuth';
 import { BrandLogo } from './BrandLogo';
 
 export interface AuthModalProps {
@@ -38,7 +43,8 @@ export interface AuthModalProps {
     phone: string, 
     isPhoneVerified?: boolean, 
     authProvider?: 'google' | 'phone' | 'email', 
-    avatar?: string
+    avatar?: string,
+    uid?: string
   ) => void;
   onSignup: (
     name: string, 
@@ -47,7 +53,8 @@ export interface AuthModalProps {
     address: Address, 
     isPhoneVerified?: boolean, 
     authProvider?: 'google' | 'phone' | 'email', 
-    avatar?: string
+    avatar?: string,
+    uid?: string
   ) => void;
   onVerifyPhoneSuccess?: (phone: string) => void;
   onUpdateAddress: (address: Address) => void;
@@ -248,7 +255,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         userPhone,
         isVerified,
         'google',
-        googleUser.photoURL || existing?.avatar
+        googleUser.photoURL || existing?.avatar,
+        googleUser.uid
       );
 
       setIsGoogleLoading(false);
@@ -265,8 +273,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Direct Sign Up Submit (1-Click Registration without mandatory phone blocking)
-  const handleSignUpSubmit = (e: React.FormEvent) => {
+  // Direct Sign Up Submit
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -304,6 +312,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       fullAddress,
     };
 
+    let createdUid: string | undefined = undefined;
+
+    // Attempt Firebase Auth sign-up if email provided and Firebase is configured
+    if (cleanEmail && isFirebaseConfigured()) {
+      try {
+        const fAuthRes = await signUpWithEmailAndPassword(cleanEmail, regPassword, name.trim());
+        createdUid = fAuthRes.uid;
+      } catch (fErr: any) {
+        if (fErr?.code === 'auth/email-already-in-use') {
+          setErrorMsg('❌ This email address is already registered in Firebase. Please log in.');
+          return;
+        }
+        console.warn('[AuthModal] Firebase Auth sign up notice:', fErr);
+      }
+    }
+
     onSignup(
       name.trim(),
       cleanEmail || `${cleanPhone || Date.now()}@kroyghor.com`,
@@ -311,7 +335,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       newAddress,
       true,
       cleanEmail ? 'email' : 'phone',
-      userAvatar
+      userAvatar,
+      createdUid
     );
 
     setSuccessMsg(`✓ Welcome ${name.trim()}! Account registered successfully.`);
@@ -403,11 +428,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // Traditional Login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     const inputVal = loginEmailOrPhone.trim().toLowerCase();
     const cleanPhone = inputVal.replace(/[^0-9]/g, '');
+
+    let authUid: string | undefined = undefined;
+
+    if (inputVal.includes('@') && isFirebaseConfigured() && loginPassword) {
+      try {
+        const authRes = await signInUserWithEmailAndPassword(inputVal, loginPassword);
+        authUid = authRes.uid;
+      } catch (fErr: any) {
+        console.warn('[AuthModal] Firebase Auth sign in notice:', fErr);
+      }
+    }
 
     const accounts = getRegisteredAccounts();
     const matched = accounts.find((acc: any) => 
@@ -418,7 +454,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (!matched) {
       // Create quick login session for smooth UX
       const inferredName = inputVal.includes('@') ? inputVal.split('@')[0] : 'Kroyghor Member';
-      onLogin(inferredName, inputVal.includes('@') ? inputVal : '', cleanPhone, true, 'email', undefined);
+      onLogin(inferredName, inputVal.includes('@') ? inputVal : '', cleanPhone, true, 'email', undefined, authUid);
       setSuccessMsg(`Welcome ${inferredName}! Login successful.`);
       setTimeout(() => {
         setSuccessMsg(null);
@@ -432,7 +468,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    onLogin(matched.name, matched.email, matched.phone, matched.isPhoneVerified ?? true, matched.authProvider || 'phone', matched.avatar);
+    onLogin(matched.name, matched.email, matched.phone, matched.isPhoneVerified ?? true, matched.authProvider || 'phone', matched.avatar, authUid || matched.uid);
     setSuccessMsg(`স্বাগতম ${matched.name}! সফলভাবে লগইন হয়েছে।`);
     setTimeout(() => {
       setSuccessMsg(null);
