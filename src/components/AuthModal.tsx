@@ -338,7 +338,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Verification Completion & ৳20 Bonus Award
+  // Verification Completion & Save Phone Number
   const handleVerifyOtp = () => {
     setErrorMsg(null);
     const entered = otpDigits.join('');
@@ -355,16 +355,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const accounts = getRegisteredAccounts();
     const cleanPhone = verificationPhone.replace(/[^0-9]/g, '');
 
-    const initialWalletHistory: WalletTransaction[] = [
-      {
-        id: `tx-welcome-${Date.now()}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        amount: 20,
-        type: 'credit',
-        description: 'Welcome Sign-up & Phone Verification Bonus'
-      }
-    ];
-
     const accountData = {
       name: name || 'Kroyghor Member',
       email: email.trim().toLowerCase() || `${cleanPhone}@kroyghor.com`,
@@ -380,9 +370,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         fullAddress,
       },
       registeredAt: new Date().toISOString(),
-      walletBalance: 20,
-      hasReceivedBonus: true,
-      walletHistory: initialWalletHistory
     };
 
     const existingIndex = accounts.findIndex((a: any) => a.phone === cleanPhone || (email && a.email === email.toLowerCase()));
@@ -408,12 +395,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setSmsToast(null);
-
-    setRewardCelebration({
-      amount: 20,
-      phone: cleanPhone,
-      accountName: name || 'Kroyghor Member',
-    });
+    setSuccessMsg(`✓ Mobile number ${cleanPhone} verified successfully.`);
+    setTimeout(() => {
+      setSuccessMsg(null);
+      onClose();
+    }, 800);
   };
 
   // Traditional Login
@@ -506,7 +492,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               {user.isLoggedIn 
                 ? 'Manage your wallet balance & delivery address'
-                : 'Sign in with Google or Mobile for instant ৳20 Welcome Bonus!'}
+                : 'Sign in with Google or create an account with Email & Password.'}
             </p>
           </div>
 
@@ -565,7 +551,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Register (+৳20)
+                Register
               </button>
             </div>
           )}
@@ -755,7 +741,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Mobile Number <span className="text-slate-400 font-normal">(Optional - can add anytime or at checkout)</span>
+                  Mobile Number <span className="text-slate-400 font-normal">(Optional - can add anytime in profile or at checkout)</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -768,10 +754,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all font-mono font-medium"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-orange-500" />
-                  Receive instant ৳20 Welcome Bonus automatically in your wallet!
-                </p>
               </div>
 
               <div>
@@ -820,7 +802,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="submit"
                 className="w-full py-3.5 rounded-xl font-bold text-sm bg-orange-600 hover:bg-orange-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] mt-3"
               >
-                <span>CREATE ACCOUNT (+৳20 BONUS)</span>
+                <span>CREATE ACCOUNT</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -872,7 +854,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="p-3.5 rounded-2xl bg-orange-50 border border-orange-200 text-xs text-orange-950">
                 <p className="font-bold">Connect Mobile Number</p>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Verify your 11-digit mobile number to claim your ৳20 Welcome Bonus.
+                  Verify your 11-digit mobile number for faster checkout and order tracking.
                 </p>
               </div>
 
@@ -938,7 +920,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onClick={handleVerifyOtp}
                 className="w-full py-3.5 rounded-xl font-bold text-sm bg-orange-600 hover:bg-orange-700 text-white shadow-md transition-all cursor-pointer"
               >
-                Verify Code & Activate ৳20 Bonus
+                Verify Code & Save Phone
               </button>
 
               <div className="flex justify-between items-center pt-2">

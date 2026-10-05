@@ -389,9 +389,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
     setIsSubmitting(true);
 
-    // Generate unique Bangladesh-formatted Order ID: #PVZ-BD-XXXXX
-    const randomDigits = Math.floor(10000 + Math.random() * 90000);
-    const orderId = `#PVZ-BD-${randomDigits}`;
+    // Generate unique Kroyghor-formatted Order ID: #KG-XXXX
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const orderId = `#KG-${randomDigits}`;
     const orderTimestamp = generateOrderTimestamp();
 
     const draftOrder: Order = {

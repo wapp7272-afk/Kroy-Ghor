@@ -80,6 +80,8 @@ import {
   getUserOrdersFromFirestore,
   getAllOrdersFromFirestore,
   deductUserWalletInFirestore,
+  subscribeToAllOrdersFromFirestore,
+  subscribeToUserOrdersFromFirestore,
 } from './services/orderFirestoreService';
 import {
   isDemoOrder,
@@ -353,6 +355,7 @@ export default function App() {
 
   // State: Toast notification
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [userProfileInitialTab, setUserProfileInitialTab] = useState<'profile' | 'orders' | 'cart' | 'wallet' | 'addresses' | 'security'>('profile');
 
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);
@@ -590,32 +593,38 @@ export default function App() {
     localStorage.setItem('primevault_orders', JSON.stringify(orders));
   }, [orders]);
 
-  // Load lifetime order history from Firestore backend for authenticated users
+  // Real-time Order Sync Engine: Listens to Firestore, BroadcastChannel, and in-tab custom events
   useEffect(() => {
-    const fetchLifetimeOrders = async () => {
-      try {
-        if (user.isLoggedIn) {
-          const userOrders = await getUserOrdersFromFirestore(
-            user.email,
-            user.email,
-            user.phone
-          );
-          if (userOrders && userOrders.length > 0) {
-            setOrders(userOrders);
-          }
-        } else {
-          const allOrders = await getAllOrdersFromFirestore();
-          if (allOrders && allOrders.length > 0) {
-            setOrders(allOrders);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load orders from Firestore:', e);
-      }
-    };
+    const isOwnerOrAdmin =
+      user.role === 'admin' ||
+      user.role === 'super_admin' ||
+      user.email?.toLowerCase() === 'wapp7272@gmail.com' ||
+      (typeof window !== 'undefined' && window.location.pathname === '/admin');
 
-    fetchLifetimeOrders();
-  }, [user.isLoggedIn, user.email, user.phone]);
+    if (isOwnerOrAdmin) {
+      const unsub = subscribeToAllOrdersFromFirestore((allOrders) => {
+        if (allOrders && allOrders.length >= 0) {
+          setOrders(allOrders);
+        }
+      });
+      return () => unsub();
+    } else if (user.isLoggedIn) {
+      const targetUid = (user as any).uid || user.email;
+      const unsub = subscribeToUserOrdersFromFirestore(targetUid, user.email, (userOrders) => {
+        if (userOrders && userOrders.length >= 0) {
+          setOrders(userOrders);
+        }
+      });
+      return () => unsub();
+    } else {
+      const unsub = subscribeToAllOrdersFromFirestore((allOrders) => {
+        if (allOrders && allOrders.length >= 0) {
+          setOrders(allOrders);
+        }
+      });
+      return () => unsub();
+    }
+  }, [user.isLoggedIn, user.role, user.email]);
 
   useEffect(() => {
     localStorage.setItem('zeropicbd_products', JSON.stringify(products));
@@ -900,6 +909,7 @@ export default function App() {
       window.history.pushState(null, '', '/');
     }
     setSelectedProductDetail(null);
+    setUserProfileInitialTab('orders');
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -909,6 +919,7 @@ export default function App() {
       window.history.pushState(null, '', '/');
     }
     setSelectedProductDetail(null);
+    setUserProfileInitialTab('profile');
     setActivePage('UserProfile');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -1110,15 +1121,7 @@ export default function App() {
     );
 
     const verified = isPhoneVerified ?? matched?.isPhoneVerified ?? true;
-    const history: WalletTransaction[] = matched?.walletHistory || user.walletHistory || [
-      {
-        id: `tx-welcome-${Date.now()}`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        amount: 20,
-        type: 'credit',
-        description: 'Welcome Sign-up & Phone Verification Bonus'
-      }
-    ];
+    const history: WalletTransaction[] = matched?.walletHistory || user.walletHistory || [];
 
     // Sync/retrieve Firestore user document in users/{uid}
     const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
@@ -1134,7 +1137,7 @@ export default function App() {
       (s) => (email && s.email.toLowerCase() === email.toLowerCase()) || (cleanPhone && s.phone === cleanPhone)
     );
     const role: UserRole = matched?.role || synced.role || (isEmailAdmin ? 'super_admin' : isUserSeller ? 'seller' : 'customer');
-    const balance = synced.walletBalance > 0 ? synced.walletBalance : (matched?.walletBalance ?? (user.walletBalance > 0 ? user.walletBalance : 20));
+    const balance = typeof synced.walletBalance === 'number' && synced.walletBalance >= 0 ? synced.walletBalance : (matched?.walletBalance ?? user.walletBalance ?? 0);
 
     // Issue Bearer token session
     const session = createSession(email, cleanPhone, role);
@@ -1148,7 +1151,7 @@ export default function App() {
       role,
       session,
       walletBalance: balance,
-      hasReceivedBonus: true,
+      hasReceivedBonus: false,
       hasClaimedYouTubeBonus: synced.hasClaimedYouTubeBonus,
       isPhoneVerified: verified,
       authProvider: authProvider || matched?.authProvider || 'google',
@@ -1159,7 +1162,7 @@ export default function App() {
 
     setUser(updatedUser);
     setIsAuthOpen(false);
-    showToast(`✓ Welcome back, ${updatedUser.name}! (Role: ${role.toUpperCase()})`);
+    showToast(`✓ Welcome, ${updatedUser.name}!`);
   };
 
   const handleSignup = async (
@@ -1171,15 +1174,7 @@ export default function App() {
     authProvider?: 'google' | 'phone' | 'email',
     avatar?: string
   ) => {
-    const bonus = 20;
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-    const welcomeTx: WalletTransaction = {
-      id: `tx-${Date.now()}`,
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      amount: bonus,
-      type: 'credit',
-      description: 'Welcome Sign-up & Phone Verification Bonus'
-    };
 
     const targetUid = email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user';
     const synced = await syncUserDocumentInFirestore({
@@ -1201,13 +1196,13 @@ export default function App() {
       phone: cleanPhone,
       role,
       session,
-      walletBalance: synced.walletBalance > 0 ? synced.walletBalance : bonus,
-      hasReceivedBonus: true,
+      walletBalance: synced.walletBalance || 0,
+      hasReceivedBonus: false,
       hasClaimedYouTubeBonus: synced.hasClaimedYouTubeBonus,
       isPhoneVerified: isPhoneVerified ?? true,
       authProvider: authProvider || 'google',
       avatar: avatar || synced.photoURL,
-      walletHistory: [welcomeTx],
+      walletHistory: [],
       address: address || {
         fullName: name,
         phone: cleanPhone,
@@ -1338,7 +1333,7 @@ export default function App() {
 
     setOrders((prev) => [orderWithUser, ...prev.filter((o) => o.id !== orderWithUser.id)]);
     setCart([]);
-    setIsCheckoutOpen(false);
+    // Keep checkout open so user sees instant Order Confirmed screen with Order ID
 
     try {
       const saved = await saveOrderToFirestore(orderWithUser);
@@ -1866,7 +1861,7 @@ export default function App() {
             onLogout={handleLogout}
             onBackToShop={handleGoHome}
             onOpenAuth={() => setIsAuthOpen(true)}
-            initialTab={activePage === 'MyOrders' ? 'orders' : 'overview'}
+            initialTab={userProfileInitialTab}
             onSubmitReturnRequest={handleSubmitReturnRequest}
             onOpenReturnPolicy={() => setIsFaqOpen(true)}
             onTrackOrder={handleOpenTrackOrder}

@@ -200,11 +200,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           if (liveOrders && liveOrders.length >= 0) {
             setRealtimeOrders(liveOrders);
           }
-        }
+        },
+        user.phone
       );
       return () => unsub();
     }
-  }, [user.isLoggedIn, user.email]);
+  }, [user.isLoggedIn, user.email, user.phone]);
 
   const displayOrders = realtimeOrders.length > 0 ? realtimeOrders : orders;
 

@@ -105,7 +105,7 @@ export const docToOrder = (data: any, docId: string): Order => {
  */
 export const saveOrderToFirestore = async (order: Order, currentUserId?: string): Promise<Order> => {
   const uid = currentUserId || auth?.currentUser?.uid || order.userId || 'guest';
-  const orderId = order.id || `KG-${Math.floor(10000 + Math.random() * 90000)}`;
+  const orderId = order.id || `#KG-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const customerName = order.customerName || order.address?.fullName || 'Kroyghor Member';
   const customerEmail = order.customerEmail || auth?.currentUser?.email || '';
@@ -172,89 +172,132 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
     customerPhone,
   };
 
+  // 1. Instant multi-channel broadcast across tabs and admin (< 10ms)
+  broadcastNewOrder(completedOrder);
+
+  // 2. Persist in local storage
+  const localList = getLocalOrders();
+  const filtered = localList.filter((o) => o.id !== orderId);
+  saveLocalOrders([completedOrder, ...filtered]);
+
+  // 3. Persist in Firestore
   if (db) {
     try {
-      const orderRef = doc(db, 'orders', orderId);
+      const cleanDocId = orderId.replace('#', '');
+      const orderRef = doc(db, 'orders', cleanDocId);
       await setDoc(orderRef, firestoreDocPayload, { merge: true });
     } catch (err) {
       console.error('[OrderFirestoreService] Error saving order to Firestore:', err);
     }
   }
 
-  // Update local storage
-  const localList = getLocalOrders();
-  const filtered = localList.filter((o) => o.id !== orderId);
-  saveLocalOrders([completedOrder, ...filtered]);
-
   return completedOrder;
 };
 
 /**
  * Real-time subscription to customer lifetime orders from Firestore (`orders` collection)
+ * Instant multi-channel updates (<10ms) across tabs and windows
  */
 export const subscribeToUserOrdersFromFirestore = (
   uid: string | undefined,
   email: string | undefined,
-  callback: (orders: Order[]) => void
+  callback: (orders: Order[]) => void,
+  phone?: string | undefined
 ): (() => void) => {
-  if (!db) {
-    callback(getUserOrdersFromLocal(uid, email));
-    return () => {};
-  }
+  const cleanupFns: Array<() => void> = [];
 
   const currentUid = uid || auth?.currentUser?.uid;
   const currentEmail = email || auth?.currentUser?.email;
+  const currentPhone = phone;
 
-  if (!currentUid && !currentEmail) {
-    callback(getUserOrdersFromLocal(uid, email));
-    return () => {};
+  const isUserMatch = (o: Order) => {
+    if (!o) return false;
+    if (currentUid && (o.userId === currentUid || o.userId === currentUid.replace(/[^a-zA-Z0-9]/g, '_'))) return true;
+    if (currentEmail && o.customerEmail && o.customerEmail.toLowerCase() === currentEmail.toLowerCase()) return true;
+    if (currentPhone && (o.customerPhone === currentPhone || o.address?.phone === currentPhone)) return true;
+    return false;
+  };
+
+  const notifyUserOrders = () => {
+    const localList = getLocalOrders();
+    const userList = localList.filter(isUserMatch);
+    callback(userList);
+  };
+
+  notifyUserOrders();
+
+  // 1. In-tab window event listener for instant local sync
+  if (typeof window !== 'undefined') {
+    const handleCustomEvent = (event: Event) => {
+      const customEvt = event as CustomEvent<Order>;
+      if (customEvt.detail && isUserMatch(customEvt.detail)) {
+        notifyUserOrders();
+      }
+    };
+    window.addEventListener('kroyghor:new_order', handleCustomEvent);
+    cleanupFns.push(() => window.removeEventListener('kroyghor:new_order', handleCustomEvent));
   }
 
-  try {
-    const ordersCol = collection(db, 'orders');
-    const q = currentUid
-      ? query(ordersCol, where('userId', '==', currentUid))
-      : query(ordersCol, where('customerEmail', '==', currentEmail));
+  // 2. Cross-tab BroadcastChannel listener
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const bc = new BroadcastChannel(ORDER_BROADCAST_CHANNEL_NAME);
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'NEW_ORDER' && event.data?.order && isUserMatch(event.data.order)) {
+          notifyUserOrders();
+        }
+      };
+      cleanupFns.push(() => bc.close());
+    } catch (e) {
+      console.warn('[OrderFirestoreService] User BroadcastChannel init error:', e);
+    }
+  }
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const firestoreOrders: Order[] = [];
-        snapshot.forEach((d) => {
-          firestoreOrders.push(docToOrder(d.data(), d.id));
-        });
+  // 3. Live Firestore Snapshot
+  if (db && (currentUid || currentEmail)) {
+    try {
+      const ordersCol = collection(db, 'orders');
+      const unsubscribe = onSnapshot(
+        ordersCol,
+        (snapshot) => {
+          const firestoreOrders: Order[] = [];
+          snapshot.forEach((d) => {
+            const orderObj = docToOrder(d.data(), d.id);
+            if (isUserMatch(orderObj)) {
+              firestoreOrders.push(orderObj);
+            }
+          });
 
-        // Merge with local orders fallback
-        const localList = getLocalOrders();
-        const map = new Map<string, Order>();
-        [...firestoreOrders, ...localList].forEach((o) => {
-          if (o && o.id) {
-            const isMatch =
-              (currentUid && o.userId === currentUid) ||
-              (currentEmail && o.customerEmail?.toLowerCase() === currentEmail?.toLowerCase());
-            if (isMatch) {
+          // Merge with local user orders
+          const localList = getLocalOrders().filter(isUserMatch);
+          const map = new Map<string, Order>();
+          [...firestoreOrders, ...localList].forEach((o) => {
+            if (o && o.id) {
               map.set(o.id, o);
             }
-          }
-        });
+          });
 
-        const sorted = Array.from(map.values()).sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        callback(sorted);
-      },
-      (error) => {
-        console.warn('[OrderFirestoreService] Snapshot subscription error:', error);
-        callback(getUserOrdersFromLocal(uid, email));
-      }
-    );
+          const sorted = Array.from(map.values()).sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          callback(sorted);
+        },
+        (error) => {
+          console.warn('[OrderFirestoreService] Snapshot subscription error:', error);
+          notifyUserOrders();
+        }
+      );
 
-    return unsubscribe;
-  } catch (err) {
-    console.error('[OrderFirestoreService] Failed to subscribe to user orders:', err);
-    callback(getUserOrdersFromLocal(uid, email));
-    return () => {};
+      cleanupFns.push(() => unsubscribe());
+    } catch (err) {
+      console.error('[OrderFirestoreService] Failed to subscribe to user orders:', err);
+      notifyUserOrders();
+    }
   }
+
+  return () => {
+    cleanupFns.forEach((fn) => fn());
+  };
 };
 
 const getUserOrdersFromLocal = (uid?: string, email?: string): Order[] => {

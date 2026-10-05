@@ -258,9 +258,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Generate Pristine Order ID: #PVZ-BD-xxxxx
-      const randomDigits = Math.floor(10000 + Math.random() * 90000);
-      const orderId = `#PVZ-BD-${randomDigits}`;
+      // Generate Pristine Order ID: #KG-XXXX
+      const randomDigits = Math.floor(1000 + Math.random() * 9000);
+      const orderId = `#KG-${randomDigits}`;
 
       const now = new Date();
       const formattedDate = now.toLocaleDateString('en-GB', {
@@ -381,6 +381,28 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
             {/* Quick Actions Row */}
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              {onViewOrders && (
+                <button
+                  type="button"
+                  onClick={onViewOrders}
+                  className="px-5 py-2.5 rounded-xl bg-[#007BFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>আমার অর্ডার হিস্ট্রি দেখুন (My Profile & Orders)</span>
+                </button>
+              )}
+
+              {onTrackOrder && (
+                <button
+                  type="button"
+                  onClick={() => onTrackOrder(completedOrder.id)}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>লাইভ পার্সেল ট্র্যাক করুন</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setShowInvoiceModal(true)}
@@ -389,17 +411,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <Printer className="w-4 h-4" />
                 <span>অফিশিয়াল ইনভয়েস প্রিন্ট / ডাউনলোড</span>
               </button>
-
-              {onTrackOrder && (
-                <button
-                  type="button"
-                  onClick={() => onTrackOrder(completedOrder.id)}
-                  className="px-5 py-2.5 rounded-xl bg-[#007BFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
-                >
-                  <Truck className="w-4 h-4" />
-                  <span>লাইভ অর্ডার ট্র্যাক করুন</span>
-                </button>
-              )}
 
               <button
                 type="button"
