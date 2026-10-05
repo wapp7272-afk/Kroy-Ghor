@@ -185,7 +185,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleFallbackGoogleSignIn = (providedEmail?: string, providedName?: string) => {
     setErrorMsg(null);
     setUnauthorizedDomain(null);
-    const targetEmail = providedEmail || email.trim() || 'wapp7272@gmail.com';
+    const targetEmail = providedEmail || email.trim() || `member_${Math.floor(1000 + Math.random() * 9000)}@gmail.com`;
     const targetName = providedName || name.trim() || (targetEmail.includes('@') ? targetEmail.split('@')[0] : 'Google Member');
     setName(targetName);
     setEmail(targetEmail);
