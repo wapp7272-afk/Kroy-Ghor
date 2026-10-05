@@ -7,17 +7,19 @@ import {
   getDocs,
   query,
   where,
-  addDoc
+  addDoc,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../lib/firebaseAuth';
 import { YouTubeBonusClaim } from '../types';
 
-const STORAGE_KEY = 'zeropicbd_youtube_bonus_claims';
+const STORAGE_KEY = 'kroyghor_youtube_bonus_claims';
+const LEGACY_STORAGE_KEY = 'zeropicbd_youtube_bonus_claims';
 
 // Helper for local storage persistence fallback when offline
 const getLocalClaims = (): YouTubeBonusClaim[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -27,6 +29,7 @@ const getLocalClaims = (): YouTubeBonusClaim[] => {
 const saveLocalClaims = (claims: YouTubeBonusClaim[]) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(claims));
+    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(claims));
   } catch (e) {
     console.warn('Failed to save local YouTube bonus claims:', e);
   }
@@ -175,7 +178,8 @@ export const getAllYouTubeBonusClaims = async (): Promise<YouTubeBonusClaim[]> =
 
 /**
  * Approve YouTube Bonus claim by Admin
- * Updates user walletBalance (+20), sets user.hasClaimedYouTubeBonus = true, records in wallet_transactions
+ * Uses atomic Firestore transaction to guarantee anti-duplication:
+ * checks hasClaimedYouTubeBonus, prevents race-conditions and repeated credits
  */
 export const approveYouTubeBonusClaim = async (
   claim: YouTubeBonusClaim,
@@ -188,25 +192,33 @@ export const approveYouTubeBonusClaim = async (
     updatedAt: now,
   };
 
-  // 1. Update Firestore
-  if (db) {
+  // 1. Atomic Transaction in Firestore
+  if (db && claim.uid) {
     try {
-      // Update claim doc
       const claimRef = doc(db, 'youtube_bonus_requests', claim.id);
-      await setDoc(claimRef, updatedClaim, { merge: true });
+      const userRef = doc(db, 'users', claim.uid);
 
-      // Update user doc in Firestore
-      if (claim.uid) {
-        const userRef = doc(db, 'users', claim.uid);
-        const userSnap = await getDoc(userRef);
-        let currentBalance = 0;
-        if (userSnap.exists()) {
-          currentBalance = userSnap.data()?.walletBalance || 0;
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        const claimDoc = await transaction.get(claimRef);
+
+        const userData = userDoc.exists() ? userDoc.data() : null;
+        const claimData = claimDoc.exists() ? claimDoc.data() : null;
+
+        // Duplicate protection check
+        if (claimData?.status === 'approved' || userData?.hasClaimedYouTubeBonus === true) {
+          console.warn('[YouTubeBonusService] Duplicate approval blocked: User already received bonus.');
+          return;
         }
 
+        const currentBalance = Number(userData?.walletBalance || 0);
         const newBalance = currentBalance + 20;
 
-        await setDoc(
+        // Atomically set claim status
+        transaction.set(claimRef, updatedClaim, { merge: true });
+
+        // Atomically update user profile & wallet
+        transaction.set(
           userRef,
           {
             walletBalance: newBalance,
@@ -218,10 +230,11 @@ export const approveYouTubeBonusClaim = async (
           { merge: true }
         );
 
-        // Record entry in wallet_transactions collection
-        await addDoc(collection(db, 'wallet_transactions'), {
+        // Record transaction ledger entry
+        const txRef = doc(collection(db!, 'wallet_transactions'));
+        transaction.set(txRef, {
           uid: claim.uid,
-          userEmail: claim.userEmail,
+          userEmail: claim.userEmail || userData?.email || '',
           amount: 20,
           type: 'CREDIT',
           reason: 'YOUTUBE_SUBSCRIPTION_BONUS',
@@ -232,9 +245,10 @@ export const approveYouTubeBonusClaim = async (
         if (onUserUpdate) {
           onUserUpdate(claim.uid, newBalance);
         }
-      }
+      });
     } catch (e) {
-      console.error('[YouTubeBonusService] Error approving claim in Firestore:', e);
+      console.error('[YouTubeBonusService] Transaction error approving claim in Firestore:', e);
+      throw e;
     }
   }
 

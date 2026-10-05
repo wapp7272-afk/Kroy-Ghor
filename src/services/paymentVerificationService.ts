@@ -45,11 +45,22 @@ export const verifyOrderAndPayment = async (
       tamperingDetected = true;
     }
 
-    const itemTotal = authoritativeUnitPrice * Math.max(1, item.quantity);
+    // Enforce integer quantity bounds between 1 and 20 (and verify against stock)
+    const rawQty = Number(item.quantity);
+    const sanitizedQty = Math.max(1, Math.min(20, Math.floor(rawQty || 1)));
+    if (sanitizedQty !== rawQty) {
+      securityNotes.push(
+        `Quantity anomaly on "${item.product.title}": Client submitted ${rawQty}, normalized to ${sanitizedQty}`
+      );
+      tamperingDetected = true;
+    }
+
+    const itemTotal = authoritativeUnitPrice * sanitizedQty;
     verifiedSubtotal += itemTotal;
 
     return {
       ...item,
+      quantity: sanitizedQty,
       product: {
         ...catalogProduct,
         price: authoritativeUnitPrice,
@@ -81,8 +92,10 @@ export const verifyOrderAndPayment = async (
         verifiedDiscount = Math.min(verifiedSubtotal, matchedCoupon.discountValue);
       }
     } else {
-      // Re-evaluate client claimed discount
-      verifiedDiscount = Math.min(clientOrder.discount, Math.round(verifiedSubtotal * 0.15));
+      // If no valid coupon exists or min order amount not satisfied, discount is strictly 0
+      verifiedDiscount = 0;
+      securityNotes.push(`Unrecognized or expired coupon claimed: ৳${clientOrder.discount} discount stripped to ৳0.`);
+      tamperingDetected = true;
     }
 
     if (Math.abs(clientOrder.discount - verifiedDiscount) > 10) {
@@ -120,14 +133,16 @@ export const verifyOrderAndPayment = async (
     tamperingDetected = true;
   }
 
-  // 6. Payment Gateway Verification (bKash / Nagad / COD / Card)
-  let gatewayRef = `GW_PVZ_${Date.now()}`;
+  // 6. Payment Method Verification & Transaction Reference Validation
+  // NOTE: Client-side performs syntax and format validation on TrxID (8-12 alphanumeric characters).
+  // Real monetary verification requires merchant API credentials / backend webhook settlement check.
+  let gatewayRef = `GW_KG_${Date.now()}`;
   let paymentStatus: Order['paymentStatus'] = 'Pending Verification';
 
   if (clientOrder.paymentMethod === 'cod') {
-    paymentStatus = 'Paid (COD on Delivery)';
-    gatewayRef = `COD_SETTLEMENT_HUB_${Date.now()}`;
-    securityNotes.push('COD transaction logged: Payment will be collected upon parcel handover.');
+    paymentStatus = 'Pending (COD on Delivery)' as any;
+    gatewayRef = `COD_SETTLEMENT_${Date.now()}`;
+    securityNotes.push('Cash on Delivery: Payment will be collected by courier rider upon parcel handover.');
   } else if (clientOrder.paymentMethod === 'bkash') {
     const rawTrx = (clientOrder.trxId || '').trim().toUpperCase();
     // Validate bKash TrxID format: 8 to 12 alphanumeric characters
@@ -141,9 +156,10 @@ export const verifyOrderAndPayment = async (
         error: 'Invalid bKash Transaction ID format. Must be 8-12 alphanumeric characters (e.g. BKS90812391).',
       };
     }
-    paymentStatus = 'Verified';
-    gatewayRef = `BKASH_SETTLED_${rawTrx}_${Date.now()}`;
-    securityNotes.push(`bKash Gateway Verified: TrxID ${rawTrx} confirmed against settlement ledger.`);
+    // TrxID format is valid; marked Pending Verification until admin/backend confirms against bKash Merchant API
+    paymentStatus = 'Pending Verification';
+    gatewayRef = `BKASH_SUBMITTED_${rawTrx}`;
+    securityNotes.push(`bKash TrxID format valid (${rawTrx}). Awaiting merchant statement verification.`);
   } else if (clientOrder.paymentMethod === 'nagad') {
     const rawTrx = (clientOrder.trxId || '').trim().toUpperCase();
     const isValidTrx = /^[A-Z0-9]{8,12}$/.test(rawTrx);
@@ -156,13 +172,14 @@ export const verifyOrderAndPayment = async (
         error: 'Invalid Nagad Transaction ID format. Must be 8-12 alphanumeric characters (e.g. NGD9182319).',
       };
     }
-    paymentStatus = 'Verified';
-    gatewayRef = `NAGAD_SETTLED_${rawTrx}_${Date.now()}`;
-    securityNotes.push(`Nagad Gateway Verified: TrxID ${rawTrx} confirmed against merchant node.`);
+    // TrxID format is valid; marked Pending Verification until admin/backend confirms against Nagad Merchant API
+    paymentStatus = 'Pending Verification';
+    gatewayRef = `NAGAD_SUBMITTED_${rawTrx}`;
+    securityNotes.push(`Nagad TrxID format valid (${rawTrx}). Awaiting merchant statement verification.`);
   } else if (clientOrder.paymentMethod === 'card') {
-    paymentStatus = 'Verified';
-    gatewayRef = `SSLCOMMERZ_PAY_${Date.now()}`;
-    securityNotes.push('SSLCommerz card token authorization verified.');
+    paymentStatus = 'Pending Verification';
+    gatewayRef = `CARD_SESSION_${Date.now()}`;
+    securityNotes.push('Card payment session initialized. Awaiting gateway webhook callback.');
   }
 
   // 7. Synthesize Secure Verified Order

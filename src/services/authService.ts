@@ -53,13 +53,13 @@ export const generateJwt = (
     ...payload,
     iat: now,
     exp: now + expiresInSeconds,
-    iss: 'primevault-zone-auth',
+    iss: 'kroyghor-client-session',
   };
 
   const encodedHeader = base64UrlEncode(header);
   const encodedPayload = base64UrlEncode(fullPayload);
-  // Deterministic mock cryptographic signature for client-side RBAC validation
-  const signatureRaw = `${encodedHeader}.${encodedPayload}.pvz_secret_salt_2026`;
+  // Client session checksum for UI state validation
+  const signatureRaw = `${encodedHeader}.${encodedPayload}.kroyghor_session_token`;
   const encodedSignature = btoa(signatureRaw).substring(0, 32).replace(/\+/g, '-').replace(/\//g, '_');
 
   return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;

@@ -11,7 +11,8 @@ import {
   onSnapshot,
   serverTimestamp,
   addDoc,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebaseAuth';
 import { Order, CartItem, Address } from '../types';
@@ -158,13 +159,41 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
     return 'COD';
   })();
 
-  const mappedPaymentStatus: 'Pending' | 'Paid' =
-    order.paymentStatus === 'Paid' || (order.paymentMethod !== 'cod' && Boolean(order.trxId))
-      ? 'Paid'
-      : 'Pending';
+  const mappedPaymentStatus = (() => {
+    if (order.paymentStatus === 'Paid') return 'Paid';
+    if (mappedPaymentMethod === 'COD') return 'Pending (COD on Delivery)';
+    return 'Pending Verification';
+  })();
 
   const mappedOrderStatus: 'Pending' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' =
     (order.status as any) || 'Pending';
+
+  // Calculate & validate normalized financial invariant values
+  const validatedItems = order.items.map((i) => {
+    const qty = Math.max(1, Math.min(20, Math.floor(Number(i.quantity) || 1)));
+    const unitPrice = Math.max(0, Number(i.product?.price || (i as any).price || 0));
+    return {
+      productId: i.product?.id || `p-${Math.random()}`,
+      title: i.product?.title || 'Product',
+      price: unitPrice,
+      quantity: qty,
+      image: i.product?.image || '/kroyghor-icon.svg',
+      selectedSize: i.selectedSize || '',
+      product: {
+        id: i.product?.id,
+        title: i.product?.title,
+        price: unitPrice,
+        image: i.product?.image,
+        category: i.product?.category,
+      },
+    };
+  });
+
+  const computedSubtotal = validatedItems.reduce((sum, itm) => sum + itm.price * itm.quantity, 0);
+  const deliveryFee = Math.max(0, Number(order.deliveryFee) || (order.address?.cityDivision === 'Inside Dhaka' ? 60 : 120));
+  const discount = Math.max(0, Math.min(computedSubtotal, Number(order.discount) || 0));
+  const walletDeducted = Math.max(0, Math.min(computedSubtotal - discount, Number(order.walletDeducted) || 0));
+  const authoritativeTotal = Math.max(0, computedSubtotal + deliveryFee - discount - walletDeducted);
 
   const firestoreDocPayload = {
     orderId,
@@ -193,28 +222,15 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
       district: order.address?.district || 'Dhaka',
       notes: order.address?.notes || '',
     },
-    items: order.items.map((i) => ({
-      productId: i.product?.id || `p-${Math.random()}`,
-      title: i.product?.title || 'Product',
-      price: Number(i.product?.price) || 0,
-      quantity: Number(i.quantity) || 1,
-      image: i.product?.image || '/kroyghor-icon.svg',
-      selectedSize: i.selectedSize || '',
-      product: {
-        id: i.product?.id,
-        title: i.product?.title,
-        price: i.product?.price,
-        image: i.product?.image,
-        category: i.product?.category,
-      },
-    })),
-    subtotal: Number(order.subtotal) || 0,
-    deliveryCharge: Number(order.deliveryFee) || 0,
-    deliveryFee: Number(order.deliveryFee) || 0,
-    walletDiscount: Number(order.walletDeducted) || 0,
-    walletDeducted: Number(order.walletDeducted) || 0,
-    totalAmount: Number(order.total) || 0,
-    total: Number(order.total) || 0,
+    items: validatedItems,
+    subtotal: computedSubtotal,
+    deliveryCharge: deliveryFee,
+    deliveryFee: deliveryFee,
+    discount: discount,
+    walletDiscount: walletDeducted,
+    walletDeducted: walletDeducted,
+    totalAmount: authoritativeTotal,
+    total: authoritativeTotal,
     paymentMethod: mappedPaymentMethod,
     paymentStatus: mappedPaymentStatus,
     orderStatus: mappedOrderStatus,
@@ -232,6 +248,13 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
     customerName,
     customerEmail,
     customerPhone,
+    subtotal: computedSubtotal,
+    deliveryFee: deliveryFee,
+    discount: discount,
+    walletDeducted: walletDeducted,
+    total: authoritativeTotal,
+    paymentStatus: mappedPaymentStatus as any,
+    status: mappedOrderStatus as any,
   };
 
   // 1. Instant multi-channel broadcast across tabs and admin (< 10ms)
@@ -380,17 +403,18 @@ export const subscribeToUserOrdersFromFirestore = (
     }
   }
 
-  // 3. Live Firestore Snapshot
-  if (db && (currentUid || currentEmail)) {
+  // 3. Live Firestore Snapshot (Constrained to user's authorized orders)
+  if (db && currentUid && currentUid !== 'guest') {
     try {
       const ordersCol = collection(db, 'orders');
+      const userOrdersQuery = query(ordersCol, where('userId', '==', currentUid));
       const unsubscribe = onSnapshot(
-        ordersCol,
+        userOrdersQuery,
         (snapshot) => {
           const firestoreOrders: Order[] = [];
           snapshot.forEach((d) => {
             const orderObj = docToOrder(d.data(), d.id);
-            if (isUserMatch(orderObj)) {
+            if (orderObj) {
               firestoreOrders.push(orderObj);
             }
           });
@@ -586,6 +610,7 @@ export const updateOrderPaymentStatusInFirestore = async (
 
 /**
  * Deduct wallet balance from user's Firestore document (users/{uid}) and record DEBIT entry in wallet_transactions
+ * Uses atomic Firestore transaction to prevent double spending and race conditions
  */
 export const deductUserWalletInFirestore = async (
   uid: string,
@@ -596,40 +621,45 @@ export const deductUserWalletInFirestore = async (
   if (!uid || amount <= 0 || !db) return 0;
   try {
     const userRef = doc(db, 'users', uid);
-    const snap = await getDoc(userRef);
-    let currentBalance = 0;
-    if (snap.exists()) {
-      currentBalance = snap.data()?.walletBalance || 0;
-    }
-    const newBalance = Math.max(0, currentBalance - amount);
-    const now = new Date().toISOString();
 
-    await setDoc(
-      userRef,
-      {
+    const resultingBalance = await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(userRef);
+      let currentBalance = 0;
+      if (snap.exists()) {
+        currentBalance = Number(snap.data()?.walletBalance || 0);
+      }
+
+      if (currentBalance < amount) {
+        throw new Error(`Insufficient wallet balance: current ৳${currentBalance}, requested ৳${amount}`);
+      }
+
+      const newBalance = Math.max(0, currentBalance - amount);
+      const now = new Date().toISOString();
+
+      transaction.update(userRef, {
         walletBalance: newBalance,
-        updatedAt: now,
-      },
-      { merge: true }
-    );
+        updatedAt: serverTimestamp(),
+      });
 
-    // Record DEBIT entry in wallet_transactions collection
-    const transactionsCol = collection(db, 'wallet_transactions');
-    await addDoc(transactionsCol, {
-      uid,
-      userEmail: userEmail || snap.data()?.email || '',
-      amount,
-      type: 'DEBIT',
-      reason: 'ORDER_PAYMENT_DISCOUNT',
-      orderId,
-      description: `Applied ৳${amount} wallet balance to Order ${orderId}`,
-      createdAt: now,
-      timestamp: serverTimestamp(),
+      const txRef = doc(collection(db!, 'wallet_transactions'));
+      transaction.set(txRef, {
+        uid,
+        userEmail: userEmail || snap.data()?.email || '',
+        amount,
+        type: 'DEBIT',
+        reason: 'ORDER_PAYMENT_DISCOUNT',
+        orderId,
+        description: `Applied ৳${amount} wallet balance to Order ${orderId}`,
+        createdAt: now,
+        timestamp: serverTimestamp(),
+      });
+
+      return newBalance;
     });
 
-    return newBalance;
+    return resultingBalance;
   } catch (e) {
-    console.error('[OrderFirestoreService] Error deducting wallet in Firestore:', e);
+    console.error('[OrderFirestoreService] Error deducting wallet with transaction in Firestore:', e);
     return 0;
   }
 };
@@ -653,6 +683,7 @@ export const getFirestoreUserWalletBalance = async (uid: string): Promise<number
 
 /**
  * Refunds used wallet balance back to user's Firestore document (users/{uid}) and records CREDIT entry in wallet_transactions
+ * Uses atomic transaction
  */
 export const refundUserWalletInFirestore = async (
   uid: string,
@@ -661,43 +692,43 @@ export const refundUserWalletInFirestore = async (
   userEmail?: string
 ): Promise<number> => {
   if (!uid || amount <= 0 || !db) return 0;
-  const firestore = db;
   try {
-    const userRef = doc(firestore, 'users', uid);
-    const snap = await getDoc(userRef);
-    let currentBalance = 0;
-    if (snap.exists()) {
-      currentBalance = snap.data()?.walletBalance || 0;
-    }
-    const newBalance = currentBalance + amount;
-    const now = new Date().toISOString();
+    const userRef = doc(db, 'users', uid);
 
-    await setDoc(
-      userRef,
-      {
+    const resultingBalance = await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(userRef);
+      let currentBalance = 0;
+      if (snap.exists()) {
+        currentBalance = Number(snap.data()?.walletBalance || 0);
+      }
+
+      const newBalance = currentBalance + amount;
+      const now = new Date().toISOString();
+
+      transaction.update(userRef, {
         walletBalance: newBalance,
-        updatedAt: now,
-      },
-      { merge: true }
-    );
+        updatedAt: serverTimestamp(),
+      });
 
-    // Record CREDIT entry in wallet_transactions collection
-    const transactionsCol = collection(firestore, 'wallet_transactions');
-    await addDoc(transactionsCol, {
-      uid,
-      userEmail: userEmail || snap.data()?.email || '',
-      amount,
-      type: 'CREDIT',
-      reason: 'ORDER_CANCELLED_REFUND',
-      orderId,
-      description: `৳${amount} refunded for cancelled order ${orderId}`,
-      createdAt: now,
-      timestamp: serverTimestamp(),
+      const txRef = doc(collection(db!, 'wallet_transactions'));
+      transaction.set(txRef, {
+        uid,
+        userEmail: userEmail || snap.data()?.email || '',
+        amount,
+        type: 'CREDIT',
+        reason: 'ORDER_CANCELLED_REFUND',
+        orderId,
+        description: `৳${amount} refunded for cancelled order ${orderId}`,
+        createdAt: now,
+        timestamp: serverTimestamp(),
+      });
+
+      return newBalance;
     });
 
-    return newBalance;
+    return resultingBalance;
   } catch (e) {
-    console.error('[OrderFirestoreService] Error refunding wallet in Firestore:', e);
+    console.error('[OrderFirestoreService] Error refunding wallet with transaction in Firestore:', e);
     return 0;
   }
 };

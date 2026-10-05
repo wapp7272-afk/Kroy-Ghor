@@ -37,7 +37,7 @@ import {
 
 // Configurable API Base URL - defaults to relative '/api' endpoint
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
-const API_TIMEOUT_MS = 3500;
+const API_TIMEOUT_MS = 600;
 
 // LocalStorage Keys for reliable fallback persistence
 export const STORAGE_KEYS = {

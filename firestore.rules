@@ -28,9 +28,9 @@ service cloud.firestore {
       );
     }
 
-    // 1. Users collection
+    // 1. Users collection: /users/{uid}
     match /users/{uid} {
-      // Admins can read all users; Customers can read their own document
+      // Admins can read all users; Customers can only read their own document
       allow read: if isOwner(uid) || isAdmin();
 
       // Create: Users can initialize their own doc with customer role, or Super Admin
@@ -40,30 +40,57 @@ service cloud.firestore {
         isSuperAdmin()
       );
 
-      // Update: Users can update basic profile info, but CANNOT modify role or walletBalance unless Admin
-      allow update: if isOwner(uid) && (
-        isAdmin() || (
-          // Ensure sensitive fields are not modified by standard users
-          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'walletBalance', 'hasClaimedYouTubeBonus']))
+      // Update: Users can update profile. Role/bonus flags cannot be modified. Wallet balance can only be debited (decreased) unless Admin.
+      allow update: if (isOwner(uid) && (
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'hasClaimedYouTubeBonus', 'hasReceivedBonus']) &&
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['walletBalance']) ||
+          request.resource.data.walletBalance <= resource.data.walletBalance
         )
-      ) || isAdmin();
+      )) || isAdmin();
 
       // Delete: Strictly Super Admin
       allow delete: if isSuperAdmin();
+
+      // Customer subcollection orders: /users/{userId}/orders/{orderId}
+      match /orders/{orderId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
     }
 
-    // 2. Orders collection (Global Root Orders)
+    // 2. Orders collection (Global Root Orders: /orders/{orderId})
     match /orders/{orderId} {
-      // Explicitly allow authenticated admins and users to read/write all documents in /orders
-      allow read, write: if request.auth != null;
-      // Also allow public/guest customer order creation and order tracking
-      allow read, write: if true;
-    }
+      // Creation: Customers (authenticated or guest checkout) can create orders,
+      // but CANNOT forge privileged paymentStatus ('Paid') or orderStatus ('Delivered'/'Shipped')
+      allow create: if isAdmin() || (
+        request.resource.data.total >= 0 &&
+        request.resource.data.subtotal >= 0 &&
+        (!('paymentStatus' in request.resource.data) || 
+         request.resource.data.paymentStatus == 'Pending' || 
+         request.resource.data.paymentStatus == 'Pending Verification' || 
+         request.resource.data.paymentStatus == 'Pending (COD on Delivery)' ||
+         request.resource.data.paymentStatus == 'Unpaid') &&
+        (!('status' in request.resource.data) || 
+         request.resource.data.status == 'Pending' || 
+         request.resource.data.status == 'Processing') &&
+        (!('orderStatus' in request.resource.data) || 
+         request.resource.data.orderStatus == 'Pending' || 
+         request.resource.data.orderStatus == 'Processing')
+      );
 
-    // Customer subcollection orders: /users/{userId}/orders/{orderId}
-    match /users/{userId}/orders/{orderId} {
-      allow read, write: if request.auth != null;
-      allow read, write: if true;
+      // Read: Admin can read all orders. Authenticated user can read only their own orders.
+      // Unauthenticated guests can fetch an individual order doc by exact ID if tracking
+      allow get: if isAdmin() || 
+        (isAuthenticated() && resource.data.userId == request.auth.uid) ||
+        (resource.data.userId == 'guest');
+
+      // List queries: Admins can list all; authenticated users can list queries constrained to their own userId
+      allow list: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      // Modification/Deletion: Strictly restricted to Admins. Customers CANNOT tamper with status, payment, or pricing
+      allow update, delete: if isAdmin();
     }
 
     // 3. Products collection (Public read, Admin-only write)
@@ -72,43 +99,47 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 4. Global Settings & Campaign Banners (Public read, Admin-only write)
+    // 4. Global Settings & Promo Banners (Public read, Admin-only write)
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 5. Wallet Transactions Ledger
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Sellers / Merchant Stores
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 6. Wallet Transactions Ledger (/wallet_transactions/{transactionId})
     match /wallet_transactions/{transactionId} {
       // Owner or Admin can read ledger entries
       allow read: if isAdmin() || (
         isAuthenticated() && resource.data.uid == request.auth.uid
       );
 
-      // Writes restricted to Admins or authenticated user creating a verified debit ledger entry
-      allow create: if isAdmin() || (
-        isAuthenticated() && 
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.amount > 0
-      );
-
-      // Immutable: No direct edits or deletes allowed by regular users
-      allow update, delete: if isSuperAdmin();
+      // Writes restricted strictly to Admins (or trusted server-side execution) to prevent client-side wallet inflation
+      allow create, update, delete: if isAdmin();
     }
 
-    // 6. YouTube Bonus Claims
-    match /youtube_bonus_claims/{claimId} {
+    // 7. YouTube Bonus Claims & Verification Requests (/youtube_bonus_requests/{claimId})
+    match /youtube_bonus_requests/{claimId} {
       // Owner can read their own claim; Admin can read all claims
       allow read: if isAdmin() || (
         isAuthenticated() && resource.data.uid == request.auth.uid
       );
 
-      // Users can submit their own pending claim
+      // Authenticated users can submit their own pending claim
       allow create: if isAuthenticated() && 
         request.resource.data.uid == request.auth.uid &&
-        request.resource.data.status == 'Pending';
+        request.resource.data.status == 'pending';
 
-      // Only Admins can approve/reject claims
+      // Only Admins can approve/reject/modify claims
       allow update, delete: if isAdmin();
     }
 

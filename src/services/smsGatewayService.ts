@@ -97,7 +97,7 @@ export const buildBdSmsPayload = (
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          token: (import.meta as any).env?.VITE_GREENWEB_SMS_TOKEN || 'gw_pvz_live_token_2026',
+          token: (import.meta as any).env?.VITE_GREENWEB_SMS_TOKEN || '',
           to: msisdn,
           message,
         }).toString(),
@@ -110,10 +110,10 @@ export const buildBdSmsPayload = (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          api_key: (import.meta as any).env?.VITE_BULKSMSBD_API_KEY || 'bsms_pvz_key_2026',
+          api_key: (import.meta as any).env?.VITE_BULKSMSBD_API_KEY || '',
           type: 'text',
           number: msisdn,
-          senderid: 'PRIMEVAULT',
+          senderid: 'KROYGHOR',
           message,
         }),
       };
@@ -126,18 +126,21 @@ export const buildBdSmsPayload = (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          api_token: (import.meta as any).env?.VITE_SSL_SMS_API_TOKEN || 'ssl_pvz_token_2026',
-          sid: 'PRIMEVAULT_NONMASK',
+          api_token: (import.meta as any).env?.VITE_SSL_SMS_API_TOKEN || '',
+          sid: 'KROYGHOR_NONMASK',
           msisdn,
           sms: message,
-          csms_id: `PVZ_${Date.now()}`,
+          csms_id: `KG_${Date.now()}`,
         }),
       };
   }
 };
 
+export type SmsDeliveryStatus = 'SUCCESS' | 'FAILED' | 'NOT_CONFIGURED' | 'DEVELOPMENT_FALLBACK';
+
 /**
  * Dispatches real SMS payload to gateway with fault-tolerant fallback & logging
+ * Clearly distinguishes real gateway delivery vs development environment simulation
  */
 export const dispatchBdSms = async (
   recipientPhone: string,
@@ -145,10 +148,12 @@ export const dispatchBdSms = async (
   provider: BdSmsProvider = 'auto'
 ): Promise<{
   success: boolean;
+  status: SmsDeliveryStatus;
   gatewayTrxId: string;
   channel: NotificationLog['channel'];
   provider: BdSmsProvider;
   message: string;
+  isSimulated?: boolean;
 }> => {
   const payload = buildBdSmsPayload(recipientPhone, message, provider);
   const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
@@ -160,9 +165,9 @@ export const dispatchBdSms = async (
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    const timeout = setTimeout(() => controller.abort(), 2000);
 
-    // Attempt real HTTP dispatch to local API proxy or gateway
+    // Attempt real HTTP dispatch to server backend API proxy (/api/sms/send)
     const res = await fetch('/api/sms/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -181,24 +186,28 @@ export const dispatchBdSms = async (
       const data = await res.json();
       return {
         success: true,
+        status: 'SUCCESS',
         gatewayTrxId: data.trxId || `GW-${payload.provider.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
         channel,
         provider: payload.provider,
         message,
+        isSimulated: false,
       };
     }
-    throw new Error('Local API proxy unreachable');
-  } catch {
-    // Graceful offline/simulation delivery fallback with authentic BD gateway transaction ID
+    throw new Error('Local SMS backend proxy not configured or unreachable');
+  } catch (e: any) {
+    // Development fallback: Logged transparently without claiming false telco delivery
     const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const mockTrxId = `GW-${payload.provider.toUpperCase()}-${randomSuffix}`;
+    const simulatedRef = `DEV-SIM-${payload.provider.toUpperCase()}-${randomSuffix}`;
 
     return {
       success: true,
-      gatewayTrxId: mockTrxId,
+      status: 'DEVELOPMENT_FALLBACK',
+      gatewayTrxId: simulatedRef,
       channel,
       provider: payload.provider,
       message,
+      isSimulated: true,
     };
   }
 };
