@@ -37,6 +37,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { BrandLogo } from './BrandLogo';
 import { findBestAutoCoupon } from '../utils/smartCouponService';
 import { verifyOrderAndPayment } from '../services/paymentVerificationService';
+import { saveOrderToFirestore } from '../services/orderFirestoreService';
 
 // Bangladesh 64 Districts for quick selection
 export const BD_DISTRICTS = [
@@ -239,11 +240,11 @@ export const Checkout: React.FC<CheckoutProps> = ({
         const cat = item.product.category || '';
         if (cat.includes('Perfume') || cat === 'Attar Perfumes') return 'PerfumeVault BD';
         if (cat.includes('Gadgets') || cat === 'Glow Lights') return 'Apex Tech BD';
-        if (cat.includes('Fashion')) return 'ZeropicBD Atelier';
+        if (cat.includes('Fashion')) return 'Kroy Ghor Atelier';
         if (cat.includes('Watches')) return 'Chronos Official';
         if (cat.includes('Beauty')) return 'Glow & Glam BD';
         if (cat.includes('Home')) return 'Nordic Living';
-        return 'ZeropicBD Official';
+        return 'Kroy Ghor Official';
       })();
 
       if (!groups[storeName]) {
@@ -435,12 +436,24 @@ export const Checkout: React.FC<CheckoutProps> = ({
         // Send order confirmation email via EmailJS (if configured)
         sendOrderEmail(secureOrder, user.email || undefined);
 
-        setTimeout(() => {
-          onPlaceOrder(secureOrder);
+        (async () => {
+          try {
+            // Dual Write: Atomically write to root collection /orders/{orderId} & customer subcollection
+            await saveOrderToFirestore(secureOrder, (user as any).uid || user.email);
+          } catch (e) {
+            console.warn('[Checkout] Direct Firestore save warning:', e);
+          }
+
+          try {
+            await Promise.resolve(onPlaceOrder(secureOrder));
+          } catch (e) {
+            console.warn('[Checkout] Order placement warning:', e);
+          }
+
           setCompletedOrder(secureOrder);
           onClearCart();
           setIsSubmitting(false);
-        }, 500);
+        })();
       })
       .catch((err) => {
         setIsSubmitting(false);
@@ -501,7 +514,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <Smartphone className="w-4 h-4 animate-bounce shrink-0" />
                 <span className="break-all sm:break-normal">
-                  [DEMO SMS to {checkoutSmsToast.phone}]: Your ZeropicBD Verification OTP is <strong>{checkoutSmsToast.code}</strong>
+                  [DEMO SMS to {checkoutSmsToast.phone}]: Your Kroy Ghor Verification OTP is <strong>{checkoutSmsToast.code}</strong>
                 </span>
               </div>
               <button

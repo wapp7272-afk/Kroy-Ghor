@@ -74,7 +74,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
     const newReview: CustomerReview = {
       id: `rev-${Date.now()}`,
       productId: product.id,
-      name: name.trim() || 'Verified ZeropicBD Customer',
+      name: name.trim() || 'Verified Kroy Ghor Customer',
       location: location.trim() || 'Dhaka, Bangladesh',
       rating,
       date: 'Just now',
@@ -95,7 +95,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-modalEnter">
         
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
@@ -116,7 +116,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/80 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/80 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5]"
             aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
@@ -128,22 +128,37 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           
           {/* 1. Star Rating Selection */}
           <div className="space-y-1.5 text-center sm:text-left">
-            <label className="text-xs font-bold text-slate-700 block">
+            <label id="star-rating-label" className="text-xs font-bold text-slate-700 block">
               Overall Experience Rating *
             </label>
-            <div className="flex items-center gap-1.5">
+            <div 
+              role="radiogroup" 
+              aria-labelledby="star-rating-label"
+              className="flex items-center gap-1.5"
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setRating((r) => Math.min(5, r + 1));
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setRating((r) => Math.max(1, r - 1));
+                }
+              }}
+            >
               {[1, 2, 3, 4, 5].map((s) => (
                 <button
                   key={s}
                   type="button"
+                  role="radio"
+                  aria-checked={rating === s}
                   onMouseEnter={() => setHoverRating(s)}
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setRating(s)}
-                  className="p-1 text-amber-400 hover:scale-115 active:scale-95 transition-transform cursor-pointer focus-visible:outline-none"
-                  aria-label={`${s} star rating`}
+                  className="p-1 text-amber-400 hover:scale-105 active:scale-95 transition-transform duration-150 cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
+                  aria-label={`${s} star rating, ${starLabels[s - 1]}`}
                 >
                   <Star
-                    className={`w-7 h-7 sm:w-8 sm:h-8 ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors duration-150 ${
                       s <= (hoverRating || rating)
                         ? 'fill-amber-400 text-amber-400'
                         : 'text-slate-200'
@@ -173,7 +188,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                   key={opt}
                   type="button"
                   onClick={() => setLongevity(opt)}
-                  className={`py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-center ${
+                  className={`py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-center active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
                     longevity === opt
                       ? 'bg-indigo-50 border-[#4F46E5] text-[#4F46E5] shadow-xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -197,7 +212,7 @@ export const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                   key={tag}
                   type="button"
                   onClick={() => setAuthenticityTag(tag)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
                     authenticityTag === tag
                       ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold shadow-2xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'

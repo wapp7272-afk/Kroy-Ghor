@@ -330,11 +330,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const storeName = product.storeName || product.sellerName || (() => {
     if (product.category.includes('Perfume') || product.category === 'Attar Perfumes') return 'PerfumeVault BD';
     if (product.category.includes('Gadgets') || product.category === 'Glow Lights') return 'Apex Tech BD';
-    if (product.category.includes('Fashion')) return 'ZeropicBD Atelier';
+    if (product.category.includes('Fashion')) return 'Kroy Ghor Atelier';
     if (product.category.includes('Watches')) return 'Chronos Official';
     if (product.category.includes('Beauty')) return 'Glow & Glam BD';
     if (product.category.includes('Home')) return 'Nordic Living';
-    return 'ZeropicBD Official';
+    return 'Kroy Ghor Official';
   })();
 
   // Calculate or retrieve sold count
@@ -540,7 +540,6 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               >
                 <Video className="w-3.5 h-3.5" />
                 <span>Sample Unboxing</span>
-                <span className="w-2 h-2 rounded-full bg-cyan-300 animate-pulse" />
               </button>
 
               <button
@@ -554,7 +553,6 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>3D / AI Cinematic Trailer</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </button>
             </div>
 
@@ -653,7 +651,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               <div className="rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
                       {activeMediaTab === 'sampleVideo'
                         ? 'Product Unboxing & Live Hands-On Demo'
@@ -889,10 +887,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               {/* Stock Status Indicator */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                   <span className="text-xs font-bold text-emerald-700">
                     {product.inStock !== false ? 'In Stock & Ready to Dispatch' : 'Out of Stock'}
                   </span>
@@ -1054,11 +1049,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <h4 className="font-extrabold text-sm text-[#171717] group-hover:text-[#5B21B6] transition-colors truncate">
                         {storeName}
                       </h4>
-                      <span title="ZeropicBD Verified Official Seller">
+                      <span title="Kroy Ghor Verified Official Seller">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 truncate">ZeropicBD Certified Official Partner</p>
+                    <p className="text-[11px] text-gray-500 truncate">Kroy Ghor Certified Official Partner</p>
                   </div>
                 </div>
 
@@ -1248,7 +1243,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <h3 className="text-base font-bold text-slate-900 mb-2">Overview & Experience</h3>
                 <p className="text-sm text-slate-600 leading-relaxed max-w-4xl">
                   {product.description ||
-                    'Experience unmatched craftsmanship and luxury with ZeropicBD. This product undergoes stringent quality verification to guarantee authenticity, durability, and customer satisfaction.'}
+                    'Experience unmatched craftsmanship and luxury with Kroy Ghor. This product undergoes stringent quality verification to guarantee authenticity, durability, and customer satisfaction.'}
                 </p>
               </div>
 
@@ -1354,7 +1349,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <UserCheck className="w-4 h-4 text-emerald-600" />
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">ZeropicBD Certified Official Partner</p>
+                    <p className="text-xs text-slate-500">Kroy Ghor Certified Official Partner</p>
                   </div>
                 </div>
 
@@ -1530,7 +1525,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingReview}
-                    className="px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+                    className="px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-xs active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:ring-offset-1 disabled:opacity-50"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{isSubmittingReview ? 'Submitting...' : 'Submit Verified Review'}</span>

@@ -47,7 +47,7 @@ export const ReturnPolicyModal: React.FC<ReturnPolicyModalProps> = ({
                 </h3>
               </div>
               <p className="text-xs text-indigo-200/80 font-medium">
-                ZeropicBD 7-Day Hassle-Free Replacement & Refund Guarantee
+                Kroy Ghor 7-Day Hassle-Free Replacement & Refund Guarantee
               </p>
             </div>
           </div>

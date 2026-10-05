@@ -39,7 +39,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
       <div
         id="product-details-modal"
-        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-xl border border-slate-200 p-5 sm:p-7 shadow-xl"
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-xl border border-slate-200 p-5 sm:p-7 shadow-xl animate-modalEnter"
       >
         {/* Close Button */}
         <button

@@ -474,7 +474,7 @@ export const AdminCustomerDetailModal: React.FC<AdminCustomerDetailModalProps> =
                   <ShoppingBag className="w-8 h-8 text-slate-600 mx-auto mb-2" />
                   <p className="font-bold text-sm text-slate-300">No lifetime orders found</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    This customer has not placed any orders yet on ZeropicBD.
+                    This customer has not placed any orders yet on Kroy Ghor.
                   </p>
                 </div>
               ) : (

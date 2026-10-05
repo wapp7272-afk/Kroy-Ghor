@@ -135,7 +135,7 @@ export const AdminCustomersManager: React.FC<AdminCustomersManagerProps> = ({
 
               customerMap.set(key, {
                 uid,
-                name: data.displayName || data.name || (email ? email.split('@')[0] : 'ZeropicBD Member'),
+                name: data.displayName || data.name || (email ? email.split('@')[0] : 'Kroy Ghor Member'),
                 email: data.email || '',
                 phone: data.phone || data.customerPhone || '',
                 photoURL: data.photoURL || data.avatar || '',

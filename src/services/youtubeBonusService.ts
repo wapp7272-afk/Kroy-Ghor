@@ -71,7 +71,7 @@ export const submitYouTubeBonusClaim = async (
   const claimData: YouTubeBonusClaim = {
     id: claimId,
     uid: uid || `guest_${Date.now()}`,
-    userName: userName || 'ZeropicBD Member',
+    userName: userName || 'Kroy Ghor Member',
     userEmail: userEmail || '',
     youtubeHandle: handleClean,
     amount: 20,

@@ -269,7 +269,7 @@ export const seedSuperAdminAccount = (): void => {
         fullName: 'Super Admin Owner',
         phone: '01883418309',
         cityDivision: 'Inside Dhaka',
-        fullAddress: 'ZeropicBD Central HQ, Dhanmondi 27, Dhaka - 1209',
+        fullAddress: 'Kroy Ghor Central HQ, Dhanmondi 27, Dhaka - 1209',
       },
     };
 

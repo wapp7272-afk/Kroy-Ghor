@@ -1013,7 +1013,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                   {/* bKash Instructions & TrxID Input */}
                   {paymentMethod === 'bkash' && (
-                    <div className="mt-4 pt-4 border-t border-pink-100 space-y-3">
+                    <div className="mt-4 pt-4 border-t border-pink-100 space-y-3 animate-fadeIn">
                       <div className="p-3 rounded-xl bg-white border border-pink-200 flex items-center justify-between gap-2">
                         <div>
                           <span className="text-[10px] text-slate-400 font-bold uppercase block">
@@ -1085,7 +1085,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                   {/* Nagad Instructions & TrxID Input */}
                   {paymentMethod === 'nagad' && (
-                    <div className="mt-4 pt-4 border-t border-amber-100 space-y-3">
+                    <div className="mt-4 pt-4 border-t border-amber-100 space-y-3 animate-fadeIn">
                       <div className="p-3 rounded-xl bg-white border border-amber-200 flex items-center justify-between gap-2">
                         <div>
                           <span className="text-[10px] text-slate-400 font-bold uppercase block">
@@ -1282,7 +1282,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 px-6 rounded-2xl bg-[#007BFF] hover:bg-blue-600 disabled:opacity-50 text-white font-black text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-6 rounded-2xl bg-[#007BFF] hover:bg-blue-600 disabled:opacity-50 text-white font-black text-sm transition-all duration-150 shadow-lg hover:shadow-xl cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007BFF] focus-visible:ring-offset-2"
               >
                 {isSubmitting ? (
                   <>

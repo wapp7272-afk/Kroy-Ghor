@@ -140,7 +140,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
       {
         id: 'placed',
         title: 'Order Placed & Verified',
-        desc: `Order received and logged in ZeropicBD platform ledger.`,
+        desc: `Order received and logged in Kroy Ghor platform ledger.`,
         date: orderDate,
         completed: true,
         current: false,
@@ -405,7 +405,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                     {/* Point 3: Live Delivery Van / Bike */}
                     <div className="relative z-10 flex flex-col items-center">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white ${
-                        selectedOrder.status === 'Delivered' ? 'bg-emerald-600' : 'bg-amber-500 animate-bounce'
+                        selectedOrder.status === 'Delivered' ? 'bg-emerald-600' : 'bg-amber-500 ring-2 ring-amber-300/60'
                       }`}>
                         {selectedOrder.status === 'Delivered' ? (
                           <CheckCircle2 className="w-5 h-5 text-white" />
@@ -516,7 +516,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                           <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                             <span>Qty: {item.quantity}</span>
                             {item.selectedSize && <span>• Size: {item.selectedSize}</span>}
-                            <span>• Sold by {item.storeName || item.product.storeName || 'ZeropicBD Official'}</span>
+                            <span>• Sold by {item.storeName || item.product.storeName || 'Kroy Ghor Official'}</span>
                           </div>
                         </div>
                       </div>
@@ -601,7 +601,7 @@ export const OrderTrackingPortal: React.FC<OrderTrackingPortalProps> = ({
                       <span>Call Rider</span>
                     </a>
                     <a
-                      href={`https://wa.me/8801883418309?text=Hello%20Rider%2C%20regarding%20ZeropicBD%20Order%20${selectedOrder.id}`}
+                      href={`https://wa.me/8801883418309?text=Hello%20Rider%2C%20regarding%20Kroy%20Ghor%20Order%20${selectedOrder.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="py-2 px-3 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"

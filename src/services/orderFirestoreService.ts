@@ -4,12 +4,14 @@ import {
   setDoc,
   updateDoc,
   collection,
+  collectionGroup,
   getDocs,
   query,
   where,
   onSnapshot,
   serverTimestamp,
-  addDoc
+  addDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebaseAuth';
 import { Order, CartItem, Address } from '../types';
@@ -35,16 +37,36 @@ export const saveLocalOrders = (orders: Order[]) => {
   }
 };
 
+export const getOrderMillis = (o: any): number => {
+  if (!o) return 0;
+  if (o.createdAt) {
+    if (typeof o.createdAt.toMillis === 'function') return o.createdAt.toMillis();
+    if (typeof o.createdAt.seconds === 'number') return o.createdAt.seconds * 1000;
+    const t = new Date(o.createdAt).getTime();
+    if (!isNaN(t)) return t;
+  }
+  if (o.date) {
+    const t = new Date(o.date).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+};
+
 /**
  * Transforms a Firestore document back into our application's `Order` object
  */
 export const docToOrder = (data: any, docId: string): Order => {
+  if (!data) return null as any;
+
+  const rawId = data.orderId || data.id || docId;
+  const id = rawId ? (String(rawId).startsWith('#') ? String(rawId) : `#${rawId}`) : `#KG-${Math.floor(1000 + Math.random() * 9000)}`;
+
   const items: CartItem[] = (data.items || []).map((item: any) => ({
     product: {
       id: item.productId || item.product?.id || `p-${Math.random()}`,
       title: item.title || item.product?.title || 'Kroyghor Authentic Product',
-      price: item.price || item.product?.price || 0,
-      discountPrice: item.price || item.product?.discountPrice,
+      price: Number(item.price || item.product?.price || 0),
+      discountPrice: Number(item.discountPrice || item.price || item.product?.discountPrice || 0),
       image: item.image || item.product?.image || '/kroyghor-icon.svg',
       category: item.category || item.product?.category || 'Lifestyle',
       rating: 5,
@@ -53,21 +75,42 @@ export const docToOrder = (data: any, docId: string): Order => {
       isBestSeller: true,
       description: 'Authentic product',
     },
-    quantity: item.quantity || 1,
+    quantity: Number(item.quantity) || 1,
     selectedSize: item.selectedSize || item.size || 'Standard',
   }));
 
   const shippingAddr = data.shippingAddress || data.address || {};
   const addressObj: Address = {
     fullName: data.customerName || shippingAddr.fullName || 'Kroyghor Member',
-    phone: data.customerPhone || shippingAddr.phone || '01883418309',
-    cityDivision: shippingAddr.cityDivision || 'Inside Dhaka',
-    fullAddress: shippingAddr.fullAddress || shippingAddr.address || 'Dhaka',
+    phone: data.customerPhone || shippingAddr.phone || '',
+    cityDivision: shippingAddr.cityDivision || shippingAddr.City || 'Inside Dhaka',
+    fullAddress: shippingAddr.fullAddress || shippingAddr.Street || shippingAddr.address || 'Dhaka',
     district: shippingAddr.district || 'Dhaka',
-    notes: shippingAddr.notes || '',
+    notes: shippingAddr.notes || shippingAddr.Notes || '',
   };
 
-  const id = data.orderId || docId || data.id || `KG-${Math.floor(10000 + Math.random() * 90000)}`;
+  const rawCreatedAt = data.createdAt;
+  const createdAtDate = rawCreatedAt
+    ? new Date(
+        typeof rawCreatedAt.toMillis === 'function'
+          ? rawCreatedAt.toMillis()
+          : typeof rawCreatedAt.seconds === 'number'
+          ? rawCreatedAt.seconds * 1000
+          : rawCreatedAt
+      )
+    : data.date
+    ? new Date(data.date)
+    : new Date();
+
+  const formattedDate = !isNaN(createdAtDate.getTime())
+    ? createdAtDate.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : data.date || new Date().toLocaleDateString('en-GB');
 
   return {
     id,
@@ -75,21 +118,13 @@ export const docToOrder = (data: any, docId: string): Order => {
     customerName: data.customerName || addressObj.fullName,
     customerPhone: data.customerPhone || addressObj.phone,
     customerEmail: data.customerEmail || data.email || '',
-    date: data.createdAt
-      ? new Date(data.createdAt.seconds ? data.createdAt.seconds * 1000 : data.createdAt).toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : data.date || new Date().toLocaleDateString('en-GB'),
+    date: formattedDate,
     items,
-    subtotal: data.subtotal || 0,
-    discount: data.discount || 0,
-    walletDeducted: data.walletDiscount || data.walletDeducted || 0,
-    deliveryFee: data.deliveryCharge || data.deliveryFee || 0,
-    total: data.totalAmount || data.total || 0,
+    subtotal: Number(data.subtotal) || 0,
+    discount: Number(data.discount) || 0,
+    walletDeducted: Number(data.walletDiscount || data.walletDeducted || 0),
+    deliveryFee: Number(data.deliveryCharge || data.deliveryFee || 0),
+    total: Number(data.totalAmount || data.total || 0),
     paymentMethod: (data.paymentMethod || 'cod').toLowerCase() as any,
     trxId: data.trxId || '',
     paymentStatus: data.paymentStatus || 'Pending',
@@ -101,11 +136,15 @@ export const docToOrder = (data: any, docId: string): Order => {
 };
 
 /**
- * Saves a new order into Firestore backend (`orders/{orderId}`)
+ * Saves a new order into Firestore backend:
+ * Dual Write Strategy: Atomically writes to top-level root `/orders/{orderId}` AND
+ * customer subcollection `/users/{userId}/orders/{orderId}` using writeBatch()
  */
 export const saveOrderToFirestore = async (order: Order, currentUserId?: string): Promise<Order> => {
   const uid = currentUserId || auth?.currentUser?.uid || order.userId || 'guest';
-  const orderId = order.id || `#KG-${Math.floor(1000 + Math.random() * 9000)}`;
+  const rawId = order.id || `#KG-${Math.floor(1000 + Math.random() * 9000)}`;
+  const orderId = rawId.startsWith('#') ? rawId : `#${rawId}`;
+  const cleanDocId = orderId.replace(/^#/, '');
 
   const customerName = order.customerName || order.address?.fullName || 'Kroyghor Member';
   const customerEmail = order.customerEmail || auth?.currentUser?.email || '';
@@ -129,38 +168,61 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
 
   const firestoreDocPayload = {
     orderId,
+    id: orderId,
+    cleanId: cleanDocId,
     userId: uid,
     customerName,
     customerEmail,
     customerPhone,
     shippingAddress: {
-      Street: order.address.fullAddress,
-      City: order.address.cityDivision,
-      Zip: (order.address as any).zip || '1200',
-      Notes: order.address.notes || '',
-      fullName: order.address.fullName,
-      phone: order.address.phone,
-      cityDivision: order.address.cityDivision,
-      fullAddress: order.address.fullAddress,
-      district: order.address.district || 'Dhaka',
+      Street: order.address?.fullAddress || '',
+      City: order.address?.cityDivision || 'Inside Dhaka',
+      Zip: (order.address as any)?.zip || '1200',
+      Notes: order.address?.notes || '',
+      fullName: order.address?.fullName || customerName,
+      phone: order.address?.phone || customerPhone,
+      cityDivision: order.address?.cityDivision || 'Inside Dhaka',
+      fullAddress: order.address?.fullAddress || '',
+      district: order.address?.district || 'Dhaka',
+    },
+    address: {
+      fullName: order.address?.fullName || customerName,
+      phone: order.address?.phone || customerPhone,
+      cityDivision: order.address?.cityDivision || 'Inside Dhaka',
+      fullAddress: order.address?.fullAddress || '',
+      district: order.address?.district || 'Dhaka',
+      notes: order.address?.notes || '',
     },
     items: order.items.map((i) => ({
-      productId: i.product.id,
-      title: i.product.title,
-      price: i.product.price,
-      quantity: i.quantity,
-      image: i.product.image,
+      productId: i.product?.id || `p-${Math.random()}`,
+      title: i.product?.title || 'Product',
+      price: Number(i.product?.price) || 0,
+      quantity: Number(i.quantity) || 1,
+      image: i.product?.image || '/kroyghor-icon.svg',
       selectedSize: i.selectedSize || '',
+      product: {
+        id: i.product?.id,
+        title: i.product?.title,
+        price: i.product?.price,
+        image: i.product?.image,
+        category: i.product?.category,
+      },
     })),
-    subtotal: order.subtotal,
-    deliveryCharge: order.deliveryFee,
-    walletDiscount: order.walletDeducted || 0,
-    totalAmount: order.total,
+    subtotal: Number(order.subtotal) || 0,
+    deliveryCharge: Number(order.deliveryFee) || 0,
+    deliveryFee: Number(order.deliveryFee) || 0,
+    walletDiscount: Number(order.walletDeducted) || 0,
+    walletDeducted: Number(order.walletDeducted) || 0,
+    totalAmount: Number(order.total) || 0,
+    total: Number(order.total) || 0,
     paymentMethod: mappedPaymentMethod,
     paymentStatus: mappedPaymentStatus,
     orderStatus: mappedOrderStatus,
+    status: mappedOrderStatus,
     trxId: order.trxId || '',
+    date: order.date || new Date().toISOString(),
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
   const completedOrder: Order = {
@@ -177,36 +239,82 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
 
   // 2. Persist in local storage
   const localList = getLocalOrders();
-  const filtered = localList.filter((o) => o.id !== orderId);
+  const filtered = localList.filter((o) => o.id !== orderId && o.id.replace(/^#/, '') !== cleanDocId);
   saveLocalOrders([completedOrder, ...filtered]);
 
-  // 3. Persist in Firestore (both /orders and /users collections)
+  // 3. Atomically persist in Firestore (Root /orders/{orderId} AND Customer /users/{userId}/orders/{orderId})
   if (db) {
     try {
-      const cleanDocId = orderId.replace('#', '');
-      const orderRef = doc(db, 'orders', cleanDocId);
-      await setDoc(orderRef, firestoreDocPayload, { merge: true });
+      const batch = writeBatch(db);
 
-      // Update user record in /users collection with hasPlacedOrders: true
-      const userDocIds = new Set<string>();
-      if (uid && uid !== 'guest') userDocIds.add(uid);
-      if (customerEmail) userDocIds.add(customerEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      // A. Primary Root Collection: /orders/{orderId}
+      const rootOrderRef = doc(db, 'orders', orderId);
+      batch.set(rootOrderRef, firestoreDocPayload, { merge: true });
 
-      for (const targetUserDocId of userDocIds) {
-        try {
-          const userRef = doc(db, 'users', targetUserDocId);
-          await setDoc(userRef, {
+      // Mirror to cleanDocId if different (without #) so queries without # succeed
+      if (cleanDocId !== orderId) {
+        const rootOrderRefClean = doc(db, 'orders', cleanDocId);
+        batch.set(rootOrderRefClean, firestoreDocPayload, { merge: true });
+      }
+
+      // B. Customer Subcollection: /users/{userId}/orders/{orderId}
+      if (uid && uid !== 'guest') {
+        const userOrderRef = doc(db, 'users', uid, 'orders', orderId);
+        batch.set(userOrderRef, firestoreDocPayload, { merge: true });
+
+        if (cleanDocId !== orderId) {
+          const userOrderRefClean = doc(db, 'users', uid, 'orders', cleanDocId);
+          batch.set(userOrderRefClean, firestoreDocPayload, { merge: true });
+        }
+
+        // Update user metrics in /users/{uid}
+        const userRef = doc(db, 'users', uid);
+        batch.set(userRef, {
+          hasPlacedOrders: true,
+          lastOrderAt: serverTimestamp(),
+          lastOrderAmount: order.total,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+
+      // C. Also mirror to sanitized customerEmail if provided and different from uid
+      if (customerEmail) {
+        const sanitizedEmail = customerEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        if (sanitizedEmail && sanitizedEmail !== uid) {
+          const emailOrderRef = doc(db, 'users', sanitizedEmail, 'orders', orderId);
+          batch.set(emailOrderRef, firestoreDocPayload, { merge: true });
+
+          if (cleanDocId !== orderId) {
+            const emailOrderRefClean = doc(db, 'users', sanitizedEmail, 'orders', cleanDocId);
+            batch.set(emailOrderRefClean, firestoreDocPayload, { merge: true });
+          }
+
+          const emailUserRef = doc(db, 'users', sanitizedEmail);
+          batch.set(emailUserRef, {
             hasPlacedOrders: true,
             lastOrderAt: serverTimestamp(),
             lastOrderAmount: order.total,
             updatedAt: serverTimestamp(),
           }, { merge: true });
-        } catch (e) {
-          console.warn('[OrderFirestoreService] Minor error updating user hasPlacedOrders flag:', e);
         }
       }
+
+      await batch.commit();
+      console.log(`[OrderFirestoreService] Atomic dual-write completed for Order ${orderId} directly to root /orders and /users/${uid}/orders`);
     } catch (err) {
-      console.error('[OrderFirestoreService] Error saving order to Firestore:', err);
+      console.error('[OrderFirestoreService] Error saving order with batch to Firestore:', err);
+      // Fallback single writes so the order is NEVER lost in root /orders
+      try {
+        await setDoc(doc(db, 'orders', orderId), firestoreDocPayload, { merge: true });
+        if (cleanDocId !== orderId) {
+          await setDoc(doc(db, 'orders', cleanDocId), firestoreDocPayload, { merge: true });
+        }
+        if (uid && uid !== 'guest') {
+          await setDoc(doc(db, 'users', uid, 'orders', orderId), firestoreDocPayload, { merge: true }).catch(() => {});
+        }
+      } catch (fallbackErr) {
+        console.error('[OrderFirestoreService] Fallback write to /orders also failed:', fallbackErr);
+      }
     }
   }
 
@@ -663,7 +771,8 @@ export const broadcastNewOrder = (order: Order) => {
 };
 
 /**
- * Real-time subscription to ALL orders for Admin panel (Firestore onSnapshot + BroadcastChannel + Window Events)
+ * Real-time subscription to ALL orders for Admin panel (Firestore onSnapshot on root /orders + BroadcastChannel + Window Events)
+ * Targeting the root /orders collection without any restrictive user filter.
  * Delivers newly placed orders in under 1 second without requiring page reload.
  */
 export const subscribeToAllOrdersFromFirestore = (
@@ -675,17 +784,22 @@ export const subscribeToAllOrdersFromFirestore = (
   const knownOrderIds = new Set<string>();
   const initialLocal = getLocalOrders();
   initialLocal.forEach((o) => {
-    if (o?.id) knownOrderIds.add(o.id);
+    if (o?.id) {
+      knownOrderIds.add(o.id);
+      knownOrderIds.add(o.id.replace(/^#/, ''));
+    }
   });
   callback(initialLocal);
 
   const handleIncomingOrder = (newOrder: Order) => {
     if (!newOrder || !newOrder.id) return;
-    const isBrandNew = !knownOrderIds.has(newOrder.id);
+    const cleanId = newOrder.id.replace(/^#/, '');
+    const isBrandNew = !knownOrderIds.has(newOrder.id) && !knownOrderIds.has(cleanId);
     knownOrderIds.add(newOrder.id);
+    knownOrderIds.add(cleanId);
 
     const localList = getLocalOrders();
-    const filtered = localList.filter((o) => o.id !== newOrder.id);
+    const filtered = localList.filter((o) => o.id !== newOrder.id && o.id.replace(/^#/, '') !== cleanId);
     const updated = [newOrder, ...filtered];
     saveLocalOrders(updated);
 
@@ -719,7 +833,7 @@ export const subscribeToAllOrdersFromFirestore = (
     }
   }
 
-  // 3. Firestore Live onSnapshot Listener
+  // 3. Firestore Live onSnapshot Listener on Root /orders (No restrictive user query)
   if (db) {
     try {
       const ordersCol = collection(db, 'orders');
@@ -731,24 +845,41 @@ export const subscribeToAllOrdersFromFirestore = (
 
           snapshot.forEach((d) => {
             const orderObj = docToOrder(d.data(), d.id);
-            firestoreOrders.push(orderObj);
-            if (orderObj.id && !knownOrderIds.has(orderObj.id)) {
-              freshlyArrivedOrder = orderObj;
-              knownOrderIds.add(orderObj.id);
+            if (orderObj && orderObj.id) {
+              firestoreOrders.push(orderObj);
+              const cleanId = orderObj.id.replace(/^#/, '');
+              if (!knownOrderIds.has(orderObj.id) && !knownOrderIds.has(cleanId)) {
+                freshlyArrivedOrder = orderObj;
+                knownOrderIds.add(orderObj.id);
+                knownOrderIds.add(cleanId);
+              }
             }
           });
 
-          // Merge with local orders
+          // Merge with local orders, deduplicating cleanKey and hashed IDs
           const localList = getLocalOrders();
           const map = new Map<string, Order>();
-          [...firestoreOrders, ...localList].forEach((o) => {
+
+          // Priority 1: Firestore orders
+          firestoreOrders.forEach((o) => {
             if (o && o.id) {
-              map.set(o.id, o);
+              const cleanKey = o.id.replace(/^#/, '');
+              map.set(cleanKey, o);
+            }
+          });
+
+          // Priority 2: Local orders not yet in firestore
+          localList.forEach((o) => {
+            if (o && o.id) {
+              const cleanKey = o.id.replace(/^#/, '');
+              if (!map.has(cleanKey)) {
+                map.set(cleanKey, o);
+              }
             }
           });
 
           const sorted = Array.from(map.values()).sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            (a, b) => getOrderMillis(b) - getOrderMillis(a)
           );
           saveLocalOrders(sorted);
           callback(sorted, freshlyArrivedOrder);
@@ -767,5 +898,185 @@ export const subscribeToAllOrdersFromFirestore = (
 
   return () => {
     cleanupFns.forEach((fn) => fn());
+  };
+};
+
+/**
+ * Scans all /users/{userId}/orders and local storage records, and copies any missing order
+ * documents into the main root `/orders` collection so previously placed orders (e.g. #KG-8388) show up instantly.
+ */
+export const migrateMissingOrdersToRootFirestore = async (): Promise<{
+  migratedCount: number;
+  scannedSources: number;
+  migratedOrderIds: string[];
+}> => {
+  let migratedCount = 0;
+  const migratedOrderIds: string[] = [];
+
+  const candidateOrders = new Map<string, Order>();
+
+  // 1. Gather all local cache orders across legacy keys
+  const localKeys = ['primevault_orders', 'zeropicbd_orders', 'local_orders', 'kroyghor_orders'];
+  localKeys.forEach((key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((o) => {
+            if (o && o.id) {
+              const cleanKey = String(o.id).replace(/^#/, '');
+              if (!candidateOrders.has(cleanKey)) {
+                candidateOrders.set(cleanKey, o);
+              }
+            }
+          });
+        }
+      }
+    } catch {}
+  });
+
+  if (!db) {
+    return {
+      migratedCount: 0,
+      scannedSources: candidateOrders.size,
+      migratedOrderIds: [],
+    };
+  }
+
+  try {
+    // 2. Scan via collectionGroup('orders')
+    try {
+      const groupSnap = await getDocs(collectionGroup(db, 'orders'));
+      groupSnap.forEach((orderDoc) => {
+        const data = orderDoc.data();
+        const orderObj = docToOrder(data, orderDoc.id);
+        if (orderObj && orderObj.id) {
+          const cleanKey = orderObj.id.replace(/^#/, '');
+          if (!candidateOrders.has(cleanKey)) {
+            candidateOrders.set(cleanKey, orderObj);
+          }
+        }
+      });
+    } catch (groupErr) {
+      console.warn('[OrderFirestoreService] Notice during collectionGroup scan:', groupErr);
+    }
+
+    // 3. Scan individual /users/{userId}/orders subcollections
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      for (const userDoc of usersSnap.docs) {
+        try {
+          const userOrdersCol = collection(db, 'users', userDoc.id, 'orders');
+          const userOrdersSnap = await getDocs(userOrdersCol);
+          userOrdersSnap.forEach((orderDoc) => {
+            const data = orderDoc.data();
+            const orderObj = docToOrder(data, orderDoc.id);
+            if (orderObj && orderObj.id) {
+              const cleanKey = orderObj.id.replace(/^#/, '');
+              if (!candidateOrders.has(cleanKey)) {
+                candidateOrders.set(cleanKey, orderObj);
+              }
+            }
+          });
+        } catch {
+          // Ignore individual user document subcollection access warnings
+        }
+      }
+    } catch (usersErr) {
+      console.warn('[OrderFirestoreService] Notice during user scan:', usersErr);
+    }
+
+    // 4. Check existing root /orders documents
+    const rootSnap = await getDocs(collection(db, 'orders'));
+    const existingRootKeys = new Set<string>();
+    rootSnap.forEach((d) => {
+      existingRootKeys.add(d.id);
+      existingRootKeys.add(d.id.replace(/^#/, ''));
+      const data = d.data();
+      if (data.orderId) {
+        existingRootKeys.add(String(data.orderId));
+        existingRootKeys.add(String(data.orderId).replace(/^#/, ''));
+      }
+      if (data.id) {
+        existingRootKeys.add(String(data.id));
+        existingRootKeys.add(String(data.id).replace(/^#/, ''));
+      }
+    });
+
+    // 5. Batch write any missing orders into root /orders
+    const batch = writeBatch(db);
+    let batchCount = 0;
+
+    for (const [cleanKey, order] of candidateOrders.entries()) {
+      const orderIdWithHash = order.id.startsWith('#') ? order.id : `#${order.id}`;
+      
+      // If missing from root /orders, write it
+      if (!existingRootKeys.has(cleanKey) || !existingRootKeys.has(orderIdWithHash)) {
+        const rootOrderRefClean = doc(db, 'orders', cleanKey);
+        const rootOrderRefHashed = doc(db, 'orders', orderIdWithHash);
+
+        const payload = {
+          orderId: orderIdWithHash,
+          id: orderIdWithHash,
+          cleanId: cleanKey,
+          userId: order.userId || 'guest',
+          customerName: order.customerName || order.address?.fullName || 'Customer',
+          customerEmail: order.customerEmail || '',
+          customerPhone: order.customerPhone || order.address?.phone || '',
+          shippingAddress: order.address || {},
+          address: order.address || {},
+          items: (order.items || []).map((i) => ({
+            productId: i.product?.id || `p-${Math.random()}`,
+            title: i.product?.title || 'Product',
+            price: Number(i.product?.price) || 0,
+            quantity: Number(i.quantity) || 1,
+            image: i.product?.image || '/kroyghor-icon.svg',
+            selectedSize: i.selectedSize || '',
+            product: {
+              id: i.product?.id,
+              title: i.product?.title,
+              price: i.product?.price,
+              image: i.product?.image,
+              category: i.product?.category,
+            },
+          })),
+          subtotal: Number(order.subtotal) || 0,
+          deliveryCharge: Number(order.deliveryFee) || 0,
+          deliveryFee: Number(order.deliveryFee) || 0,
+          walletDiscount: Number(order.walletDeducted) || 0,
+          walletDeducted: Number(order.walletDeducted) || 0,
+          totalAmount: Number(order.total) || 0,
+          total: Number(order.total) || 0,
+          paymentMethod: order.paymentMethod || 'COD',
+          paymentStatus: order.paymentStatus || 'Pending',
+          orderStatus: order.status || 'Pending',
+          status: order.status || 'Pending',
+          trxId: order.trxId || '',
+          date: order.date || new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        batch.set(rootOrderRefClean, payload, { merge: true });
+        batch.set(rootOrderRefHashed, payload, { merge: true });
+        batchCount += 2;
+        migratedCount++;
+        migratedOrderIds.push(orderIdWithHash);
+      }
+    }
+
+    if (batchCount > 0) {
+      await batch.commit();
+      console.log(`[OrderFirestoreService] Migrated ${migratedCount} missing orders into root /orders collection:`, migratedOrderIds);
+    }
+  } catch (err) {
+    console.error('[OrderFirestoreService] Error in migrateMissingOrdersToRootFirestore:', err);
+  }
+
+  return {
+    migratedCount,
+    scannedSources: candidateOrders.size,
+    migratedOrderIds,
   };
 };

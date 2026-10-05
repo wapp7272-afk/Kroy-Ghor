@@ -198,7 +198,7 @@ export const AdminBonusRequestsManager: React.FC<AdminBonusRequestsManagerProps>
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-500" />
                     <h4 className="text-sm font-extrabold text-[#0A1B3D]">
-                      {claim.userName || 'ZeropicBD Member'}
+                      {claim.userName || 'Kroy Ghor Member'}
                     </h4>
                   </div>
                   <p className="text-xs text-slate-500 font-mono flex items-center gap-1">

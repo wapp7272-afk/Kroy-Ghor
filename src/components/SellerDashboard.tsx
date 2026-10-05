@@ -249,8 +249,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
         inStock: prodInStock,
         features: feats,
         sizes: sizes,
-        storeName: activeSeller?.storeName || 'ZeropicBD Official',
-        sellerName: activeSeller?.storeName || 'ZeropicBD Official',
+        storeName: activeSeller?.storeName || 'Kroy Ghor Official',
+        sellerName: activeSeller?.storeName || 'Kroy Ghor Official',
       });
     }
 
@@ -497,7 +497,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-white">{activeSeller?.storeName}</h2>
                 <p className="text-xs text-purple-200">
-                  {activeSeller?.description || 'ZeropicBD verified seller partner in Bangladesh.'}
+                  {activeSeller?.description || 'Kroy Ghor verified seller partner in Bangladesh.'}
                 </p>
                 <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-gray-300">
                   <span>Owner: <strong className="text-white">{activeSeller?.ownerName}</strong></span>
@@ -962,7 +962,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
                   <span className="font-bold text-gray-900 font-mono">৳{sellerFinancials.revenue.toLocaleString()}</span>
                 </div>
                 <div className="py-2 flex justify-between text-rose-600">
-                  <span>ZeropicBD Commission ({sellerFinancials.commissionRate}%)</span>
+                  <span>Kroy Ghor Commission ({sellerFinancials.commissionRate}%)</span>
                   <span className="font-bold font-mono">-৳{sellerFinancials.platformCommission.toLocaleString()}</span>
                 </div>
                 <div className="py-2 flex justify-between font-bold text-[#5B21B6] text-sm">

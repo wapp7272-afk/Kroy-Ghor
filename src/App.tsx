@@ -70,6 +70,7 @@ import {
   getUserRoleFromFirestore,
   syncUserDocumentInFirestore,
   db,
+  auth,
 } from './lib/firebaseAuth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { UserRole } from './types';
@@ -571,10 +572,9 @@ export default function App() {
 
   const [currentSellerId, setCurrentSellerId] = useState<string>('seller-1');
 
-  // Seed permanent Super Admin / Owner account & clean demo data on mount
+  // Seed permanent Super Admin / Owner account on mount
   useEffect(() => {
     seedSuperAdminAccount();
-    purgeAllDemoAndMockData().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -1323,9 +1323,10 @@ export default function App() {
   };
 
   const handleCreateOrder = async (order: Order) => {
+    const currentUid = (user as any).uid || auth?.currentUser?.uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : 'guest');
     const orderWithUser: Order = {
       ...order,
-      userId: user.isLoggedIn ? user.email || 'user' : 'guest',
+      userId: user.isLoggedIn ? currentUid : 'guest',
       customerName: order.customerName || order.address.fullName,
       customerEmail: order.customerEmail || user.email || '',
       customerPhone: order.customerPhone || order.address.phone || user.phone || '',
@@ -1336,7 +1337,7 @@ export default function App() {
     // Keep checkout open so user sees instant Order Confirmed screen with Order ID
 
     try {
-      const saved = await saveOrderToFirestore(orderWithUser);
+      const saved = await saveOrderToFirestore(orderWithUser, user.isLoggedIn ? currentUid : 'guest');
       setOrders((prev) => [saved, ...prev.filter((o) => o.id !== saved.id)]);
     } catch {
       api.orders.create(orderWithUser).catch(() => {});
@@ -2141,8 +2142,8 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-24 right-4 z-50 px-4 py-3 rounded-xl bg-[#171717] text-white text-xs font-bold shadow-xl flex items-center gap-2.5 animate-slideLeft">
-          <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs font-semibold shadow-xl border border-slate-800 flex items-center gap-2.5 animate-toastEnter">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}

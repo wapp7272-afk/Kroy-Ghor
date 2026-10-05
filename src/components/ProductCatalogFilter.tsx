@@ -226,50 +226,59 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('categories')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.categories}
+          aria-controls="filter-section-categories"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-[#4F46E5]" />
             Departments ({filters.categories.length > 0 ? filters.categories.length : 'All'})
           </span>
-          {collapsedSections.categories ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.categories ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.categories && (
-          <div className="mt-3 space-y-1.5">
-            {DEPARTMENT_OPTIONS.map((dept) => {
-              const Icon = dept.icon;
-              const isSelected = filters.categories.includes(dept.name);
-              const count = getDeptCount(dept.matches);
+        <div
+          id="filter-section-categories"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.categories ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 space-y-1.5">
+              {DEPARTMENT_OPTIONS.map((dept) => {
+                const Icon = dept.icon;
+                const isSelected = filters.categories.includes(dept.name);
+                const count = getDeptCount(dept.matches);
 
-              return (
-                <label
-                  key={dept.id}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                    isSelected
-                      ? 'bg-indigo-50/80 text-[#4F46E5] font-semibold'
-                      : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <input
-                      type="checkbox"
-                      aria-label={`Filter by category: ${dept.name}`}
-                      checked={isSelected}
-                      onChange={() => handleCategoryToggle(dept.name)}
-                      className="w-4 h-4 rounded text-[#4F46E5] border-slate-300 focus:ring-[#4F46E5] cursor-pointer accent-[#4F46E5]"
-                    />
-                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#4F46E5]' : 'text-slate-400'}`} />
-                    <span className="text-xs truncate">{dept.name}</span>
-                  </div>
-                  <span className={`text-[11px] shrink-0 font-medium px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-100 text-[#4F46E5]' : 'bg-slate-100 text-slate-500'}`}>
-                    {count}
-                  </span>
-                </label>
-              );
-            })}
+                return (
+                  <label
+                    key={dept.id}
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors active:scale-[0.99] ${
+                      isSelected
+                        ? 'bg-indigo-50/80 text-[#4F46E5] font-semibold'
+                        : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        aria-label={`Filter by category: ${dept.name}`}
+                        checked={isSelected}
+                        onChange={() => handleCategoryToggle(dept.name)}
+                        className="w-4 h-4 rounded text-[#4F46E5] border-slate-300 focus:ring-[#4F46E5] cursor-pointer accent-[#4F46E5]"
+                      />
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[#4F46E5]' : 'text-slate-400'}`} />
+                      <span className="text-xs truncate">{dept.name}</span>
+                    </div>
+                    <span className={`text-[11px] shrink-0 font-medium px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-100 text-[#4F46E5]' : 'bg-slate-100 text-slate-500'}`}>
+                      {count}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 2. Price Range Slider & Manual Text Inputs */}
@@ -277,118 +286,127 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('price')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.price}
+          aria-controls="filter-section-price"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-[#4F46E5]" />
             Price Range (৳ BDT)
           </span>
-          {collapsedSections.price ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.price ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.price && (
-          <div className="mt-3 space-y-3">
-            {/* Quick Price Range Presets */}
-            <div className="grid grid-cols-2 gap-1.5">
-              {PRICE_PRESETS.map((preset, idx) => {
-                const isActive = filters.minPrice === preset.min && filters.maxPrice === preset.max;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() =>
-                      onChange((prev) => ({
-                        ...prev,
-                        minPrice: preset.min,
-                        maxPrice: preset.max,
-                      }))
-                    }
-                    className={`py-1 px-2 text-[11px] font-medium rounded-md border text-center transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Slider Control for Maximum Price */}
-            <div>
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span>Max Ceiling:</span>
-                <span className="font-bold text-[#0F172A]">৳{filters.maxPrice.toLocaleString()}</span>
+        <div
+          id="filter-section-price"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.price ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 space-y-3">
+              {/* Quick Price Range Presets */}
+              <div className="grid grid-cols-2 gap-1.5">
+                {PRICE_PRESETS.map((preset, idx) => {
+                  const isActive = filters.minPrice === preset.min && filters.maxPrice === preset.max;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() =>
+                        onChange((prev) => ({
+                          ...prev,
+                          minPrice: preset.min,
+                          maxPrice: preset.max,
+                        }))
+                      }
+                      className={`py-1 px-2 text-[11px] font-medium rounded-md border text-center transition-all cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
+                        isActive
+                          ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
-              <input
-                type="range"
-                aria-label="Maximum price slider"
-                min={0}
-                max={Math.max(20000, maxCatalogPrice)}
-                step={100}
-                value={filters.maxPrice}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  onChange((prev) => ({
-                    ...prev,
-                    maxPrice: Math.max(val, prev.minPrice + 100),
-                  }));
-                }}
-                className="w-full accent-[#4F46E5] cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none"
-              />
-            </div>
 
-            {/* Manual Numeric Input Fields */}
-            <div className="grid grid-cols-2 gap-2">
+              {/* Slider Control for Maximum Price */}
               <div>
-                <label htmlFor={minPriceInputId} className="block text-[11px] font-medium text-slate-500 mb-0.5">Min ৳</label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">৳</span>
-                  <input
-                    id={minPriceInputId}
-                    type="number"
-                    min={0}
-                    max={filters.maxPrice}
-                    step={50}
-                    value={filters.minPrice || ''}
-                    placeholder="0"
-                    onChange={(e) => {
-                      const val = e.target.value === '' ? 0 : Math.max(0, Number(e.target.value));
-                      onChange((prev) => ({ ...prev, minPrice: val }));
-                    }}
-                    className="w-full pl-6 pr-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4F46E5]"
-                  />
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Max Ceiling:</span>
+                  <span className="font-bold text-[#0F172A]">৳{filters.maxPrice.toLocaleString()}</span>
                 </div>
+                <input
+                  type="range"
+                  aria-label="Maximum price slider"
+                  min={0}
+                  max={Math.max(20000, maxCatalogPrice)}
+                  step={100}
+                  value={filters.maxPrice}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    onChange((prev) => ({
+                      ...prev,
+                      maxPrice: Math.max(val, prev.minPrice + 100),
+                    }));
+                  }}
+                  className="w-full accent-[#4F46E5] cursor-pointer h-1.5 bg-slate-200 rounded-lg appearance-none"
+                />
               </div>
-              <div>
-                <label htmlFor={maxPriceInputId} className="block text-[11px] font-medium text-slate-500 mb-0.5">Max ৳</label>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">৳</span>
-                  <input
-                    id={maxPriceInputId}
-                    type="number"
-                    min={filters.minPrice}
-                    max={50000}
-                    step={100}
-                    value={filters.maxPrice || ''}
-                    placeholder="20000"
-                    onChange={(e) => {
-                      const val = e.target.value === '' ? 20000 : Number(e.target.value);
-                      onChange((prev) => ({ ...prev, maxPrice: val }));
-                    }}
-                    className="w-full pl-6 pr-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4F46E5]"
-                  />
+
+              {/* Manual Numeric Input Fields */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor={minPriceInputId} className="block text-[11px] font-medium text-slate-500 mb-0.5">Min ৳</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">৳</span>
+                    <input
+                      id={minPriceInputId}
+                      type="number"
+                      min={0}
+                      max={filters.maxPrice}
+                      step={50}
+                      value={filters.minPrice || ''}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Math.max(0, Number(e.target.value));
+                        onChange((prev) => ({ ...prev, minPrice: val }));
+                      }}
+                      className="w-full pl-6 pr-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4F46E5] transition-colors"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor={maxPriceInputId} className="block text-[11px] font-medium text-slate-500 mb-0.5">Max ৳</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">৳</span>
+                    <input
+                      id={maxPriceInputId}
+                      type="number"
+                      min={filters.minPrice}
+                      max={50000}
+                      step={100}
+                      value={filters.maxPrice || ''}
+                      placeholder="20000"
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 20000 : Number(e.target.value);
+                        onChange((prev) => ({ ...prev, maxPrice: val }));
+                      }}
+                      className="w-full pl-6 pr-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#4F46E5] transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 3. Stock Availability Toggle */}
       <div className="border-b border-slate-100 pb-4">
-        <label className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition-colors cursor-pointer">
+        <label className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition-colors cursor-pointer active:scale-[0.99]">
           <div className="flex items-center gap-2">
             <PackageCheck className="w-4 h-4 text-emerald-600" />
             <div>
@@ -411,36 +429,45 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('discount')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.discount}
+          aria-controls="filter-section-discount"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <Percent className="w-3.5 h-3.5 text-[#4F46E5]" />
             Minimum Discount
           </span>
-          {collapsedSections.discount ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.discount ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.discount && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {DISCOUNT_TIERS.map((tier) => {
-              const isSelected = filters.minDiscount === tier.value;
-              return (
-                <button
-                  key={tier.value}
-                  type="button"
-                  onClick={() => onChange((prev) => ({ ...prev, minDiscount: tier.value }))}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-rose-50 border-rose-400 text-rose-700 font-bold shadow-xs'
-                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  {tier.label}
-                </button>
-              );
-            })}
+        <div
+          id="filter-section-discount"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.discount ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 flex flex-wrap gap-1.5">
+              {DISCOUNT_TIERS.map((tier) => {
+                const isSelected = filters.minDiscount === tier.value;
+                return (
+                  <button
+                    key={tier.value}
+                    type="button"
+                    onClick={() => onChange((prev) => ({ ...prev, minDiscount: tier.value }))}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-all cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
+                      isSelected
+                        ? 'bg-rose-50 border-rose-400 text-rose-700 font-bold shadow-xs'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {tier.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 5. Customer Rating Filter */}
@@ -448,57 +475,66 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('rating')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.rating}
+          aria-controls="filter-section-rating"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
             Customer Rating
           </span>
-          {collapsedSections.rating ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.rating ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.rating && (
-          <div className="mt-3 space-y-1.5">
-            {[
-              { min: 4, label: '4.0★ & above' },
-              { min: 3, label: '3.0★ & above' },
-              { min: 0, label: 'All Customer Ratings' },
-            ].map((ratingItem) => {
-              const isSelected = filters.minRating === ratingItem.min;
-              return (
-                <button
-                  key={ratingItem.min}
-                  type="button"
-                  onClick={() => onChange((prev) => ({ ...prev, minRating: ratingItem.min }))}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left transition-colors cursor-pointer ${
-                    isSelected
-                      ? 'bg-amber-50/80 border-amber-300 text-amber-900 font-semibold'
-                      : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    {ratingItem.min > 0 ? (
-                      <div className="flex items-center gap-0.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3.5 h-3.5 ${
-                              i < ratingItem.min ? 'text-amber-500 fill-amber-500' : 'text-slate-200'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-500">Show all products</span>
-                    )}
-                    <span className="text-xs ml-1">{ratingItem.label}</span>
-                  </div>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
-                </button>
-              );
-            })}
+        <div
+          id="filter-section-rating"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.rating ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 space-y-1.5">
+              {[
+                { min: 4, label: '4.0★ & above' },
+                { min: 3, label: '3.0★ & above' },
+                { min: 0, label: 'All Customer Ratings' },
+              ].map((ratingItem) => {
+                const isSelected = filters.minRating === ratingItem.min;
+                return (
+                  <button
+                    key={ratingItem.min}
+                    type="button"
+                    onClick={() => onChange((prev) => ({ ...prev, minRating: ratingItem.min }))}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-left transition-colors cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
+                      isSelected
+                        ? 'bg-amber-50/80 border-amber-300 text-amber-900 font-semibold'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {ratingItem.min > 0 ? (
+                        <div className="flex items-center gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3.5 h-3.5 ${
+                                i < ratingItem.min ? 'text-amber-500 fill-amber-500' : 'text-slate-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500">Show all products</span>
+                      )}
+                      <span className="text-xs ml-1">{ratingItem.label}</span>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 6. Brand / Label Tag Selection */}
@@ -506,37 +542,46 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('brands')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.brands}
+          aria-controls="filter-section-brands"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <Tag className="w-3.5 h-3.5 text-[#4F46E5]" />
             Featured Brands & Makers ({filters.selectedBrands.length > 0 ? filters.selectedBrands.length : 'All'})
           </span>
-          {collapsedSections.brands ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.brands ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.brands && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {CURATED_BRANDS.map((brand) => {
-              const isSelected = filters.selectedBrands.includes(brand);
-              return (
-                <button
-                  key={brand}
-                  type="button"
-                  onClick={() => handleBrandToggle(brand)}
-                  className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
-                    isSelected
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                  }`}
-                >
-                  <span>{brand}</span>
-                  {isSelected && <X className="w-3 h-3 text-white" />}
-                </button>
-              );
-            })}
+        <div
+          id="filter-section-brands"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.brands ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 flex flex-wrap gap-1.5">
+              {CURATED_BRANDS.map((brand) => {
+                const isSelected = filters.selectedBrands.includes(brand);
+                return (
+                  <button
+                    key={brand}
+                    type="button"
+                    onClick={() => handleBrandToggle(brand)}
+                    className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-all cursor-pointer flex items-center gap-1 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
+                      isSelected
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>{brand}</span>
+                    {isSelected && <X className="w-3 h-3 text-white" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 7. Product Badges & Tags */}
@@ -544,37 +589,46 @@ export const FilterSidebarContent: React.FC<FilterContentProps> = React.memo(({
         <button
           type="button"
           onClick={() => toggleSection('tags')}
-          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer"
+          aria-expanded={!collapsedSections.tags}
+          aria-controls="filter-section-tags"
+          className="w-full flex items-center justify-between py-1 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#4F46E5] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] rounded"
         >
           <span className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#4F46E5]" />
             Collection Badges ({filters.selectedTags.length > 0 ? filters.selectedTags.length : 'All'})
           </span>
-          {collapsedSections.tags ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${!collapsedSections.tags ? 'rotate-180 text-[#4F46E5]' : 'text-slate-400'}`} />
         </button>
 
-        {!collapsedSections.tags && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {CURATED_TAGS.map((tag) => {
-              const isSelected = filters.selectedTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleTagToggle(tag)}
-                  className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
-                    isSelected
-                      ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                  }`}
-                >
-                  <span>{tag}</span>
-                  {isSelected && <X className="w-3 h-3 text-white" />}
-                </button>
-              );
-            })}
+        <div
+          id="filter-section-tags"
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            collapsedSections.tags ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="pt-3 flex flex-wrap gap-1.5">
+              {CURATED_TAGS.map((tag) => {
+                const isSelected = filters.selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleTagToggle(tag)}
+                    className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-all cursor-pointer flex items-center gap-1 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] ${
+                      isSelected
+                        ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>{tag}</span>
+                    {isSelected && <X className="w-3 h-3 text-white" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

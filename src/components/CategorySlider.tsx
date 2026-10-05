@@ -105,8 +105,7 @@ export const CategorySlider: React.FC<CategorySliderProps> = React.memo(({
         {/* Section Header */}
         <div className="flex items-end justify-between mb-5 sm:mb-6">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+            <div className="flex items-center gap-1.5 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5" />
                 EXPLORE KROYGHOR
@@ -188,7 +187,7 @@ export const CategorySlider: React.FC<CategorySliderProps> = React.memo(({
                         height={96}
                         loading="lazy"
                         decoding="async"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-115"
+                        className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.06]"
                       />
                       {/* Active Overlay Check */}
                       {isSelected && (

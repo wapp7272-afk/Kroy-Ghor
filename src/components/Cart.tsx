@@ -72,6 +72,15 @@ export const Cart: React.FC<CartProps> = React.memo(({
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [deliveryArea, setDeliveryArea] = useState<'Inside Dhaka' | 'Outside Dhaka'>('Inside Dhaka');
+  const [removingIds, setRemovingIds] = useState<string[]>([]);
+
+  const handleRemoveWithAnimation = (productId: string) => {
+    setRemovingIds((prev) => [...prev, productId]);
+    setTimeout(() => {
+      onRemoveItem(productId);
+      setRemovingIds((prev) => prev.filter((id) => id !== productId));
+    }, 150);
+  };
 
   // Real-time subtotal computation
   const subtotal = useMemo(() => {
@@ -338,10 +347,14 @@ export const Cart: React.FC<CartProps> = React.memo(({
                       const hasDiscount = item.product.originalPrice && item.product.originalPrice > item.product.price;
                       const itemSavings = hasDiscount ? (item.product.originalPrice! - item.product.price) * item.quantity : 0;
 
+                      const isBeingRemoved = removingIds.includes(item.product.id);
+
                       return (
                         <div
                           key={item.product.id}
-                          className="pt-2 first:pt-0 flex gap-3 items-center justify-between"
+                          className={`pt-2 first:pt-0 flex gap-3 items-center justify-between transition-all duration-150 ${
+                            isBeingRemoved ? 'opacity-0 scale-95 -translate-x-2 pointer-events-none' : 'opacity-100 scale-100 translate-x-0'
+                          }`}
                         >
                           {/* Product Image Thumbnail */}
                           <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shrink-0">
@@ -400,7 +413,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
                           {/* Quantity Controls & One-Tap Removal (Optimized Touch Hitboxes) */}
                           <div className="flex flex-col items-end gap-1.5 shrink-0">
                             <button
-                              onClick={() => onRemoveItem(item.product.id)}
+                              onClick={() => handleRemoveWithAnimation(item.product.id)}
                               className="text-gray-400 hover:text-rose-600 p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-rose-50 transition-colors cursor-pointer active:scale-95"
                               title="কার্ট থেকে ডিলিট করুন"
                               aria-label="Remove item"
@@ -676,7 +689,7 @@ export const Cart: React.FC<CartProps> = React.memo(({
           <button
             id="cart-drawer-checkout-btn"
             onClick={onProceedToCheckout}
-            className="h-11 sm:h-12 px-5 py-2.5 rounded-xl font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 shrink-0 text-xs sm:text-sm"
+            className="h-11 sm:h-12 px-5 py-2.5 rounded-xl font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 shrink-0 text-xs sm:text-sm"
           >
             <span>Proceed to Checkout</span>
             <ArrowRight className="w-4 h-4" />

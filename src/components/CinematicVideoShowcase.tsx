@@ -194,7 +194,7 @@ export const CinematicVideoShowcase: React.FC<CinematicVideoShowcaseProps> = ({
                   {/* Top Overlay Badge */}
                   <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-bold">
-                      <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-ping" />
+                      <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
                       <Zap className="w-3.5 h-3.5 text-[#F59E0B] fill-[#F59E0B]" />
                       <span>4K Ultra-HD Showcase</span>
                     </div>
@@ -261,7 +261,7 @@ export const CinematicVideoShowcase: React.FC<CinematicVideoShowcaseProps> = ({
                 <div className="w-full h-full">
                   <iframe
                     src={youtubeEmbedUrl}
-                    title="ZeropicBD YouTube Showcase"
+                    title="Kroy Ghor YouTube Showcase"
                     className="w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen

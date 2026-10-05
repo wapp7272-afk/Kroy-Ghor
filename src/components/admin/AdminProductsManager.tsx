@@ -502,7 +502,7 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
       subtitle: subtitle.trim() || undefined,
       category: resolvedCategory,
       subCategory: subCategory.trim() || undefined,
-      description: description.trim() || 'Authentic quality product from ZeropicBD marketplace.',
+      description: description.trim() || 'Authentic quality product from Kroy Ghor marketplace.',
       price: parsedPrice,
       regularPrice: parsedRegular,
       originalPrice: parsedRegular,
@@ -513,7 +513,7 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
       images: allImages,
       videoUrl: videoUrl.trim() || undefined,
       videoPoster: videoPoster.trim() || undefined,
-      sku: sku.trim() || `ZPBD-${Math.floor(1000 + Math.random() * 9000)}`,
+      sku: sku.trim() || `KG-${Math.floor(1000 + Math.random() * 9000)}`,
       tag: selectedBadges[0] || 'Best Seller',
       tags: selectedBadges,
       badge: selectedBadges[0] || 'Best Seller',
@@ -526,8 +526,8 @@ export const AdminProductsManager: React.FC<AdminProductsManagerProps> = ({
       features: featuresArray.length > 0 ? featuresArray : ['100% Authentic Quality', 'Cash on Delivery Nationwide'],
       sizes: sizesArray,
       variants: variantsList,
-      storeName: editingProduct?.storeName || 'ZeropicBD Official',
-      sellerName: editingProduct?.sellerName || 'ZeropicBD Official',
+      storeName: editingProduct?.storeName || 'Kroy Ghor Official',
+      sellerName: editingProduct?.sellerName || 'Kroy Ghor Official',
     };
 
     if (editingProduct) {

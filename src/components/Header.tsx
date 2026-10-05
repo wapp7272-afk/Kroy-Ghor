@@ -158,8 +158,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   // Multi-Category Search states
   const [searchCategory, setSearchCategory] = useState<string>(selectedCategory || 'All');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [internalCategorySheetOpen, setInternalCategorySheetOpen] = useState(false);
   const [internalSearchModalOpen, setInternalSearchModalOpen] = useState(false);
+
+  // Reset keyboard highlight on query change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchQuery, searchCategory]);
 
   // Sync searchCategory when selectedCategory changes externally
   useEffect(() => {
@@ -351,6 +357,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (highlightedIndex >= 0 && highlightedIndex < matchingProducts.length) {
+      handleSelectSuggestedProduct(matchingProducts[highlightedIndex]);
+      return;
+    }
     if (searchQuery.trim()) {
       saveSearchQuery(searchQuery);
     }
@@ -359,6 +369,32 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     if (onGoHome) onGoHome();
     const el = document.getElementById('explore');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      if (matchingProducts.length > 0) {
+        e.preventDefault();
+        setIsSearchFocused(true);
+        setHighlightedIndex((prev) => (prev + 1) % matchingProducts.length);
+      }
+    } else if (e.key === 'ArrowUp') {
+      if (matchingProducts.length > 0) {
+        e.preventDefault();
+        setIsSearchFocused(true);
+        setHighlightedIndex((prev) => (prev <= 0 ? matchingProducts.length - 1 : prev - 1));
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsSearchFocused(false);
+      handleCloseSearchOverlay();
+      setHighlightedIndex(-1);
+    } else if (e.key === 'Enter') {
+      if (highlightedIndex >= 0 && highlightedIndex < matchingProducts.length) {
+        e.preventDefault();
+        handleSelectSuggestedProduct(matchingProducts[highlightedIndex]);
+      }
+    }
   };
 
   return (
@@ -492,9 +528,19 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   id="header-search-input-desktop"
                   aria-label="Search products, perfumes, lifestyle, brands and categories"
                   type="text"
+                  role="combobox"
+                  aria-expanded={isSearchFocused}
+                  aria-autocomplete="list"
+                  aria-controls="desktop-search-results-list"
+                  aria-activedescendant={
+                    highlightedIndex >= 0 && matchingProducts[highlightedIndex]
+                      ? `search-item-${matchingProducts[highlightedIndex].id}`
+                      : undefined
+                  }
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
+                  onKeyDown={handleSearchKeyDown}
                   placeholder={
                     searchCategory !== 'All'
                       ? `Search in ${searchCategory}...`
@@ -574,47 +620,62 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                         </span>
                         <span className="text-[10px] text-slate-400 font-normal">Click to quick view</span>
                       </div>
-                      <div className="space-y-1">
-                        {matchingProducts.map((p) => (
-                          <div
-                            key={p.id}
-                            onClick={() => handleSelectSuggestedProduct(p)}
-                            className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all cursor-pointer group"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={p.image}
-                                alt={p.title}
-                                width={40}
-                                height={40}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-10 h-10 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-100"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-[#0F172A] group-hover:text-[#4F46E5] truncate transition-colors">
-                                  {p.title}
-                                </p>
-                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
-                                  <span className="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded font-medium">
-                                    {p.category}
-                                  </span>
-                                  {p.tag && (
-                                    <span className="text-amber-700 font-medium">
-                                      • {p.tag}
+                      <div id="desktop-search-results-list" role="listbox" className="space-y-1">
+                        {matchingProducts.map((p, idx) => {
+                          const isHighlighted = highlightedIndex === idx;
+                          return (
+                            <div
+                              key={p.id}
+                              id={`search-item-${p.id}`}
+                              role="option"
+                              aria-selected={isHighlighted}
+                              onClick={() => handleSelectSuggestedProduct(p)}
+                              onMouseEnter={() => setHighlightedIndex(idx)}
+                              className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer group ${
+                                isHighlighted
+                                  ? 'bg-indigo-50 border-indigo-200 text-[#4F46E5] ring-1 ring-indigo-300'
+                                  : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <img
+                                  src={p.image}
+                                  alt={p.title}
+                                  width={40}
+                                  height={40}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-10 h-10 object-cover rounded-md border border-slate-200 shrink-0 bg-slate-100"
+                                />
+                                <div className="min-w-0">
+                                  <p className={`text-xs font-semibold truncate transition-colors ${
+                                    isHighlighted ? 'text-[#4F46E5]' : 'text-[#0F172A] group-hover:text-[#4F46E5]'
+                                  }`}>
+                                    {p.title}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                                    <span className="px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded font-medium">
+                                      {p.category}
                                     </span>
-                                  )}
+                                    {p.tag && (
+                                      <span className="text-amber-700 font-medium">
+                                        • {p.tag}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="text-xs font-bold font-mono text-[#0F172A]">
+                                  ৳{p.price.toLocaleString()}
+                                </span>
+                                <ArrowRight className={`w-3.5 h-3.5 transition-all ${
+                                  isHighlighted ? 'text-[#4F46E5] translate-x-0.5' : 'text-slate-400 group-hover:text-[#4F46E5] group-hover:translate-x-0.5'
+                                }`} />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className="text-xs font-bold font-mono text-[#0F172A]">
-                                ৳{p.price.toLocaleString()}
-                              </span>
-                              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#4F46E5] group-hover:translate-x-0.5 transition-all" />
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : searchQuery ? (
@@ -812,8 +873,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               <span className="hidden sm:inline text-xs font-semibold">Cart</span>
               {cartCount > 0 && (
                 <span 
+                  key={cartCount}
                   id="header-cart-badge-count"
-                  className="min-w-[18px] h-4.5 px-1 bg-[#00C6FF] text-[#0A1B3D] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs"
+                  className="min-w-[18px] h-4.5 px-1 bg-[#00C6FF] text-[#0A1B3D] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs animate-badgePop"
                 >
                   {cartCount}
                 </span>
@@ -936,7 +998,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
                 {/* Categories Dropdown Menu */}
                 {categoriesDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-72 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-50 animate-fadeIn">
+                  <div className="absolute top-full left-0 mt-1.5 w-72 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-50 animate-slideDown">
                     <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
                       <span>Marketplace Categories</span>
                       <span className="text-[10px] text-[#4F46E5] font-semibold">8 Departments</span>
@@ -1139,8 +1201,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   ref={mobileSearchInputRef}
                   aria-label="Search all categories"
                   type="text"
+                  role="combobox"
+                  aria-expanded={true}
+                  aria-autocomplete="list"
+                  aria-controls="mobile-search-results-list"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   placeholder={`Search in ${searchCategory !== 'All' ? searchCategory : 'all categories'}...`}
                   className="w-full pl-2 pr-1 text-xs text-[#0F172A] bg-transparent placeholder-slate-400 focus:outline-none"
                 />
@@ -1188,45 +1255,56 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Matching Products ({matchingProducts.length})
                 </p>
-                <div className="space-y-2">
-                  {matchingProducts.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => handleSelectSuggestedProduct(p)}
-                      className="flex items-center justify-between p-2 rounded-lg border border-slate-200 active:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={p.image}
-                          alt={p.title}
-                          width={44}
-                          height={44}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-11 h-11 object-cover rounded-md border border-slate-200 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-[#0F172A] truncate">
-                            {p.title}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
-                            <span className="px-1.5 py-0.2 bg-slate-100 rounded text-slate-700 font-medium">
-                              {p.category}
-                            </span>
-                            {p.tag && <span className="text-amber-700">• {p.tag}</span>}
+                <div id="mobile-search-results-list" role="listbox" className="space-y-2">
+                  {matchingProducts.map((p, idx) => {
+                    const isHighlighted = highlightedIndex === idx;
+                    return (
+                      <div
+                        key={p.id}
+                        role="option"
+                        aria-selected={isHighlighted}
+                        onClick={() => handleSelectSuggestedProduct(p)}
+                        className={`flex items-center justify-between p-2 rounded-lg border transition-colors cursor-pointer ${
+                          isHighlighted
+                            ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-200'
+                            : 'border-slate-200 active:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={p.image}
+                            alt={p.title}
+                            width={44}
+                            height={44}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-11 h-11 object-cover rounded-md border border-slate-200 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className={`text-xs font-semibold truncate ${
+                              isHighlighted ? 'text-[#4F46E5]' : 'text-[#0F172A]'
+                            }`}>
+                              {p.title}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                              <span className="px-1.5 py-0.2 bg-slate-100 rounded text-slate-700 font-medium">
+                                {p.category}
+                              </span>
+                              {p.tag && <span className="text-amber-700">• {p.tag}</span>}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <span className="text-xs font-bold font-mono text-[#0F172A] block">
+                            ৳{p.price.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-[#4F46E5] font-semibold">
+                            View →
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0 ml-2">
-                        <span className="text-xs font-bold font-mono text-[#0F172A] block">
-                          ৳{p.price.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-[#4F46E5] font-semibold">
-                          View →
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : searchQuery ? (

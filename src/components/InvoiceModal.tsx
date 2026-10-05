@@ -63,7 +63,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             image: '',
           },
           quantity: 1,
-          storeName: 'ZeropicBD Official',
+          storeName: 'Kroy Ghor Official',
         }
       ];
 
@@ -225,7 +225,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   const price = item.product?.price || item.price || 0;
                   const qty = item.quantity || 1;
                   const itemSubtotal = price * qty;
-                  const storeName = item.storeName || item.product?.storeName || item.product?.sellerName || 'ZeropicBD Official';
+                  const storeName = item.storeName || item.product?.storeName || item.product?.sellerName || 'Kroy Ghor Official';
 
                   return (
                     <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50">
@@ -263,7 +263,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 <span>১০০% অথেনটিক পণ্য নিশ্চয়তা</span>
               </div>
               <p className="text-[11px] text-gray-600 leading-relaxed">
-                ZeropicBD-তে শপিং করার জন্য ধন্যবাদ। আপনার অর্ডারকৃত সকল পণ্যে ৭ দিনের সহজ রিপ্লেসমেন্ট গ্যারান্টি প্রযোজ্য।
+                ক্রয় ঘর (Kroy Ghor)-এ শপিং করার জন্য ধন্যবাদ। আপনার অর্ডারকৃত সকল পণ্যে ৭ দিনের সহজ রিপ্লেসমেন্ট গ্যারান্টি প্রযোজ্য।
               </p>
             </div>
 
@@ -320,7 +320,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
           <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-400 gap-1 text-center">
             <span>এটি একটি কম্পিউটার জেনারেটেড ইনভয়েস, কোনো স্বাক্ষরের প্রয়োজন নেই।</span>
-            <span className="font-mono text-gray-500">ZeropicBD • www.zeropicbd.com</span>
+            <span className="font-mono text-gray-500">Kroy Ghor • ক্রয় ঘর</span>
           </div>
         </div>
       </div>

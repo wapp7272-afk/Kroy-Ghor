@@ -336,7 +336,7 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
                 )}
                 <div 
                   className="absolute -bottom-1 -right-1 p-1 bg-emerald-500 text-white rounded-full ring-2 ring-white shadow-xs"
-                  title="ZeropicBD Certified Merchant"
+                  title="Kroy Ghor Certified Merchant"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
@@ -355,7 +355,7 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
                 </div>
 
                 <p className="text-xs text-gray-600 max-w-xl leading-relaxed">
-                  {seller.description || 'Exclusive official lifestyle merchant certified by ZeropicBD Bangladesh.'}
+                  {seller.description || 'Exclusive official lifestyle merchant certified by Kroy Ghor Bangladesh.'}
                 </p>
 
                 {/* Rating & Response Metrics Badges */}
@@ -717,7 +717,7 @@ export const SellerStorefront: React.FC<SellerStorefrontProps> = ({
 
                 <div className="p-2.5 rounded-xl bg-purple-50 text-[11px] text-[#5B21B6] flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
-                  <span>Your buyer inquiry is protected under ZeropicBD Guarantee.</span>
+                  <span>Your buyer inquiry is protected under Kroy Ghor Guarantee.</span>
                 </div>
 
                 <div className="flex gap-2 pt-2">

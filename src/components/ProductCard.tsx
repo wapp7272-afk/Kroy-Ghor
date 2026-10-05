@@ -103,14 +103,12 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         }
       }}
       onClick={() => onQuickView(product)}
-      className="group relative flex flex-col justify-between h-full rounded-xl overflow-hidden bg-white border border-slate-200/90 hover:border-[#4F46E5]/40 transition-all duration-300 hover:shadow-md cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
+      className="group relative flex flex-col justify-between h-full rounded-xl overflow-hidden bg-white border border-slate-200/90 hover:border-[#4F46E5]/40 transition-[border-color,box-shadow] duration-200 hover:shadow-md cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
     >
       {/* ================= Top: Product Image Container with Zero-CLS Skeleton ================= */}
       <div className="relative w-full aspect-square overflow-hidden bg-slate-100">
         {!imageLoaded && (
-          <div className="absolute inset-0 bg-slate-200/70 animate-pulse flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-indigo-600 animate-spin opacity-50" />
-          </div>
+          <div className="absolute inset-0 skeleton-shimmer" />
         )}
         <img
           src={optimizedSrc}
@@ -120,8 +118,8 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           width={400}
           height={400}
           onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full object-cover object-center group-hover:scale-105 transition-all duration-500 ease-out ${
-            imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-98'
+          className={`w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-300 ease-out transform-gpu ${
+            imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           loading="lazy"
           decoding="async"
@@ -152,20 +150,20 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         <button
           type="button"
           onClick={handleWishlist}
-          className={`absolute top-2 right-2 w-9 h-9 min-h-[40px] min-w-[40px] rounded-full bg-white/95 backdrop-blur-xs border border-slate-200 shadow-xs transition-all z-10 flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 ${
+          className={`absolute top-2 right-2 w-9 h-9 min-h-[40px] min-w-[40px] rounded-full bg-white/95 backdrop-blur-xs border shadow-xs transition-all duration-150 z-10 flex items-center justify-center cursor-pointer active:scale-90 ${
             isWishlisted
               ? 'text-rose-500 border-rose-200 bg-rose-50/90'
-              : 'text-slate-400 hover:text-rose-500 hover:border-rose-200'
+              : 'text-slate-400 hover:text-rose-500 hover:border-rose-200 border-slate-200'
           }`}
           title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
         >
-          <Heart className={`w-4 h-4 transition-transform ${isWishlisted ? 'fill-rose-500 text-rose-500 scale-110' : ''}`} />
+          <Heart className={`w-4 h-4 transition-transform duration-150 ${isWishlisted ? 'fill-rose-500 text-rose-500 scale-110' : 'hover:scale-110'}`} />
         </button>
 
         {/* Floating Quick View Overlay on Desktop Hover */}
-        <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden sm:flex items-center justify-center pointer-events-none">
-          <div className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-xs text-slate-800 text-xs font-bold shadow-md flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-200">
+        <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-150 hidden sm:flex items-center justify-center pointer-events-none">
+          <div className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-xs text-slate-800 text-xs font-bold shadow-md flex items-center gap-1.5 transform translate-y-1.5 group-hover:translate-y-0 transition-transform duration-150">
             <Eye className="w-3.5 h-3.5 text-[#4F46E5]" />
             <span>Quick View</span>
           </div>
@@ -259,7 +257,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
               onClick={handleAdd}
               disabled={product.inStock === false}
               aria-label={`Add ${product.title} to cart`}
-              className={`w-full min-h-[44px] py-2 px-2 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer active:scale-95 focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
+              className={`w-full min-h-[44px] py-2 px-2 rounded-lg text-xs font-semibold transition-colors duration-150 flex items-center justify-center gap-1 cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
                 product.inStock === false
                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                   : isAdded
@@ -269,10 +267,10 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
               title="Add to Shopping Cart"
             >
               {isAdded ? (
-                <>
+                <div className="flex items-center gap-1 animate-scaleIn">
                   <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span className="truncate">Added</span>
-                </>
+                </div>
               ) : (
                 <>
                   <ShoppingCart className="w-3.5 h-3.5 text-slate-600" />

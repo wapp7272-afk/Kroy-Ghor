@@ -50,7 +50,8 @@ import {
   updateOrderStatusInFirestore,
   updateOrderPaymentStatusInFirestore,
   updateOrderCourierTrackingInFirestore,
-  refundUserWalletInFirestore
+  refundUserWalletInFirestore,
+  migrateMissingOrdersToRootFirestore
 } from '../../services/orderFirestoreService';
 
 export interface AdminOrdersManagerProps {
@@ -81,13 +82,28 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
   const [isSoundMuted, setIsSoundMuted] = useState<boolean>(() => soundNotifier.getMuted());
   const [recentlyArrivedOrderId, setRecentlyArrivedOrderId] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string>(() => new Date().toLocaleTimeString());
+  const [isMigrating, setIsMigrating] = useState<boolean>(false);
 
   useEffect(() => {
-    setOrders(initialOrders);
+    if (initialOrders && initialOrders.length > 0) {
+      setOrders((prev) => {
+        const map = new Map<string, Order>();
+        [...prev, ...initialOrders].forEach((o) => {
+          if (o?.id) map.set(o.id.replace(/^#/, ''), o);
+        });
+        return Array.from(map.values()).sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+      });
+    }
   }, [initialOrders]);
 
   useEffect(() => {
     let isInitialMount = true;
+
+    // Backward compatibility: Auto-migrate any unindexed or local customer orders into root /orders collection
+    migrateMissingOrdersToRootFirestore().catch((e) => console.warn('Auto migration error:', e));
+
     const unsub = subscribeToAllOrdersFromFirestore((firestoreOrders, newlyArrived) => {
       if (firestoreOrders && firestoreOrders.length >= 0) {
         setOrders(firestoreOrders);
@@ -114,6 +130,22 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
     isInitialMount = false;
     return () => unsub();
   }, [showToast]);
+
+  const handleManualMigration = async () => {
+    setIsMigrating(true);
+    try {
+      const res = await migrateMissingOrdersToRootFirestore();
+      if (res.migratedCount > 0) {
+        showToast(`✓ Successfully migrated ${res.migratedCount} missing orders into Firestore root collection! (${res.migratedOrderIds.join(', ')})`);
+      } else {
+        showToast(`✓ All orders are in sync with Firestore (${orders.length} total orders).`);
+      }
+    } catch (err: any) {
+      showToast(`❌ Migration error: ${err.message || 'Failed to sync'}`);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   const toggleSoundMute = () => {
     const nextMuted = !isSoundMuted;
@@ -374,6 +406,18 @@ export const AdminOrdersManager: React.FC<AdminOrdersManagerProps> = ({
               <span className="text-[11px]">1s Live Sync</span>
               <span className="text-[10px] text-blue-600 font-mono font-normal">({lastSyncTime})</span>
             </div>
+
+            {/* Backward Compatibility Migration Trigger Button */}
+            <button
+              type="button"
+              onClick={handleManualMigration}
+              disabled={isMigrating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#5B21B6] text-xs font-bold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              title="Scan and recover all orders from /users/{userId}/orders and local storage into root /orders collection (e.g. #KG-8388)"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isMigrating ? 'animate-spin' : ''}`} />
+              <span>{isMigrating ? 'Syncing...' : 'Recover Missing Orders'}</span>
+            </button>
 
             <span className="text-xs font-mono font-bold text-slate-500">
               Total Volume: <strong className="text-base font-black text-[#007BFF]">৳{totalRevenue.toLocaleString()}</strong>

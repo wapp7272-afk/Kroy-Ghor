@@ -39,6 +39,15 @@ const DEMO_EMAIL_PATTERNS = [
  */
 export const isDemoOrder = (orderData: any, docId: string): boolean => {
   if (!orderData) return false;
+  // Authentic Kroyghor customer orders (e.g. #KG-8388) are NEVER demo orders
+  if (
+    docId.startsWith('KG-') ||
+    docId.startsWith('#KG-') ||
+    (orderData.id && (String(orderData.id).startsWith('KG-') || String(orderData.id).startsWith('#KG-'))) ||
+    (orderData.orderId && (String(orderData.orderId).startsWith('KG-') || String(orderData.orderId).startsWith('#KG-')))
+  ) {
+    return false;
+  }
   if (orderData.isDemo === true) return true;
   if (
     docId === 'PVZ-91823' ||
