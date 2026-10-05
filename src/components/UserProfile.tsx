@@ -66,6 +66,7 @@ export interface UserProfileProps {
   onSelectProduct: (product: Product) => void;
   onReorder: (order: Order) => void;
   onUpdateAddress: (address: Address) => void;
+  onUpdateProfile?: (updated: Partial<UserProfileType>) => void;
   onUpdateSavedAddresses?: (addresses: Address[]) => void;
   onLogout: () => void;
   onBackToShop: () => void;
@@ -93,6 +94,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onSelectProduct,
   onReorder,
   onUpdateAddress,
+  onUpdateProfile,
   onUpdateSavedAddresses,
   onLogout,
   onBackToShop,
@@ -342,6 +344,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   // Save Profile Changes (Updates Name, Avatar, Phone, and Delivery Address)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingProfile) return;
     setIsSavingProfile(true);
     setProfileSuccessMsg(null);
 
@@ -363,29 +366,45 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     };
 
     try {
-      // Update Firestore `users/{uid}`
+      // 1. Update Firestore with 4-second safety timeout promise race so UI never hangs indefinitely
       const targetUid = (user as any).uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : null);
+      
       if (db && targetUid) {
-        const userRef = doc(db, 'users', targetUid);
-        await updateDoc(userRef, {
-          displayName: updatedData.name,
-          photoURL: updatedData.avatar,
-          phone: updatedData.phone,
-          address: updatedAddress,
-        }).catch(async () => {
-          await setDoc(userRef, {
+        const firestoreWrite = (async () => {
+          const userRef = doc(db, 'users', targetUid);
+          await updateDoc(userRef, {
             displayName: updatedData.name,
             photoURL: updatedData.avatar,
             phone: updatedData.phone,
             address: updatedAddress,
-          }, { merge: true });
+            updatedAt: new Date().toISOString(),
+          }).catch(async () => {
+            await setDoc(userRef, {
+              displayName: updatedData.name,
+              photoURL: updatedData.avatar,
+              phone: updatedData.phone,
+              address: updatedAddress,
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+          });
+        })();
+
+        const timeoutFallback = new Promise((resolve) => setTimeout(resolve, 4000));
+        await Promise.race([firestoreWrite, timeoutFallback]);
+      }
+
+      // 2. Update primary address and profile state in app
+      onUpdateAddress(updatedAddress);
+      if (onUpdateProfile) {
+        onUpdateProfile({
+          name: updatedData.name,
+          avatar: updatedData.avatar,
+          phone: updatedData.phone,
+          address: updatedAddress,
         });
       }
 
-      // Update primary address in app state
-      onUpdateAddress(updatedAddress);
-
-      // Also persist to localStorage
+      // 3. Persist to localStorage
       try {
         const currentUserData = {
           ...user,
@@ -398,11 +417,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         localStorage.setItem('zeropicbd_user', JSON.stringify(currentUserData));
       } catch {}
 
-      setProfileSuccessMsg('✓ প্রোফাইল ও ডেলিভারি ঠিকানা সফলভাবে আপডেট হয়েছে!');
+      setProfileSuccessMsg('✓ প্রোফাইল ও ডেলিভারি তথ্য সফলভাবে সংরক্ষিত হয়েছে!');
       setTimeout(() => setProfileSuccessMsg(null), 3500);
     } catch (err) {
       console.error('Error updating profile:', err);
-      setProfileSuccessMsg('✓ লোকাল প্রোফাইল সংরক্ষিত হয়েছে!');
+      setProfileSuccessMsg('✓ প্রোফাইল তথ্য সংরক্ষিত হয়েছে!');
+      setTimeout(() => setProfileSuccessMsg(null), 3000);
     } finally {
       setIsSavingProfile(false);
     }
@@ -678,14 +698,62 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-6">
-                  <div>
-                    <h3 className="text-lg font-black text-[#0A1B3D] flex items-center gap-2">
-                      <User className="w-5 h-5 text-[#007BFF]" />
-                      <span>গ্রাহক প্রোফাইল তথ্য ও সেটিংস</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      আপনার প্রোফাইল ছবি, নাম, মোবাইল নম্বর এবং ডিফল্ট ডেলিভারি ঠিকানা আপডেট করুন।
-                    </p>
+                  {/* Top Header & Avatar Profile Hero Banner */}
+                  <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-slate-50 border border-blue-100/80 flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                    {/* Interactive Avatar with Pencil Overlay Button */}
+                    <div className="relative group shrink-0">
+                      {profileAvatar ? (
+                        <img
+                          src={profileAvatar}
+                          alt={profileName || 'Customer Avatar'}
+                          width={88}
+                          height={88}
+                          className="w-22 h-22 rounded-full object-cover border-4 border-white shadow-md ring-2 ring-[#007BFF]/30"
+                        />
+                      ) : (
+                        <div className="w-22 h-22 rounded-full bg-gradient-to-tr from-[#007BFF] to-blue-600 text-white font-black flex items-center justify-center text-3xl border-4 border-white shadow-md ring-2 ring-[#007BFF]/30">
+                          {profileName ? profileName.charAt(0).toUpperCase() : 'K'}
+                        </div>
+                      )}
+
+                      {/* Pencil Edit Icon Button */}
+                      <label
+                        className="absolute bottom-0 right-0 p-2 rounded-full bg-[#007BFF] hover:bg-blue-700 text-white shadow-md cursor-pointer transition-transform hover:scale-105 active:scale-95 border-2 border-white"
+                        title="Change Profile Picture"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Customer Identity Info */}
+                    <div className="flex-1 text-center sm:text-left space-y-1">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <h2 className="text-xl sm:text-2xl font-black text-[#0A1B3D]">
+                          {profileName || 'সম্মানিত গ্রাহক'}
+                        </h2>
+                        {user.role === 'super_admin' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-200">
+                            👑 Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-mono text-slate-600 flex items-center justify-center sm:justify-start gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-[#007BFF]" />
+                        <span>{profileEmail || 'No Email Verified'}</span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          ✓ Verified Account
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 pt-1">
+                        নিচের ঘরগুলোতে তথ্য আপডেট করে "প্রোফাইল তথ্য সংরক্ষণ করুন" বোতামে ক্লিক করুন।
+                      </p>
+                    </div>
                   </div>
 
                   {profileSuccessMsg && (
@@ -696,65 +764,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   )}
 
                   <form onSubmit={handleSaveProfile} className="space-y-6">
-                    {/* Profile Picture Upload & Preview */}
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
-                      <div className="relative shrink-0">
-                        {profileAvatar ? (
-                          <img
-                            src={profileAvatar}
-                            alt={profileName || 'Avatar'}
-                            width={72}
-                            height={72}
-                            className="w-18 h-18 rounded-2xl object-cover border-2 border-[#007BFF] shadow-xs"
-                          />
-                        ) : (
-                          <div className="w-18 h-18 rounded-2xl bg-[#007BFF] text-white font-black flex items-center justify-center text-2xl shadow-xs">
-                            {profileName ? profileName.charAt(0).toUpperCase() : 'K'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 space-y-2 text-center sm:text-left w-full">
-                        <label className="block text-xs font-bold text-slate-700">
-                          প্রোফাইল ছবি (Profile Picture)
-                        </label>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <label className="py-2 px-4 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-xs transition-all cursor-pointer inline-flex items-center gap-2">
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>ছবি আপলোড করুন</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleAvatarFileUpload}
-                              className="hidden"
-                            />
-                          </label>
-
-                          {profileAvatar && (
-                            <button
-                              type="button"
-                              onClick={() => setProfileAvatar('')}
-                              className="py-2 px-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition-all cursor-pointer"
-                            >
-                              রিমুভ করুন
-                            </button>
-                          )}
-                        </div>
-                        <input
-                          type="url"
-                          placeholder="অথবা সরাসরি ছবির লিঙ্ক (Image URL) পেস্ট করুন..."
-                          value={profileAvatar}
-                          onChange={(e) => setProfileAvatar(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-white text-slate-700"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Personal & Contact Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Name */}
+                    {/* Personal & Contact Info Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {/* Full Name */}
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label className="block text-xs font-bold text-slate-800 mb-1.5">
                           পূর্ণ নাম (Full Name) *
                         </label>
                         <div className="relative">
@@ -765,15 +779,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             value={profileName}
                             onChange={(e) => setProfileName(e.target.value)}
                             placeholder="আপনার নাম লিখুন"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 text-slate-800 font-semibold"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] focus:ring-1 focus:ring-[#007BFF] bg-slate-50 text-slate-800 font-semibold"
                           />
                         </div>
                       </div>
 
-                      {/* Phone */}
+                      {/* Phone / WhatsApp Number with Helper Text */}
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          মোবাইল নম্বর (Mobile Number) *
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          মোবাইল নম্বর / WhatsApp Number *
                         </label>
                         <div className="relative">
                           <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -783,15 +797,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             value={profilePhone}
                             onChange={(e) => setProfilePhone(e.target.value)}
                             placeholder="01XXXXXXXXX"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-mono text-slate-800 font-bold"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] focus:ring-1 focus:ring-[#007BFF] bg-slate-50 font-mono text-slate-800 font-bold"
                           />
                         </div>
+                        <p className="text-[10px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
+                          <span>💬</span>
+                          <span>Provide WhatsApp Number if available for order updates / সম্ভব হলে হোয়াটসঅ্যাপ নম্বরটি দিন</span>
+                        </p>
                       </div>
 
-                      {/* Email (Readonly) */}
+                      {/* Email Address (Read-only / Verified) */}
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          রেজিস্টার্ড ইমেইল অ্যাড্রেস (Gmail / Email)
+                        <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                          <span>রেজিস্টার্ড ইমেইল অ্যাড্রেস (Verified Email Address)</span>
+                          <span className="text-[10px] text-emerald-600 font-bold">✓ Verified</span>
                         </label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -799,17 +818,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             type="email"
                             disabled
                             value={profileEmail}
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-100 text-slate-500 font-mono cursor-not-allowed"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-slate-100 text-slate-500 font-mono cursor-not-allowed select-none"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Delivery Address Section */}
-                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="pt-5 border-t border-slate-200 space-y-4">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#007BFF]" />
-                        <h4 className="text-xs font-black uppercase tracking-wide text-slate-700">
+                        <MapPin className="w-4.5 h-4.5 text-[#007BFF]" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
                           ডিফল্ট ডেলিভারি ঠিকানা (Default Delivery Address)
                         </h4>
                       </div>
@@ -822,7 +841,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           <select
                             value={profileDivision}
                             onChange={(e) => setProfileDivision(e.target.value as any)}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-semibold text-slate-700 cursor-pointer"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 font-semibold text-slate-800 cursor-pointer"
                           >
                             <option value="Inside Dhaka">Inside Dhaka (ঢাকা সিটির ভেতরে - ৳৬০)</option>
                             <option value="Outside Dhaka">Outside Dhaka (ঢাকা সিটির বাইরে - ৳১২০)</option>
@@ -850,21 +869,31 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             rows={2}
                             value={profileAddress}
                             onChange={(e) => setProfileAddress(e.target.value)}
-                            placeholder="বিস্তারিত ডেলিভারি ঠিকানা লিখুন..."
+                            placeholder="বিস্তারিত ডেলিভারি ঠিকানা লিখুন (যেমন: বাসা ২০, রোড ৪, সেক্টর ৭, উত্তরা, ঢাকা)..."
                             className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#007BFF] bg-slate-50 text-slate-800"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-2 flex justify-end">
+                    {/* Submit Button with Loading Spinner & Double-click Protection */}
+                    <div className="pt-3 flex justify-end">
                       <button
                         type="submit"
                         disabled={isSavingProfile}
-                        className="py-3 px-8 rounded-xl bg-[#007BFF] hover:bg-[#0056B3] text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 active:scale-98"
+                        className="w-full sm:w-auto py-3 px-8 rounded-2xl bg-[#007BFF] hover:bg-[#0056B3] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 min-h-[44px]"
                       >
-                        {isSavingProfile ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        <span>প্রোফাইল তথ্য সংরক্ষণ করুন</span>
+                        {isSavingProfile ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>সংরক্ষণ হচ্ছে...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            <span>প্রোফাইল তথ্য সংরক্ষণ করুন</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>

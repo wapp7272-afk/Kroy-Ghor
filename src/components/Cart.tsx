@@ -575,144 +575,112 @@ export const Cart: React.FC<CartProps> = React.memo(({
               )}
             </div>
 
-            {/* Wallet Bonus Balance Deduction Preview */}
-            <div className={`p-3.5 rounded-2xl border transition-all ${
-              applyWalletBonus && availableBonus > 0
-                ? 'bg-purple-50/80 border-purple-300'
-                : 'bg-white border-[#E5E7EB]'
-            }`}>
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-100 text-[#5B21B6] flex items-center justify-center shrink-0">
-                    <Gift className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-[#171717]">Kroyghor Wallet Bonus</span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-[#EDE9FE] text-[#5B21B6]">
-                        ব্যালেন্স: ৳{user.walletBalance || 0}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      {user.walletBalance > 0 
-                        ? `এই অর্ডারে সর্বোচ্চ ৳${availableBonus} ক্যাশ ছাড় প্রযোজ্য` 
-                        : 'অ্যাকাউন্টে সাইন ইন করে ৳২০ ওয়েলকাম বোনাস উপভোগ করুন'}
-                    </p>
-                  </div>
+            {/* Financial Breakdown Summary inside scrollable content */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2 text-xs">
+              <h5 className="font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex justify-between items-center">
+                <span>Order Financial Breakdown</span>
+                <span className="text-[10px] font-mono text-slate-500">{totalItemsCount} items</span>
+              </h5>
+
+              <div className="space-y-1.5 text-slate-600">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="font-bold text-slate-900">৳{subtotal.toLocaleString()}</span>
                 </div>
 
-                {user.walletBalance > 0 ? (
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      aria-label="Apply wallet bonus deduction"
-                      checked={applyWalletBonus}
-                      onChange={(e) => onToggleWalletBonus(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#5B21B6]"></div>
-                  </label>
-                ) : (
-                  <span className="text-[11px] font-bold text-[#5B21B6]">৳0</span>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>Coupon Discount ({appliedCoupon?.code})</span>
+                    <span>-৳{couponDiscount.toLocaleString()}</span>
+                  </div>
                 )}
+
+                {walletDeduction > 0 && (
+                  <div className="flex justify-between text-purple-700 font-semibold">
+                    <span>Applied Wallet Bonus</span>
+                    <span>-৳{walletDeduction.toLocaleString()}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span>Delivery Charge ({deliveryArea})</span>
+                  <span className="font-bold text-slate-900">
+                    {deliveryCharge === 0 ? (
+                      <span className="text-emerald-600 font-bold">FREE</span>
+                    ) : (
+                      `৳${deliveryCharge.toLocaleString()}`
+                    )}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
+                  <div>
+                    <span className="text-sm font-extrabold text-slate-900">Grand Total</span>
+                    <span className="block text-[10px] text-slate-400">VAT & Taxes Included</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-black text-orange-600 font-mono">
+                      ৳{grandTotal.toLocaleString()}
+                    </span>
+                    {(couponDiscount > 0 || walletDeduction > 0) && (
+                      <span className="block text-[10px] text-emerald-700 font-bold">
+                        Saved ৳{(couponDiscount + walletDeduction).toLocaleString()}!
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Marketplace Trust Badges */}
+            <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-600 pt-1">
+              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200/80">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-semibold text-slate-800 truncate" title="100% Authentic Quality Guarantee">100% Authentic</span>
               </div>
 
-              {applyWalletBonus && availableBonus > 0 && (
-                <div className="mt-2 pt-2 border-t border-purple-200/60 flex items-center justify-between text-[11px] text-[#5B21B6] font-semibold">
-                  <span>Deduction applied to cart:</span>
-                  <span className="font-bold">-৳{availableBonus}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200/80">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="font-semibold text-slate-800 truncate" title="Quality Checked by Inspection Team">Quality Inspected</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200/80">
+                <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="font-semibold text-slate-800 truncate" title="Express Nationwide Shipping (64 Districts)">64 Districts Fast</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200/80">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="font-semibold text-slate-800 truncate" title="Secure Payment & Cash on Delivery Assurance">Secure COD & Pay</span>
+              </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Footer & Financial Breakdown */}
+      {/* Compact Sticky Bottom Checkout Bar (Maximum 70-80px Height) */}
       {items.length > 0 && (
-        <div className="p-4 sm:p-5 border-t border-[#E5E7EB] bg-gray-50/80 space-y-3">
-          {/* Dynamic Financial Calculation List */}
-          <div className="space-y-1.5 text-xs text-[#525252]">
-            <div className="flex justify-between">
-              <span>Subtotal ({totalItemsCount} items)</span>
-              <span className="font-bold text-[#171717]">৳{subtotal.toLocaleString()}</span>
-            </div>
-
-            {couponDiscount > 0 && (
-              <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>Coupon Discount ({appliedCoupon?.code})</span>
-                <span>-৳{couponDiscount.toLocaleString()}</span>
-              </div>
-            )}
-
-            {walletDeduction > 0 && (
-              <div className="flex justify-between text-purple-700 font-semibold">
-                <span>Applied Wallet Bonus</span>
-                <span>-৳{walletDeduction.toLocaleString()}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between">
-              <span>Delivery Charge ({deliveryArea})</span>
-              <span className="font-bold text-[#171717]">
-                {deliveryCharge === 0 ? (
-                  <span className="text-emerald-600 font-bold">FREE</span>
-                ) : (
-                  `৳${deliveryCharge.toLocaleString()}`
-                )}
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-white sticky bottom-0 z-20 shadow-lg flex items-center justify-between gap-3 shrink-0 max-h-[80px]">
+          <div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total:</span>
+              <span className="text-lg sm:text-xl font-black text-orange-600 font-mono">
+                ৳{grandTotal.toLocaleString()}
               </span>
             </div>
-
-            <div className="pt-2 border-t border-gray-200 flex justify-between items-baseline">
-              <div>
-                <span className="text-sm font-extrabold text-[#171717]">Grand Total</span>
-                <span className="block text-[10px] text-gray-500">VAT & Taxes Included</span>
-              </div>
-              <div className="text-right">
-                <span className="text-xl font-black text-orange-600">
-                  ৳{grandTotal.toLocaleString()}
-                </span>
-                {(couponDiscount > 0 || walletDeduction > 0) && (
-                  <span className="block text-[10px] text-emerald-700 font-bold">
-                    You save ৳{(couponDiscount + walletDeduction).toLocaleString()}!
-                  </span>
-                )}
-              </div>
-            </div>
+            <p className="text-[10px] text-emerald-700 font-bold">
+              {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} • Fast COD Nationwide
+            </p>
           </div>
 
-          {/* Primary Action Button (Min 48px Hitbox) */}
           <button
             id="cart-drawer-checkout-btn"
             onClick={onProceedToCheckout}
-            className="w-full min-h-[48px] py-4 px-4 rounded-2xl font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="h-11 sm:h-12 px-5 py-2.5 rounded-xl font-extrabold text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 shrink-0 text-xs sm:text-sm"
           >
-            <span>Proceed to Express Checkout (অর্ডার সম্পন্ন করুন)</span>
+            <span>Proceed to Checkout</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-
-          {/* 4 Marketplace Trust Badges */}
-          <div className="grid grid-cols-2 gap-1.5 pt-2 text-[10px] text-slate-600 border-t border-slate-200">
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-semibold text-slate-800 truncate" title="100% Authentic Quality Guarantee">100% Authentic</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="font-semibold text-slate-800 truncate" title="Quality Checked by Inspection Team">Quality Inspected</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
-              <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="font-semibold text-slate-800 truncate" title="Express Nationwide Shipping (64 Districts)">64 Districts Fast</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-200/80">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-semibold text-slate-800 truncate" title="Secure Payment & Cash on Delivery Assurance">Secure COD & Pay</span>
-            </div>
-          </div>
         </div>
       )}
     </div>

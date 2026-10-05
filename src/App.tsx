@@ -357,9 +357,9 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [userProfileInitialTab, setUserProfileInitialTab] = useState<'profile' | 'orders' | 'cart' | 'wallet' | 'addresses' | 'security'>('profile');
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((msg: string, durationMs = 1500) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3000);
+    setTimeout(() => setToastMsg(null), durationMs);
   }, []);
 
   const handleResetAllFilters = useCallback(() => {
@@ -1855,6 +1855,7 @@ export default function App() {
             onSelectProduct={handleSelectProductDetail}
             onReorder={handleReorder}
             onUpdateAddress={handleUpdateAddress}
+            onUpdateProfile={(updated) => setUser((prev) => ({ ...prev, ...updated }))}
             onUpdateSavedAddresses={(addresses: Address[]) => {
               setUser((prev) => ({ ...prev, savedAddresses: addresses }));
             }}

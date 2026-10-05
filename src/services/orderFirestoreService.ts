@@ -180,12 +180,31 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
   const filtered = localList.filter((o) => o.id !== orderId);
   saveLocalOrders([completedOrder, ...filtered]);
 
-  // 3. Persist in Firestore
+  // 3. Persist in Firestore (both /orders and /users collections)
   if (db) {
     try {
       const cleanDocId = orderId.replace('#', '');
       const orderRef = doc(db, 'orders', cleanDocId);
       await setDoc(orderRef, firestoreDocPayload, { merge: true });
+
+      // Update user record in /users collection with hasPlacedOrders: true
+      const userDocIds = new Set<string>();
+      if (uid && uid !== 'guest') userDocIds.add(uid);
+      if (customerEmail) userDocIds.add(customerEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+
+      for (const targetUserDocId of userDocIds) {
+        try {
+          const userRef = doc(db, 'users', targetUserDocId);
+          await setDoc(userRef, {
+            hasPlacedOrders: true,
+            lastOrderAt: serverTimestamp(),
+            lastOrderAmount: order.total,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('[OrderFirestoreService] Minor error updating user hasPlacedOrders flag:', e);
+        }
+      }
     } catch (err) {
       console.error('[OrderFirestoreService] Error saving order to Firestore:', err);
     }
