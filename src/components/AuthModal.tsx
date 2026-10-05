@@ -288,8 +288,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    if (!regPassword || regPassword.length < 4) {
-      setErrorMsg('⚠️ পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।');
+    if (!regPassword || regPassword.length < 6) {
+      setErrorMsg('⚠️ পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
       return;
     }
 
@@ -312,8 +312,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       fullAddress,
     };
 
-    const effectiveEmail = cleanEmail || `${cleanPhone || Date.now()}@kroyghor.com`;
-    const effectivePass = regPassword && regPassword.length >= 6 ? regPassword : `${regPassword}123456`;
+    const effectiveEmail = cleanEmail || (cleanPhone ? `${cleanPhone}@kroyghor.com` : `${Date.now()}@kroyghor.com`);
+    const effectivePass = regPassword;
 
     let createdUid: string | undefined = undefined;
 
@@ -327,11 +327,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           try {
             const signInRes = await signInUserWithEmailAndPassword(effectiveEmail, effectivePass);
             createdUid = signInRes.uid;
-          } catch (sErr) {
-            console.warn('[AuthModal] Existing Firebase user sign in fallback:', sErr);
+          } catch (sErr: any) {
+            let msg = '❌ এই ইমেইল/ফোন নম্বর দিয়ে ইতোমধ্যেই অ্যাকাউন্ট রয়েছে। অনুগ্রহ করে সঠিক পাসওয়ার্ড দিয়ে লগইন করুন।';
+            if (sErr?.code === 'auth/wrong-password' || sErr?.code === 'auth/invalid-credential') {
+              msg = '❌ এই ইমেইল/ফোন দিয়ে ইতোমধ্যে অ্যাকাউন্ট আছে। অনুগ্রহ করে সঠিক পাসওয়ার্ড দিয়ে লগইন করুন।';
+            }
+            setErrorMsg(msg);
+            return;
           }
         } else {
-          console.warn('[AuthModal] Firebase Auth sign up notice:', fErr);
+          let msg = '❌ সাইনআপ ব্যর্থ হয়েছে।';
+          if (fErr?.code === 'auth/weak-password') {
+            msg = '❌ পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।';
+          } else if (fErr?.code === 'auth/invalid-email') {
+            msg = '❌ অকার্যকর ইমেইল ঠিকানা।';
+          } else if (fErr?.code === 'auth/operation-not-allowed') {
+            msg = '❌ Firebase Console-এ Email/Password Provider টি Enable করা নেই।';
+          } else if (fErr?.message) {
+            msg = `❌ ${fErr.message}`;
+          }
+          setErrorMsg(msg);
+          return;
         }
       }
     }
@@ -442,46 +458,76 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const inputVal = loginEmailOrPhone.trim().toLowerCase();
     const cleanPhone = inputVal.replace(/[^0-9]/g, '');
 
+    if (!inputVal) {
+      setErrorMsg('⚠️ অনুগ্রহ করে ইমেইল অথবা মোবাইল নম্বর লিখুন।');
+      return;
+    }
+
+    if (!loginPassword) {
+      setErrorMsg('⚠️ অনুগ্রহ করে পাসওয়ার্ড দিন।');
+      return;
+    }
+
+    // Determine target email for Firebase Auth
+    const targetEmail = inputVal.includes('@')
+      ? inputVal
+      : cleanPhone && cleanPhone.length === 11
+        ? `${cleanPhone}@kroyghor.com`
+        : inputVal;
+
     let authUid: string | undefined = undefined;
 
-    if (inputVal.includes('@') && isFirebaseConfigured() && loginPassword) {
+    if (isFirebaseConfigured()) {
       try {
-        const authRes = await signInUserWithEmailAndPassword(inputVal, loginPassword);
+        const authRes = await signInUserWithEmailAndPassword(targetEmail, loginPassword);
         authUid = authRes.uid;
       } catch (fErr: any) {
-        console.warn('[AuthModal] Firebase Auth sign in notice:', fErr);
+        console.error('[AuthModal] Firebase Auth sign in error:', fErr);
+        let userFriendlyMsg = '❌ পাসওয়ার্ড বা ইমেইল ভুল হয়েছে। অনুগ্রহ করে সঠিক তথ্য দিয়ে চেষ্টা করুন।';
+        if (fErr?.code === 'auth/invalid-credential' || fErr?.code === 'auth/wrong-password') {
+          userFriendlyMsg = '❌ পাসওয়ার্ড বা ইমেইল ভুল হয়েছে। অনুগ্রহ করে সঠিক তথ্য দিয়ে চেষ্টা করুন।';
+        } else if (fErr?.code === 'auth/user-not-found') {
+          userFriendlyMsg = '❌ এই ইমেইল/ফোন নম্বর দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে রেজিস্টার করুন।';
+        } else if (fErr?.code === 'auth/invalid-email') {
+          userFriendlyMsg = '❌ অকার্যকর ইমেইল ঠিকানা। অনুগ্রহ করে সঠিক ইমেইল দিন।';
+        } else if (fErr?.code === 'auth/too-many-requests') {
+          userFriendlyMsg = '❌ অনেকবার ভুল চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।';
+        } else if (fErr?.code === 'auth/operation-not-allowed') {
+          userFriendlyMsg = '❌ Firebase Console-এ Email/Password Authentication সক্রিয় করা নেই।';
+        } else if (fErr?.message) {
+          userFriendlyMsg = `❌ Login Error: ${fErr.message}`;
+        }
+        setErrorMsg(userFriendlyMsg);
+        return; // Stop! Do not proceed with fake local login if Firebase Auth fails!
       }
     }
 
     const accounts = getRegisteredAccounts();
     const matched = accounts.find((acc: any) => 
       (cleanPhone && acc.phone === cleanPhone) || 
-      (acc.email && acc.email.toLowerCase() === inputVal)
+      (acc.email && acc.email.toLowerCase() === inputVal) ||
+      (acc.email && acc.email.toLowerCase() === targetEmail.toLowerCase())
     );
 
-    if (!matched) {
-      // Create quick login session for smooth UX
-      const inferredName = inputVal.includes('@') ? inputVal.split('@')[0] : 'Kroyghor Member';
-      onLogin(inferredName, inputVal.includes('@') ? inputVal : '', cleanPhone, true, 'email', undefined, authUid);
-      setSuccessMsg(`Welcome ${inferredName}! Login successful.`);
-      setTimeout(() => {
-        setSuccessMsg(null);
-        onClose();
-      }, 700);
-      return;
-    }
+    const displayName = matched?.name || (inputVal.includes('@') ? inputVal.split('@')[0] : 'Kroyghor Member');
+    const userPhone = matched?.phone || cleanPhone;
+    const userEmail = matched?.email || targetEmail;
 
-    if (matched.password && matched.password !== loginPassword && matched.password !== 'google-auth-verified') {
-      setErrorMsg('❌ পাসওয়ার্ডটি সঠিক নয়। অনুগ্রহ করে পুনরায় চেষ্টা করুন।');
-      return;
-    }
+    onLogin(
+      displayName,
+      userEmail,
+      userPhone,
+      matched?.isPhoneVerified ?? true,
+      matched?.authProvider || 'email',
+      matched?.avatar,
+      authUid || matched?.uid
+    );
 
-    onLogin(matched.name, matched.email, matched.phone, matched.isPhoneVerified ?? true, matched.authProvider || 'phone', matched.avatar, authUid || matched.uid);
-    setSuccessMsg(`স্বাগতম ${matched.name}! সফলভাবে লগইন হয়েছে।`);
+    setSuccessMsg(`স্বাগতম ${displayName}! সফলভাবে লগইন হয়েছে।`);
     setTimeout(() => {
       setSuccessMsg(null);
       setTab('profile');
-    }, 700);
+    }, 600);
   };
 
   const handleSaveAddressOnly = (e: React.FormEvent) => {

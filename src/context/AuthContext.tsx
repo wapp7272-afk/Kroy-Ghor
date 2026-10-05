@@ -85,6 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
 
         onUpdateUser({
           ...userState,
+          uid: fUser.uid,
           isLoggedIn: true,
           name: synced.displayName || fUser.displayName || userState.name || 'Kroy Ghor Member',
           email: synced.email || fUser.email || userState.email,

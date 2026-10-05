@@ -113,6 +113,7 @@ export interface AuthSession {
 }
 
 export interface UserProfile {
+  uid?: string;
   isLoggedIn: boolean;
   name: string;
   email: string;
