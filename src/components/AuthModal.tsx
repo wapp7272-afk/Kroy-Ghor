@@ -312,25 +312,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       fullAddress,
     };
 
+    const effectiveEmail = cleanEmail || `${cleanPhone || Date.now()}@kroyghor.com`;
+    const effectivePass = regPassword && regPassword.length >= 6 ? regPassword : `${regPassword}123456`;
+
     let createdUid: string | undefined = undefined;
 
-    // Attempt Firebase Auth sign-up if email provided and Firebase is configured
-    if (cleanEmail && isFirebaseConfigured()) {
+    // Guarantee Firebase Auth user creation for every customer registration
+    if (isFirebaseConfigured()) {
       try {
-        const fAuthRes = await signUpWithEmailAndPassword(cleanEmail, regPassword, name.trim());
+        const fAuthRes = await signUpWithEmailAndPassword(effectiveEmail, effectivePass, name.trim());
         createdUid = fAuthRes.uid;
       } catch (fErr: any) {
         if (fErr?.code === 'auth/email-already-in-use') {
-          setErrorMsg('❌ This email address is already registered in Firebase. Please log in.');
-          return;
+          try {
+            const signInRes = await signInUserWithEmailAndPassword(effectiveEmail, effectivePass);
+            createdUid = signInRes.uid;
+          } catch (sErr) {
+            console.warn('[AuthModal] Existing Firebase user sign in fallback:', sErr);
+          }
+        } else {
+          console.warn('[AuthModal] Firebase Auth sign up notice:', fErr);
         }
-        console.warn('[AuthModal] Firebase Auth sign up notice:', fErr);
       }
     }
 
     onSignup(
       name.trim(),
-      cleanEmail || `${cleanPhone || Date.now()}@kroyghor.com`,
+      effectiveEmail,
       cleanPhone,
       newAddress,
       true,

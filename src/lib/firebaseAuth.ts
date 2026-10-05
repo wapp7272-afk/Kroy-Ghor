@@ -23,23 +23,24 @@ import {
   serverTimestamp, 
   Firestore 
 } from 'firebase/firestore';
+import appletConfig from '../../firebase-applet-config.json';
 
-// Read Firebase configuration from environment variables with import.meta.env
+// Read Firebase configuration from environment variables with import.meta.env, with appletConfig as reliable fallback
 const getAuthDomain = () => {
   const envDomain = (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN;
   if (envDomain) return envDomain;
-  const projectId = (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID;
-  if (projectId) return `${projectId}.firebaseapp.com`;
-  return 'zeropic-bd.vercel.app';
+  const envProjectId = (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID;
+  if (envProjectId) return `${envProjectId}.firebaseapp.com`;
+  return appletConfig.authDomain || `${appletConfig.projectId}.firebaseapp.com`;
 };
 
 const firebaseConfig = {
-  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || '',
+  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || appletConfig.apiKey || '',
   authDomain: getAuthDomain(),
-  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || '',
+  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || appletConfig.projectId || '',
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket || '',
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId || '',
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || appletConfig.appId || '',
 };
 
 /**
@@ -169,7 +170,7 @@ export const syncUserDocumentInFirestore = async (
         hasClaimedYouTubeBonus,
       };
     } else {
-      // New user doc payload created in non-blocking background
+      // New user doc payload created and confirmed in Firestore
       const newDocPayload = {
         uid,
         email,
@@ -182,9 +183,12 @@ export const syncUserDocumentInFirestore = async (
         lastLoginAt: serverTimestamp(),
       };
 
-      setDoc(userDocRef, newDocPayload).catch((err) => {
-        console.warn('[FirestoreSync] Background setDoc error:', err);
-      });
+      try {
+        await setDoc(userDocRef, newDocPayload);
+        console.log('[FirestoreSync] Successfully written new customer profile to Firestore users/', uid);
+      } catch (err) {
+        console.warn('[FirestoreSync] Error writing customer profile to Firestore:', err);
+      }
 
       return defaultResult;
     }

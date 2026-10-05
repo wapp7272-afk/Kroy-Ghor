@@ -26,7 +26,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebaseAuth';
+import { db, auth, subscribeToFirebaseAuthState, signInWithGoogle } from '../../lib/firebaseAuth';
 import { Order, UserRole } from '../../types';
 import { AdminCustomerDetailModal } from './AdminCustomerDetailModal';
 
@@ -114,110 +114,123 @@ export const AdminCustomersManager: React.FC<AdminCustomersManagerProps> = ({
   const [updatingUid, setUpdatingUid] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
 
-  // Subscribe to real-time updates from Firestore `users` collection
+  // Subscribe to real-time updates from Firestore `users` collection upon Auth readiness
   useEffect(() => {
     setIsLoading(true);
-    let unsubscribe = () => {};
+    let unsubSnapshot = () => {};
 
-    if (db) {
-      try {
-        const usersCol = collection(db, 'users');
-        unsubscribe = onSnapshot(
-          usersCol,
-          (snapshot) => {
-            const customerMap = new Map<string, CustomerRecord>();
+    const unsubAuth = subscribeToFirebaseAuthState((fUser) => {
+      console.log('[AdminCustomersManager] AUTH STATE CHANGED:', fUser ? fUser.email : 'UNAUTHENTICATED');
+      console.log('[AdminCustomersManager] ADMIN AUTH UID:', fUser?.uid || 'NONE');
 
-            snapshot.forEach((docSnap) => {
-              const data = docSnap.data();
-              const email = (data.email || '').toLowerCase().trim();
-              const uid = docSnap.id;
-              const key = email || uid;
-
-              customerMap.set(key, {
-                uid,
-                name: data.displayName || data.name || (email ? email.split('@')[0] : 'Kroy Ghor Member'),
-                email: data.email || '',
-                phone: data.phone || data.customerPhone || '',
-                photoURL: data.photoURL || data.avatar || '',
-                role: (data.role || (email === 'wapp7272@gmail.com' ? 'super_admin' : 'customer')) as UserRole,
-                isPhoneVerified: Boolean(data.isPhoneVerified || data.phoneVerified || (data.phone && data.phone.length === 11)),
-                walletBalance: typeof data.walletBalance === 'number' ? data.walletBalance : 0,
-                hasClaimedYouTubeBonus: Boolean(data.hasClaimedYouTubeBonus || data.hasReceivedBonus),
-                createdAtRaw: data.createdAt,
-                createdAtFormatted: formatDate(data.createdAt),
-                lastLoginAtRaw: data.lastLoginAt,
-                lastLoginAtFormatted: formatTimeAgo(data.lastLoginAt),
-                totalOrders: 0,
-                totalSpent: 0,
-                status: data.status === 'suspended' ? 'suspended' : 'active',
-              });
-            });
-
-            // Merge local storage accounts fallback for dev / preview testing
-            try {
-              const stored =
-                localStorage.getItem('zeropicbd_registered_accounts') ||
-                localStorage.getItem('primevault_registered_accounts');
-              const accounts: any[] = stored ? JSON.parse(stored) : [];
-              accounts.forEach((acc) => {
-                const email = (acc.email || '').toLowerCase().trim();
-                const key = email || acc.phone || `user_${Date.now()}`;
-                if (!customerMap.has(key)) {
-                  customerMap.set(key, {
-                    uid: acc.uid || key,
-                    name: acc.name || 'Registered Customer',
-                    email: acc.email || '',
-                    phone: acc.phone || '',
-                    photoURL: acc.avatar || '',
-                    role: (acc.role || (email === 'wapp7272@gmail.com' ? 'super_admin' : 'customer')) as UserRole,
-                    isPhoneVerified: Boolean(acc.isPhoneVerified || acc.phone),
-                    walletBalance: acc.walletBalance || 0,
-                    hasClaimedYouTubeBonus: Boolean(acc.hasClaimedYouTubeBonus || acc.hasReceivedBonus),
-                    createdAtFormatted: 'Recent',
-                    lastLoginAtFormatted: 'Recent',
-                    totalOrders: 0,
-                    totalSpent: 0,
-                    status: 'active',
-                  });
-                }
-              });
-            } catch (e) {
-              console.warn('[AdminCustomersManager] LocalStorage merge error:', e);
-            }
-
-            // Calculate lifetime orders and spend per customer
-            orders.forEach((o) => {
-              const oEmail = (o.customerEmail || '').toLowerCase().trim();
-              const oPhone = (o.customerPhone || o.address?.phone || '').replace(/[^0-9]/g, '');
-              const oUserId = o.userId;
-
-              for (const [_, cust] of customerMap.entries()) {
-                const matchUid = oUserId && cust.uid === oUserId;
-                const matchEmail = oEmail && cust.email && cust.email.toLowerCase() === oEmail;
-                const matchPhone = oPhone && cust.phone && cust.phone.replace(/[^0-9]/g, '') === oPhone;
-
-                if (matchUid || matchEmail || matchPhone) {
-                  cust.totalOrders += 1;
-                  cust.totalSpent += o.total || 0;
-                }
-              }
-            });
-
-            setCustomers(Array.from(customerMap.values()));
-            setIsLoading(false);
-          },
-          (err) => {
-            console.warn('[AdminCustomersManager] Snapshot error:', err);
-            setIsLoading(false);
-          }
-        );
-      } catch (err) {
-        console.error('[AdminCustomersManager] Initialization error:', err);
-        setIsLoading(false);
+      if (unsubSnapshot) {
+        unsubSnapshot();
       }
-    }
 
-    return () => unsubscribe();
+      if (db) {
+        try {
+          const usersCol = collection(db, 'users');
+          unsubSnapshot = onSnapshot(
+            usersCol,
+            (snapshot) => {
+              console.log('[AdminCustomersManager] USERS SNAPSHOT SIZE:', snapshot.size);
+              const customerMap = new Map<string, CustomerRecord>();
+
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const email = (data.email || '').toLowerCase().trim();
+                const uid = docSnap.id;
+                const key = uid || email;
+
+                customerMap.set(key, {
+                  uid,
+                  name: data.displayName || data.name || (email ? email.split('@')[0] : 'Kroy Ghor Member'),
+                  email: data.email || '',
+                  phone: data.phone || data.customerPhone || '',
+                  photoURL: data.photoURL || data.avatar || '',
+                  role: (data.role || (email === 'wapp7272@gmail.com' ? 'super_admin' : 'customer')) as UserRole,
+                  isPhoneVerified: Boolean(data.isPhoneVerified || data.phoneVerified || (data.phone && data.phone.length === 11)),
+                  walletBalance: typeof data.walletBalance === 'number' ? data.walletBalance : 0,
+                  hasClaimedYouTubeBonus: Boolean(data.hasClaimedYouTubeBonus || data.hasReceivedBonus),
+                  createdAtRaw: data.createdAt,
+                  createdAtFormatted: formatDate(data.createdAt),
+                  lastLoginAtRaw: data.lastLoginAt,
+                  lastLoginAtFormatted: formatTimeAgo(data.lastLoginAt),
+                  totalOrders: 0,
+                  totalSpent: 0,
+                  status: data.status === 'suspended' ? 'suspended' : 'active',
+                });
+              });
+
+              // Merge local storage accounts fallback for dev / preview testing
+              try {
+                const stored =
+                  localStorage.getItem('zeropicbd_registered_accounts') ||
+                  localStorage.getItem('primevault_registered_accounts');
+                const accounts: any[] = stored ? JSON.parse(stored) : [];
+                accounts.forEach((acc) => {
+                  const email = (acc.email || '').toLowerCase().trim();
+                  const key = email || acc.phone || `user_${Date.now()}`;
+                  if (!customerMap.has(key)) {
+                    customerMap.set(key, {
+                      uid: acc.uid || key,
+                      name: acc.name || 'Registered Customer',
+                      email: acc.email || '',
+                      phone: acc.phone || '',
+                      photoURL: acc.avatar || '',
+                      role: (acc.role || (email === 'wapp7272@gmail.com' ? 'super_admin' : 'customer')) as UserRole,
+                      isPhoneVerified: Boolean(acc.isPhoneVerified || acc.phone),
+                      walletBalance: acc.walletBalance || 0,
+                      hasClaimedYouTubeBonus: Boolean(acc.hasClaimedYouTubeBonus || acc.hasReceivedBonus),
+                      createdAtFormatted: 'Recent',
+                      lastLoginAtFormatted: 'Recent',
+                      totalOrders: 0,
+                      totalSpent: 0,
+                      status: 'active',
+                    });
+                  }
+                });
+              } catch (e) {
+                console.warn('[AdminCustomersManager] LocalStorage merge error:', e);
+              }
+
+              // Calculate lifetime orders and spend per customer
+              orders.forEach((o) => {
+                const oEmail = (o.customerEmail || '').toLowerCase().trim();
+                const oPhone = (o.customerPhone || o.address?.phone || '').replace(/[^0-9]/g, '');
+                const oUserId = o.userId;
+
+                for (const [_, cust] of customerMap.entries()) {
+                  const matchUid = oUserId && cust.uid === oUserId;
+                  const matchEmail = oEmail && cust.email && cust.email.toLowerCase() === oEmail;
+                  const matchPhone = oPhone && cust.phone && cust.phone.replace(/[^0-9]/g, '') === oPhone;
+
+                  if (matchUid || matchEmail || matchPhone) {
+                    cust.totalOrders += 1;
+                    cust.totalSpent += o.total || 0;
+                  }
+                }
+              });
+
+              setCustomers(Array.from(customerMap.values()));
+              setIsLoading(false);
+            },
+            (err) => {
+              console.warn('[AdminCustomersManager] Snapshot error:', err);
+              setIsLoading(false);
+            }
+          );
+        } catch (err) {
+          console.error('[AdminCustomersManager] Initialization error:', err);
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubSnapshot) unsubSnapshot();
+    };
   }, [orders]);
 
   // Toggle account status (Active / Suspended)
