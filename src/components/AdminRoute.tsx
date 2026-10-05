@@ -1,6 +1,8 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { UserProfile } from '../types';
 import { ShieldAlert, ArrowLeft, Lock, RefreshCw } from 'lucide-react';
+import { AdminLockScreenModal } from './admin/AdminLockScreenModal';
+import { isSuperAdminSessionUnlocked } from '../services/adminPasswordService';
 
 interface AdminRouteProps {
   user: UserProfile;
@@ -22,6 +24,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   onOpenAuth,
   children,
 }) => {
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => isSuperAdminSessionUnlocked());
+
   if (!isOpen) return null;
 
   // Role authorization check from Firestore backend profile
@@ -108,6 +112,17 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Render Super Admin Lock Screen Modal if dashboard is locked
+  if (!isUnlocked) {
+    return (
+      <AdminLockScreenModal
+        userEmail={user.email || 'wapp7272@gmail.com'}
+        onUnlocked={() => setIsUnlocked(true)}
+        onCancel={onClose}
+      />
     );
   }
 

@@ -23,7 +23,8 @@ import {
   Coins,
   RefreshCw,
   Sliders,
-  DollarSign
+  DollarSign,
+  Lock
 } from 'lucide-react';
 import {
   Order,
@@ -48,6 +49,7 @@ import { AdminCustomersManager } from './admin/AdminCustomersManager';
 import { AdminSettingsManager } from './admin/AdminSettingsManager';
 import { INITIAL_PROMO_BANNERS } from '../data/banners';
 import { SUPER_ADMIN_EMAIL } from '../services/authService';
+import { lockSuperAdminSession } from '../services/adminPasswordService';
 import { BrandLogo, Logo } from './Logo';
 
 export type AdminSection =
@@ -298,6 +300,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Right: Quick actions & Profile */}
         <div className="flex items-center gap-2.5">
+          {/* Lock Panel button */}
+          <button
+            type="button"
+            onClick={() => {
+              lockSuperAdminSession();
+              showToast('🔒 Super Admin Panel Locked');
+              if (onClose) onClose();
+              else window.location.reload();
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold transition-all border border-amber-500/30 cursor-pointer shadow-xs"
+            title="Lock Admin Dashboard Session"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Lock Panel</span>
+          </button>
+
           {/* View Storefront button */}
           <button
             type="button"

@@ -23,6 +23,7 @@ import {
   Activity,
   Check
 } from 'lucide-react';
+import { AdminChangePasswordSection } from './AdminChangePasswordSection';
 import { SystemBannerSettings, UserProfile } from '../../types';
 import { SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '../../services/authService';
 import {
@@ -534,6 +535,9 @@ export const AdminSettingsManager: React.FC<AdminSettingsManagerProps> = ({
           </button>
         </div>
       </form>
+
+      {/* Super Admin Lock Password Section */}
+      <AdminChangePasswordSection showToast={showToast} />
 
       {/* ================= DOUBLE CONFIRMATION PURGE MODAL ================= */}
       {activePurgeModal && (
