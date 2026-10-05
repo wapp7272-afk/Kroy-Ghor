@@ -162,38 +162,6 @@ export const AdminCustomersManager: React.FC<AdminCustomersManagerProps> = ({
                 });
               });
 
-              // Merge local storage accounts fallback for dev / preview testing
-              try {
-                const stored =
-                  localStorage.getItem('zeropicbd_registered_accounts') ||
-                  localStorage.getItem('primevault_registered_accounts');
-                const accounts: any[] = stored ? JSON.parse(stored) : [];
-                accounts.forEach((acc) => {
-                  const email = (acc.email || '').toLowerCase().trim();
-                  const key = email || acc.phone || `user_${Date.now()}`;
-                  if (!customerMap.has(key)) {
-                    customerMap.set(key, {
-                      uid: acc.uid || key,
-                      name: acc.name || 'Registered Customer',
-                      email: acc.email || '',
-                      phone: acc.phone || '',
-                      photoURL: acc.avatar || '',
-                      role: (acc.role || (email === 'wapp7272@gmail.com' ? 'super_admin' : 'customer')) as UserRole,
-                      isPhoneVerified: Boolean(acc.isPhoneVerified || acc.phone),
-                      walletBalance: acc.walletBalance || 0,
-                      hasClaimedYouTubeBonus: Boolean(acc.hasClaimedYouTubeBonus || acc.hasReceivedBonus),
-                      createdAtFormatted: 'Recent',
-                      lastLoginAtFormatted: 'Recent',
-                      totalOrders: 0,
-                      totalSpent: 0,
-                      status: 'active',
-                    });
-                  }
-                });
-              } catch (e) {
-                console.warn('[AdminCustomersManager] LocalStorage merge error:', e);
-              }
-
               // Calculate lifetime orders and spend per customer
               orders.forEach((o) => {
                 const oEmail = (o.customerEmail || '').toLowerCase().trim();

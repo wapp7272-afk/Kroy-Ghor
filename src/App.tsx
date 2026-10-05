@@ -1125,13 +1125,24 @@ export default function App() {
     const history: WalletTransaction[] = matched?.walletHistory || user.walletHistory || [];
 
     // Sync/retrieve Firestore user document in users/{uid}
-    const targetUid = uid || (auth as any)?.currentUser?.uid || matched?.uid || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user');
-    const synced = await syncUserDocumentInFirestore({
-      uid: targetUid,
-      email,
-      displayName: name || matched?.name,
-      photoURL: avatar || matched?.avatar,
-    });
+    const targetUid = uid || auth?.currentUser?.uid || matched?.uid || '';
+    let synced = {
+      role: (email?.toLowerCase() === 'wapp7272@gmail.com' ? 'super_admin' : 'customer') as UserRole,
+      walletBalance: 0,
+      hasClaimedYouTubeBonus: false,
+      displayName: name || matched?.name || 'Kroyghor Member',
+      photoURL: avatar || matched?.avatar || '',
+      email: email || '',
+    };
+
+    if (targetUid) {
+      synced = await syncUserDocumentInFirestore({
+        uid: targetUid,
+        email,
+        displayName: name || matched?.name,
+        photoURL: avatar || matched?.avatar,
+      });
+    }
 
     const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
     const isUserSeller = sellers.some(
@@ -1179,13 +1190,24 @@ export default function App() {
   ) => {
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
 
-    const targetUid = uid || (auth as any)?.currentUser?.uid || (email ? email.replace(/[^a-zA-Z0-9]/g, '_') : cleanPhone || 'user');
-    const synced = await syncUserDocumentInFirestore({
-      uid: targetUid,
-      email,
-      displayName: name,
-      photoURL: avatar,
-    });
+    const targetUid = uid || auth?.currentUser?.uid || '';
+    let synced = {
+      role: (email?.toLowerCase() === 'wapp7272@gmail.com' ? 'super_admin' : 'customer') as UserRole,
+      walletBalance: 0,
+      hasClaimedYouTubeBonus: false,
+      displayName: name || 'Kroyghor Member',
+      photoURL: avatar || '',
+      email: email || '',
+    };
+
+    if (targetUid) {
+      synced = await syncUserDocumentInFirestore({
+        uid: targetUid,
+        email,
+        displayName: name,
+        photoURL: avatar,
+      });
+    }
 
     const isEmailAdmin = (email || '').toLowerCase() === 'wapp7272@gmail.com';
     const role: UserRole = synced.role || (isEmailAdmin ? 'super_admin' : 'customer');

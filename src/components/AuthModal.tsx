@@ -181,57 +181,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return true;
   };
 
-  // Fallback Google Sign-In handler when domain is unauthorized in Firebase Console or running locally
-  const handleFallbackGoogleSignIn = (providedEmail?: string, providedName?: string) => {
-    setErrorMsg(null);
-    setUnauthorizedDomain(null);
-    const targetEmail = providedEmail || email.trim() || `member_${Math.floor(1000 + Math.random() * 9000)}@gmail.com`;
-    const targetName = providedName || name.trim() || (targetEmail.includes('@') ? targetEmail.split('@')[0] : 'Google Member');
-    setName(targetName);
-    setEmail(targetEmail);
-    setAuthProvider('google');
-
-    const accounts = getRegisteredAccounts();
-    const existing = accounts.find((a: any) => a.email && a.email.toLowerCase() === targetEmail.toLowerCase());
-
-    const isVerified = existing ? Boolean(existing.isPhoneVerified) : true;
-    const userPhone = existing ? existing.phone || '' : '';
-
-    onLogin(
-      existing?.name || targetName,
-      existing?.email || targetEmail,
-      userPhone,
-      isVerified,
-      'google',
-      existing?.avatar || userAvatar
-    );
-    setSuccessMsg(`✓ Welcome, ${targetName}! Signed in successfully with Google.`);
-    setTimeout(() => {
-      setSuccessMsg(null);
-      onClose();
-    }, 500);
-  };
-
   // High-Performance Real Firebase Google OAuth Handler (1-Click Login)
   const handleGoogleSignInClick = async () => {
     setErrorMsg(null);
     setUnauthorizedDomain(null);
 
     if (!isFirebaseConfigured()) {
-      handleFallbackGoogleSignIn();
+      setErrorMsg('❌ Firebase Authentication is not configured for this project.');
       return;
     }
 
     setIsGoogleLoading(true);
 
-    const safetyTimeout = setTimeout(() => {
-      setIsGoogleLoading(false);
-      handleFallbackGoogleSignIn();
-    }, 6000);
-
     try {
       const googleUser = await signInWithGoogle();
-      clearTimeout(safetyTimeout);
+      setIsGoogleLoading(false);
 
       const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'Kroyghor Member';
       setName(userDisplayName);
@@ -259,16 +223,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         googleUser.uid
       );
 
-      setIsGoogleLoading(false);
       onClose();
     } catch (err: any) {
-      clearTimeout(safetyTimeout);
       setIsGoogleLoading(false);
+      console.error('[AuthModal] Google Sign-In error:', err);
 
-      if (err?.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('Google Sign-In was cancelled.');
+      if (err?.code === 'auth/unauthorized-domain' || err?.domain) {
+        const domain = err.domain || window.location.hostname;
+        setUnauthorizedDomain(domain);
+        setErrorMsg(`❌ Domain Authorization Required: Please add "${domain}" in Firebase Console > Authentication > Settings > Authorized Domains.`);
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setErrorMsg('❌ Google Sign-In was cancelled.');
+      } else if (err?.code === 'auth/popup-blocked') {
+        setErrorMsg('❌ Pop-up was blocked by browser. Please allow pop-ups for this site and try again.');
+      } else if (err?.code === 'auth/operation-not-allowed') {
+        setErrorMsg('❌ Google Sign-In is disabled in Firebase Console > Authentication > Sign-in method.');
       } else {
-        handleFallbackGoogleSignIn();
+        setErrorMsg(`❌ Google Sign-In Error: ${err.message || 'Authentication failed. Please try again.'}`);
       }
     }
   };
@@ -646,25 +617,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          {/* Firebase Unauthorized Domain Notice & 1-Tap Fallback */}
+          {/* Firebase Unauthorized Domain Notice */}
           {unauthorizedDomain && (
-            <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-xs space-y-2.5">
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-xs space-y-2">
               <div className="flex items-center gap-2 font-bold text-amber-950 text-xs sm:text-sm">
                 <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0" />
-                <span>Firebase Domain Authorization Notice</span>
+                <span>Firebase Domain Authorization Required</span>
               </div>
               <p className="text-amber-800 leading-relaxed text-[11px]">
-                Domain <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{unauthorizedDomain}</code> needs authorization. Click below to continue:
+                Domain <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{unauthorizedDomain}</code> must be authorized in Firebase Console to enable Google OAuth login.
               </p>
-              <div className="pt-1 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleFallbackGoogleSignIn()}
-                  className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg text-[11px] transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>⚡ 1-Tap Google Sign-In</span>
-                </button>
-              </div>
+              <p className="text-[10px] text-amber-700 font-mono font-semibold">
+                Steps: Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains &gt; Add Domain "{unauthorizedDomain}"
+              </p>
             </div>
           )}
 
