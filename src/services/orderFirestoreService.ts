@@ -142,7 +142,8 @@ export const docToOrder = (data: any, docId: string): Order => {
  * customer subcollection `/users/{userId}/orders/{orderId}` using writeBatch()
  */
 export const saveOrderToFirestore = async (order: Order, currentUserId?: string): Promise<Order> => {
-  const uid = currentUserId || auth?.currentUser?.uid || order.userId || 'guest';
+  const authUid = auth?.currentUser?.uid;
+  const uid = authUid || (currentUserId && currentUserId !== 'guest' && !currentUserId.includes('@') ? currentUserId : order.userId && !order.userId.includes('@') ? order.userId : 'guest');
   const rawId = order.id || `#KG-${Math.floor(1000 + Math.random() * 9000)}`;
   const orderId = rawId.startsWith('#') ? rawId : `#${rawId}`;
   const cleanDocId = orderId.replace(/^#/, '');
@@ -298,28 +299,6 @@ export const saveOrderToFirestore = async (order: Order, currentUserId?: string)
           lastOrderAmount: order.total,
           updatedAt: serverTimestamp(),
         }, { merge: true });
-      }
-
-      // C. Also mirror to sanitized customerEmail if provided and different from uid
-      if (customerEmail) {
-        const sanitizedEmail = customerEmail.replace(/[^a-zA-Z0-9]/g, '_');
-        if (sanitizedEmail && sanitizedEmail !== uid) {
-          const emailOrderRef = doc(db, 'users', sanitizedEmail, 'orders', orderId);
-          batch.set(emailOrderRef, firestoreDocPayload, { merge: true });
-
-          if (cleanDocId !== orderId) {
-            const emailOrderRefClean = doc(db, 'users', sanitizedEmail, 'orders', cleanDocId);
-            batch.set(emailOrderRefClean, firestoreDocPayload, { merge: true });
-          }
-
-          const emailUserRef = doc(db, 'users', sanitizedEmail);
-          batch.set(emailUserRef, {
-            hasPlacedOrders: true,
-            lastOrderAt: serverTimestamp(),
-            lastOrderAmount: order.total,
-            updatedAt: serverTimestamp(),
-          }, { merge: true });
-        }
       }
 
       await batch.commit();

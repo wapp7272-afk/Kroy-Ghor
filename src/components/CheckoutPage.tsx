@@ -37,7 +37,7 @@ import {
   getFirestoreUserWalletBalance,
   broadcastNewOrder
 } from '../services/orderFirestoreService';
-import { db } from '../lib/firebaseAuth';
+import { db, auth } from '../lib/firebaseAuth';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface CheckoutPageProps {
@@ -276,7 +276,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const orderTimestamp = `${formattedDate}, ${formattedTime}`;
 
       const targetUid = user.isLoggedIn
-        ? (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : (user.phone || 'user'))
+        ? ((user as any).uid || auth?.currentUser?.uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : 'user'))
         : 'guest';
 
       const newOrder: Order = {

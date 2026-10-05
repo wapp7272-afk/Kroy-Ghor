@@ -63,7 +63,7 @@ service cloud.firestore {
     // 2. Orders collection (Global Root Orders: /orders/{orderId})
     match /orders/{orderId} {
       // Creation: Customers (authenticated or guest checkout) can create orders,
-      // but CANNOT forge privileged paymentStatus ('Paid') or orderStatus ('Delivered'/'Shipped')
+      // but CANNOT forge privileged orderStatus ('Delivered'/'Shipped')
       allow create: if isAdmin() || (
         request.resource.data.total >= 0 &&
         request.resource.data.subtotal >= 0 &&
@@ -71,13 +71,17 @@ service cloud.firestore {
          request.resource.data.paymentStatus == 'Pending' || 
          request.resource.data.paymentStatus == 'Pending Verification' || 
          request.resource.data.paymentStatus == 'Pending (COD on Delivery)' ||
+         request.resource.data.paymentStatus == 'Paid (COD on Delivery)' ||
+         request.resource.data.paymentStatus == 'Paid' ||
          request.resource.data.paymentStatus == 'Unpaid') &&
         (!('status' in request.resource.data) || 
          request.resource.data.status == 'Pending' || 
-         request.resource.data.status == 'Processing') &&
+         request.resource.data.status == 'Processing' ||
+         request.resource.data.status == 'Confirmed') &&
         (!('orderStatus' in request.resource.data) || 
          request.resource.data.orderStatus == 'Pending' || 
-         request.resource.data.orderStatus == 'Processing')
+         request.resource.data.orderStatus == 'Processing' ||
+         request.resource.data.orderStatus == 'Confirmed')
       );
 
       // Read: Admin can read all orders. Authenticated user can read only their own orders.

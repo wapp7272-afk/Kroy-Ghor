@@ -38,6 +38,7 @@ import { BrandLogo } from './BrandLogo';
 import { findBestAutoCoupon } from '../utils/smartCouponService';
 import { verifyOrderAndPayment } from '../services/paymentVerificationService';
 import { saveOrderToFirestore } from '../services/orderFirestoreService';
+import { auth } from '../lib/firebaseAuth';
 
 // Bangladesh 64 Districts for quick selection
 export const BD_DISTRICTS = [
@@ -439,7 +440,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         (async () => {
           try {
             // Dual Write: Atomically write to root collection /orders/{orderId} & customer subcollection
-            await saveOrderToFirestore(secureOrder, (user as any).uid || user.email);
+            await saveOrderToFirestore(secureOrder, (user as any).uid || auth?.currentUser?.uid || user.email);
           } catch (e) {
             console.warn('[Checkout] Direct Firestore save warning:', e);
           }
