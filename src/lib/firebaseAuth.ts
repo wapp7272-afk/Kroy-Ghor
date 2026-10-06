@@ -37,11 +37,11 @@ export const getAuthDomain = (): string => {
     if (envDomain.includes('zeropic') || envDomain.includes('undefined')) {
       return defaultDomain;
     }
+    // Prevent broken custom domain conflict on naked Vercel app domain (which has no Firebase Auth handler)
+    if (envDomain === 'kroyghor.vercel.app') {
+      return defaultDomain;
+    }
     return envDomain;
-  }
-
-  if (typeof window !== 'undefined' && window.location?.hostname === 'kroyghor.vercel.app') {
-    return 'kroyghor.vercel.app';
   }
 
   if (envProjectId) {
@@ -342,6 +342,10 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
   if (isMobile) {
     try {
       console.log('[FirebaseAuth] Mobile browser detected. Initiating signInWithRedirect...');
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem('kroyghor_google_redirect_in_progress', 'true');
+        sessionStorage.setItem('kroyghor_google_redirect_timestamp', Date.now().toString());
+      }
       await signInWithRedirect(auth, googleProvider);
       return {
         uid: '',
@@ -350,6 +354,10 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
         redirecting: true,
       };
     } catch (redirectErr: any) {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+        sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+      }
       console.error('[FirebaseAuth] Mobile signInWithRedirect failed:', redirectErr);
       throw redirectErr;
     }
@@ -389,6 +397,10 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       if (isBlockedOrTimeout) {
         console.warn('[FirebaseAuth] Desktop popup blocked or timed out. Falling back to signInWithRedirect...', popupErr);
         try {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            sessionStorage.setItem('kroyghor_google_redirect_in_progress', 'true');
+            sessionStorage.setItem('kroyghor_google_redirect_timestamp', Date.now().toString());
+          }
           await signInWithRedirect(auth, googleProvider);
           return {
             uid: '',
@@ -397,6 +409,10 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
             redirecting: true,
           };
         } catch (redirErr: any) {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+            sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+          }
           console.error('[FirebaseAuth] Fallback redirect failed:', redirErr);
           throw redirErr;
         }
@@ -459,41 +475,60 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
   }
 };
 
+// Singleton redirect promise so multiple component subscribers share the exact same getRedirectResult
+let pendingRedirectCheck: Promise<GoogleAuthResult | null> | null = null;
+
 /**
  * Checks for any redirect result when app reloads on mobile
  */
 export const checkGoogleRedirectResult = async (): Promise<GoogleAuthResult | null> => {
   if (!isFirebaseConfigured() || !auth) return null;
 
-  try {
-    const result = await getRedirectResult(auth);
-    if (result && result.user) {
-      const user = result.user;
-      const idToken = await user.getIdToken().catch(() => undefined);
-      const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
-
-      // Ensure Firestore customer profile is created/updated
-      await syncUserDocumentInFirestore({
-        uid: user.uid,
-        email: user.email,
-        displayName,
-        photoURL: user.photoURL,
-      }).catch((err) => {
-        console.warn('[FirebaseAuth] Firestore sync on redirect result error:', err);
-      });
-
-      return {
-        uid: user.uid,
-        displayName,
-        email: user.email || '',
-        photoURL: user.photoURL || undefined,
-        idToken,
-      };
-    }
-  } catch (error: any) {
-    console.error('[FirebaseAuth] Redirect result check error:', error);
+  if (pendingRedirectCheck) {
+    return pendingRedirectCheck;
   }
-  return null;
+
+  pendingRedirectCheck = (async () => {
+    try {
+      console.log('[FirebaseAuth] Processing getRedirectResult(auth)...');
+      const result = await getRedirectResult(auth);
+      if (result && result.user) {
+        const user = result.user;
+        console.log('[FirebaseAuth] getRedirectResult successfully returned user:', user.email, user.uid);
+        const idToken = await user.getIdToken().catch(() => undefined);
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
+
+        // Ensure Firestore customer profile is created/updated in /users/{uid}
+        await syncUserDocumentInFirestore({
+          uid: user.uid,
+          email: user.email,
+          displayName,
+          photoURL: user.photoURL,
+        }).catch((err) => {
+          console.warn('[FirebaseAuth] Firestore sync on redirect result error:', err);
+        });
+
+        return {
+          uid: user.uid,
+          displayName,
+          email: user.email || '',
+          photoURL: user.photoURL || undefined,
+          idToken,
+        };
+      }
+      return null;
+    } catch (error: any) {
+      console.error('[FirebaseAuth] Redirect result check error:', error);
+      throw error;
+    } finally {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+        sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+      }
+    }
+  })();
+
+  return pendingRedirectCheck;
 };
 
 /**

@@ -1719,89 +1719,85 @@ export default function App() {
     return products.find((p) => p.isFeatured) || products.find((p) => p.id === 'p1') || products[0];
   }, [products]);
 
-  // Dedicated Full-Page /admin Route with AdminRoute Protection & Redirect
-  if (activePage === 'Admin') {
-    return (
-      <AuthProvider userState={user} onUpdateUser={setUser}>
-        <Suspense fallback={<ModalSuspenseFallback />}>
-          <AdminRoute
-            user={user}
-            isOpen={true}
-            onClose={() => {
-              if (typeof window !== 'undefined') {
-                window.history.replaceState(null, '', '/');
-              }
-              setActivePage('Home');
-              showToast('Access Denied: Admin or Super Admin privileges required.');
-            }}
-            onOpenAuth={() => {
-              if (typeof window !== 'undefined') {
-                window.history.replaceState(null, '', '/');
-              }
-              setActivePage('Home');
-              setIsAuthOpen(true);
-            }}
-          >
-            <AdminDashboard
-              user={user}
-              orders={orders}
-              onUpdateOrderStatus={handleUpdateOrderStatus}
-              onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
-              onUpdateOrderTracking={handleUpdateOrderTracking}
-              onUpdateOrderNotes={handleUpdateOrderNotes}
-              products={products}
-              onAddProduct={handleAddProduct}
-              onUpdateProduct={handleUpdateProduct}
-              onDeleteProduct={handleDeleteProduct}
-              onBulkDeleteProducts={handleBulkDeleteProducts}
-              onResetDemoProducts={handleResetDemoProducts}
-              coupons={coupons}
-              onAddCoupon={handleAddCoupon}
-              onUpdateCoupon={handleUpdateCoupon}
-              onDeleteCoupon={handleDeleteCoupon}
-              sellers={sellers}
-              onUpdateSellerStatus={handleUpdateSellerStatus}
-              commissionRate={commissionRate}
-              onUpdateCommissionRate={handleUpdateCommissionRate}
-              bannerSettings={bannerSettings}
-              onUpdateBannerSettings={handleUpdateBannerSettings}
-              payoutRequests={payoutRequests}
-              onApprovePayout={handleApprovePayout}
-              onRejectPayout={handleRejectPayout}
-              showToast={showToast}
-              onViewPublicStore={(slug) => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState(null, '', '/');
-                }
-                handleOpenSellerStore(slug);
-              }}
-              onGoShop={handleExitAdmin}
-              onGoOrders={() => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState(null, '', '/');
-                }
-                handleOpenOrders();
-              }}
-              onLogout={() => {
-                handleLogout();
-                handleExitAdmin();
-              }}
-              onClose={handleExitAdmin}
-            />
-          </AdminRoute>
-        </Suspense>
-        {toastMsg && (
-          <div className="fixed bottom-6 right-6 z-50 py-3 px-5 rounded-2xl bg-slate-900 border border-slate-700 text-white font-bold text-xs shadow-2xl animate-slideUp flex items-center gap-2">
-            <span>{toastMsg}</span>
-          </div>
-        )}
-      </AuthProvider>
-    );
-  }
-
   return (
     <AuthProvider userState={user} onUpdateUser={setUser}>
-      <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
+      {activePage === 'Admin' ? (
+        <>
+          <Suspense fallback={<ModalSuspenseFallback />}>
+            <AdminRoute
+              user={user}
+              isOpen={true}
+              onClose={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.replaceState(null, '', '/');
+                }
+                setActivePage('Home');
+                showToast('Access Denied: Admin or Super Admin privileges required.');
+              }}
+              onOpenAuth={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.replaceState(null, '', '/');
+                }
+                setActivePage('Home');
+                setIsAuthOpen(true);
+              }}
+            >
+              <AdminDashboard
+                user={user}
+                orders={orders}
+                onUpdateOrderStatus={handleUpdateOrderStatus}
+                onUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
+                onUpdateOrderTracking={handleUpdateOrderTracking}
+                onUpdateOrderNotes={handleUpdateOrderNotes}
+                products={products}
+                onAddProduct={handleAddProduct}
+                onUpdateProduct={handleUpdateProduct}
+                onDeleteProduct={handleDeleteProduct}
+                onBulkDeleteProducts={handleBulkDeleteProducts}
+                onResetDemoProducts={handleResetDemoProducts}
+                coupons={coupons}
+                onAddCoupon={handleAddCoupon}
+                onUpdateCoupon={handleUpdateCoupon}
+                onDeleteCoupon={handleDeleteCoupon}
+                sellers={sellers}
+                onUpdateSellerStatus={handleUpdateSellerStatus}
+                commissionRate={commissionRate}
+                onUpdateCommissionRate={handleUpdateCommissionRate}
+                bannerSettings={bannerSettings}
+                onUpdateBannerSettings={handleUpdateBannerSettings}
+                payoutRequests={payoutRequests}
+                onApprovePayout={handleApprovePayout}
+                onRejectPayout={handleRejectPayout}
+                showToast={showToast}
+                onViewPublicStore={(slug) => {
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/');
+                  }
+                  handleOpenSellerStore(slug);
+                }}
+                onGoShop={handleExitAdmin}
+                onGoOrders={() => {
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/');
+                  }
+                  handleOpenOrders();
+                }}
+                onLogout={() => {
+                  handleLogout();
+                  handleExitAdmin();
+                }}
+                onClose={handleExitAdmin}
+              />
+            </AdminRoute>
+          </Suspense>
+          {toastMsg && (
+            <div className="fixed bottom-6 right-6 z-50 py-3 px-5 rounded-2xl bg-slate-900 border border-slate-700 text-white font-bold text-xs shadow-2xl animate-slideUp flex items-center gap-2">
+              <span>{toastMsg}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="min-h-screen bg-[#F9FAFB] text-[#0F172A] font-sans selection:bg-[#4F46E5] selection:text-white relative pb-24 md:pb-0">
       {/* Header Navbar */}
       <Header
         searchQuery={searchQuery}
@@ -2323,6 +2319,7 @@ export default function App() {
         <PwaInstallBanner showToast={showToast} />
       </Suspense>
       </div>
+      )}
     </AuthProvider>
   );
 }
