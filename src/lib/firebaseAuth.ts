@@ -328,116 +328,41 @@ export const isMobileBrowser = (): boolean => {
 
 /**
  * Initiates real Google OAuth Sign-In using Firebase Auth
- * Automatically uses signInWithRedirect for mobile devices (preventing popup freeze/timeouts)
- * Uses signInWithPopup for desktop, gracefully falling back to signInWithRedirect if blocked or timed out
+ * Uses signInWithPopup on both mobile and desktop by default (avoiding mobile browser cross-domain cookie drop)
+ * Falls back to signInWithRedirect ONLY if popup is blocked by the mobile browser
  */
 export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
+  console.log('[FirebaseAuth] signInWithGoogle initiated');
+
   if (!isFirebaseConfigured() || !auth || !googleProvider) {
-    throw new Error(
+    const configError = new Error(
       'Firebase Authentication is not configured. Please add VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_PROJECT_ID in your environment variables.'
     );
+    console.error('[FirebaseAuth] Configuration error:', configError);
+    throw configError;
   }
 
-  // Ensure local persistence is active
-  await setPersistence(auth, browserLocalPersistence).catch(() => {});
-
-  const isMobile = isMobileBrowser();
-
-  // 1. Mobile devices: Mobile browsers (iOS Safari, Android Chrome) block or lose popup context.
-  // Direct redirect ensures instant, reliable Google OAuth without hanging or timing out.
-  if (isMobile) {
-    try {
-      console.log('[FirebaseAuth] Mobile browser detected. Initiating signInWithRedirect...');
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        sessionStorage.setItem('kroyghor_google_redirect_in_progress', 'true');
-        sessionStorage.setItem('kroyghor_google_redirect_timestamp', Date.now().toString());
-      }
-      await signInWithRedirect(auth, googleProvider);
-      return {
-        uid: '',
-        displayName: '',
-        email: '',
-        redirecting: true,
-      };
-    } catch (redirectErr: any) {
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
-        sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
-      }
-      console.error('[FirebaseAuth] Mobile signInWithRedirect failed:', redirectErr);
-      throw redirectErr;
-    }
-  }
-
-  // 2. Desktop flow: Use popup with 45-second safety threshold, falling back to redirect if popup fails/times out
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      const timeoutErr: any = new Error('Google Sign-In connection timed out. Please try clicking again.');
-      timeoutErr.code = 'auth/timeout';
-      reject(timeoutErr);
-    }, 45000);
+  // Ensure local persistence is active across domains without yielding synchronous user gesture loop
+  setPersistence(auth, browserLocalPersistence).catch((persistenceErr) => {
+    console.warn('[FirebaseAuth] Persistence setup notice:', persistenceErr);
   });
 
   try {
-    let result;
-    try {
-      result = await Promise.race([signInWithPopup(auth, googleProvider), timeoutPromise]);
-    } catch (popupErr: any) {
-      const errCode = popupErr?.code || '';
-      const errMsg = popupErr?.message || '';
-
-      // User closed the popup window voluntarily - do NOT force redirect them
-      if (errCode === 'auth/popup-closed-by-user') {
-        const cancelErr: any = new Error('Google Sign-In was cancelled.');
-        cancelErr.code = 'auth/popup-closed-by-user';
-        throw cancelErr;
-      }
-
-      // If popup was blocked by browser or timed out, gracefully fallback to redirect
-      const isBlockedOrTimeout =
-        errCode === 'auth/popup-blocked' ||
-        errCode === 'auth/cancelled-popup-request' ||
-        errCode === 'auth/timeout' ||
-        errMsg.includes('timed out');
-
-      if (isBlockedOrTimeout) {
-        console.warn('[FirebaseAuth] Desktop popup blocked or timed out. Falling back to signInWithRedirect...', popupErr);
-        try {
-          if (typeof window !== 'undefined' && window.sessionStorage) {
-            sessionStorage.setItem('kroyghor_google_redirect_in_progress', 'true');
-            sessionStorage.setItem('kroyghor_google_redirect_timestamp', Date.now().toString());
-          }
-          await signInWithRedirect(auth, googleProvider);
-          return {
-            uid: '',
-            displayName: '',
-            email: '',
-            redirecting: true,
-          };
-        } catch (redirErr: any) {
-          if (typeof window !== 'undefined' && window.sessionStorage) {
-            sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
-            sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
-          }
-          console.error('[FirebaseAuth] Fallback redirect failed:', redirErr);
-          throw redirErr;
-        }
-      }
-
-      throw popupErr;
-    }
+    console.log('[FirebaseAuth] Opening Google Auth popup with signInWithPopup...');
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('[FirebaseAuth] signInWithPopup SUCCESS! User:', result.user.email, 'UID:', result.user.uid);
 
     const user = result.user;
     const idToken = await user.getIdToken().catch(() => undefined);
 
-    // Non-blocking background sync with Firestore (fire-and-forget: do NOT await!)
+    // Non-blocking background sync with Firestore
     syncUserDocumentInFirestore({
       uid: user.uid,
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
     }).catch((err) => {
-      console.warn('[FirebaseAuth] Non-fatal background Firestore sync error:', err);
+      console.warn('[FirebaseAuth] Non-fatal background Firestore sync notice:', err);
     });
 
     const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
@@ -449,35 +374,45 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       photoURL: user.photoURL || undefined,
       idToken,
     };
-  } catch (error: any) {
-    console.error('[FirebaseAuth] Google Sign-In error:', error);
+  } catch (popupErr: any) {
+    const errCode = popupErr?.code || '';
+    const errMsg = popupErr?.message || '';
+    console.warn('[FirebaseAuth] signInWithPopup encountered error. Code:', errCode, 'Message:', errMsg, popupErr);
 
-    // Provide clear, actionable error messages
-    if (error?.code === 'auth/unauthorized-domain') {
-      const customErr: any = new Error(
-        `This domain (${window.location.hostname}) is not authorized in your Firebase Console. Go to Firebase Console > Authentication > Settings > Authorized Domains and add "${window.location.hostname}".`
-      );
-      customErr.code = 'auth/unauthorized-domain';
-      customErr.domain = window.location.hostname;
-      throw customErr;
-    }
-    if (error?.code === 'auth/popup-closed-by-user') {
+    // User explicitly cancelled or closed popup - do NOT redirect
+    if (errCode === 'auth/popup-closed-by-user') {
       const cancelErr: any = new Error('Google Sign-In was cancelled.');
       cancelErr.code = 'auth/popup-closed-by-user';
       throw cancelErr;
     }
-    if (error?.code === 'auth/popup-blocked') {
-      const blockErr: any = new Error('Pop-up was blocked by your browser. Please allow pop-ups for this site.');
-      blockErr.code = 'auth/popup-blocked';
-      throw blockErr;
-    }
-    if (error?.code === 'auth/network-request-failed') {
-      const netErr: any = new Error('Network connection failed. Please check your internet connection.');
-      netErr.code = 'auth/network-request-failed';
-      throw netErr;
+
+    // ONLY fallback to signInWithRedirect if popup was blocked by browser
+    if (errCode === 'auth/popup-blocked') {
+      console.log('[FirebaseAuth] Pop-up was blocked by browser. Falling back to signInWithRedirect...');
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.setItem('kroyghor_google_redirect_in_progress', 'true');
+          sessionStorage.setItem('kroyghor_google_redirect_timestamp', Date.now().toString());
+        }
+        await signInWithRedirect(auth, googleProvider);
+        return {
+          uid: '',
+          displayName: '',
+          email: '',
+          redirecting: true,
+        };
+      } catch (redirectErr: any) {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+          sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+        }
+        console.error('[FirebaseAuth] Fallback signInWithRedirect failed:', redirectErr?.code, redirectErr?.message);
+        throw redirectErr;
+      }
     }
 
-    throw new Error(error.message || 'Google Sign-In failed. Please try again.');
+    // Rethrow error with detailed code logging
+    throw popupErr;
   }
 };
 

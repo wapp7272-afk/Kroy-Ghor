@@ -125,13 +125,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Automatically close modal whenever user is logged in or user account is verified
+  useEffect(() => {
+    if (user?.isLoggedIn || (user?.email && user?.email.trim().length > 0)) {
+      console.log('[AuthModal] User is authenticated. Automatically closing modal. Email:', user?.email);
+      setIsGoogleLoading(false);
+      onClose();
+    }
+  }, [user?.isLoggedIn, user?.email, onClose]);
+
   useEffect(() => {
     if (user.isLoggedIn) {
-      if (isOpen && (tab === 'login' || tab === 'signup')) {
-        setIsGoogleLoading(false);
-        onClose();
-        return;
-      }
       setTab('profile');
       setName(user.name);
       setEmail(user.email);
@@ -145,7 +149,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setTab('login');
       }
     }
-  }, [user.isLoggedIn, isOpen, tab, onClose]);
+  }, [user.isLoggedIn]);
 
   if (!isOpen) return null;
 
@@ -188,10 +192,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   // High-Performance Real Firebase Google OAuth Handler (1-Click Login)
   const handleGoogleSignInClick = async () => {
+    console.log('[AuthModal] Google Sign-In button clicked');
     setErrorMsg(null);
     setUnauthorizedDomain(null);
 
     if (!isFirebaseConfigured()) {
+      console.error('[AuthModal] Google Sign-In failed: Firebase Authentication is not configured');
       setErrorMsg('❌ Firebase Authentication is not configured for this project.');
       return;
     }
@@ -199,10 +205,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsGoogleLoading(true);
 
     try {
+      console.log('[AuthModal] Initiating signInWithGoogle()...');
       const googleUser = await signInWithGoogle();
+      console.log('[AuthModal] signInWithGoogle result:', googleUser);
 
       // If mobile or desktop fallback triggered redirect, maintain loading state while navigating
       if (googleUser?.redirecting) {
+        console.log('[AuthModal] Redirecting to Google Sign-In page in browser...');
         setIsGoogleLoading(true);
         setErrorMsg('🔄 গুগল সাইন-ইন পেজে নিয়ে যাওয়া হচ্ছে...');
         return;
@@ -226,6 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const isVerified = existing ? Boolean(existing.isPhoneVerified) : true;
       const userPhone = existing ? existing.phone || '' : '';
 
+      console.log('[AuthModal] Calling onLogin with user:', googleUser.email, 'UID:', googleUser.uid);
       onLogin(
         existing?.name || userDisplayName,
         googleUser.email,
@@ -236,10 +246,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         googleUser.uid
       );
 
+      console.log('[AuthModal] Triggering onClose() after successful login');
       onClose();
     } catch (err: any) {
       setIsGoogleLoading(false);
-      console.warn('[AuthModal] Google Sign-In notice:', err);
+      console.error('[AuthModal] Google Sign-In error caught. Code:', err?.code, 'Message:', err?.message, err);
 
       if (err?.code === 'auth/unauthorized-domain' || err?.domain) {
         const domain = err.domain || window.location.hostname;

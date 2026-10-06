@@ -520,10 +520,10 @@ export default function App() {
 
   // Automatically close auth modal whenever user session becomes authenticated
   useEffect(() => {
-    if (user.isLoggedIn && isAuthOpen) {
+    if ((user.isLoggedIn || (user.email && user.email.trim().length > 0)) && isAuthOpen) {
       setIsAuthOpen(false);
     }
-  }, [user.isLoggedIn, isAuthOpen]);
+  }, [user.isLoggedIn, user.email, isAuthOpen]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isReturnPolicyOpen, setIsReturnPolicyOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);
@@ -1727,7 +1727,7 @@ export default function App() {
   }, [products]);
 
   return (
-    <AuthProvider userState={user} onUpdateUser={setUser}>
+    <AuthProvider userState={user} onUpdateUser={setUser} onCloseAuthModal={() => setIsAuthOpen(false)}>
       {activePage === 'Admin' ? (
         <>
           <Suspense fallback={<ModalSuspenseFallback />}>

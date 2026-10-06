@@ -7,6 +7,7 @@ import {
   syncUserDocumentInFirestore,
   subscribeToFirebaseAuthState,
   checkGoogleRedirectResult,
+  signInWithGoogle,
   firebaseSignOut,
 } from '../lib/firebaseAuth';
 import { createSession, setStoredSession } from '../services/authService';
@@ -18,6 +19,7 @@ export interface AuthContextType {
   role: UserRole;
   isLoading: boolean;
   isAdmin: boolean;
+  signInWithGooglePopup: () => Promise<any>;
   refreshRoleFromFirestore: (uid?: string, email?: string) => Promise<UserRole>;
   logout: () => Promise<void>;
   updateUser: (updated: Partial<UserProfile>) => void;
@@ -44,10 +46,16 @@ const defaultUser: UserProfile = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfile; onUpdateUser: (u: UserProfile) => void }> = ({
+export const AuthProvider: React.FC<{
+  children: ReactNode;
+  userState: UserProfile;
+  onUpdateUser: (u: UserProfile) => void;
+  onCloseAuthModal?: () => void;
+}> = ({
   children,
   userState,
   onUpdateUser,
+  onCloseAuthModal,
 }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
@@ -65,12 +73,17 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRedirectResolving, setIsRedirectResolving] = useState<boolean>(isRedirectPending);
+  const [isInitialAuthChecked, setIsInitialAuthChecked] = useState<boolean>(() => {
+    return Boolean(userState.isLoggedIn && userState.email);
+  });
 
   // Keep references to prevent stale closures inside async auth listeners
   const onUpdateUserRef = useRef(onUpdateUser);
   onUpdateUserRef.current = onUpdateUser;
   const userStateRef = useRef(userState);
   userStateRef.current = userState;
+  const onCloseAuthModalRef = useRef(onCloseAuthModal);
+  onCloseAuthModalRef.current = onCloseAuthModal;
 
   // Sync profile, role, and wallet balance with Firestore database (`users/{uid}`)
   const refreshRoleFromFirestore = async (uid?: string, email?: string): Promise<UserRole> => {
@@ -103,6 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         if (isMounted) {
           setIsLoading(false);
           setIsRedirectResolving(false);
+          setIsInitialAuthChecked(true);
         }
         return;
       }
@@ -143,6 +157,11 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
           onUpdateUserRef.current(updated);
           localStorage.setItem('zeropicbd_user', JSON.stringify(updated));
           localStorage.setItem('primevault_user', JSON.stringify(updated));
+
+          // Immediately close auth modal upon verified redirect login
+          if (onCloseAuthModalRef.current) {
+            onCloseAuthModalRef.current();
+          }
         }
       } catch (err) {
         console.error('[AuthContext] Error handling redirect result:', err);
@@ -157,13 +176,10 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
 
     // 2. Persistent onAuthStateChanged listener across all page routes and re-renders
     const unsubscribe = subscribeToFirebaseAuthState(async (fUser) => {
+      console.log('[AuthContext] onAuthStateChanged fired. User:', fUser ? { email: fUser.email, uid: fUser.uid, displayName: fUser.displayName } : 'No active user');
       if (!isMounted) return;
-      setFirebaseUser(fUser);
-      setIsLoading(false);
-      setIsRedirectResolving(false);
 
       if (fUser) {
-        console.log('[AuthContext] onAuthStateChanged user detected:', fUser.email, fUser.uid);
         if (typeof window !== 'undefined' && window.sessionStorage) {
           sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
           sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
@@ -174,7 +190,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         const session = userStateRef.current.session || createSession(fUser.email || '', '', defaultRole);
         setStoredSession(session);
 
-        // Immediate state update so UI and login state update without any delay
+        // Immediate state update so UI and login state update without any delay BEFORE rendering children
         const immediateUser: UserProfile = {
           ...userStateRef.current,
           uid: fUser.uid,
@@ -193,6 +209,12 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         onUpdateUserRef.current(immediateUser);
         localStorage.setItem('zeropicbd_user', JSON.stringify(immediateUser));
         localStorage.setItem('primevault_user', JSON.stringify(immediateUser));
+        setFirebaseUser(fUser);
+
+        // Immediately close the login modal once user is authenticated
+        if (onCloseAuthModalRef.current) {
+          onCloseAuthModalRef.current();
+        }
 
         // Background non-blocking sync with Firestore
         syncUserDocumentInFirestore({
@@ -220,16 +242,24 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         }).catch((e) => {
           console.warn('[AuthContext] Background firestore sync notice:', e);
         });
+      } else {
+        setFirebaseUser(null);
       }
+
+      // Resolve loading and initial check state AFTER user state is updated
+      setIsLoading(false);
+      setIsRedirectResolving(false);
+      setIsInitialAuthChecked(true);
     });
 
-    // Fast failsafe to ensure loading states never hang
+    // Fast failsafe to ensure initial check resolves
     const safetyTimer = setTimeout(() => {
       if (isMounted) {
         setIsLoading(false);
         setIsRedirectResolving(false);
+        setIsInitialAuthChecked(true);
       }
-    }, 2000);
+    }, 1200);
 
     return () => {
       isMounted = false;
@@ -237,6 +267,16 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
       unsubscribe();
     };
   }, []);
+
+  const signInWithGooglePopup = async () => {
+    const result = await signInWithGoogle();
+    if (!result.redirecting && result.email) {
+      if (onCloseAuthModalRef.current) {
+        onCloseAuthModalRef.current();
+      }
+    }
+    return result;
+  };
 
   const logout = async () => {
     await firebaseSignOut();
@@ -270,6 +310,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         role: userState.role,
         isLoading,
         isAdmin,
+        signInWithGooglePopup,
         refreshRoleFromFirestore,
         logout,
         updateUser,
