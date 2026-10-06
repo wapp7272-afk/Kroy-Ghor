@@ -195,9 +195,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       const googleUser = await signInWithGoogle();
+
+      // If mobile or desktop fallback triggered redirect, maintain loading state while navigating
+      if (googleUser?.redirecting) {
+        setIsGoogleLoading(true);
+        setErrorMsg('🔄 গুগল সাইন-ইন পেজে নিয়ে যাওয়া হচ্ছে...');
+        return;
+      }
+
       setIsGoogleLoading(false);
 
-      const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'Kroyghor Member';
+      const userDisplayName = googleUser.displayName || googleUser.email.split('@')[0] || 'Kroy Ghor Member';
       setName(userDisplayName);
       setEmail(googleUser.email);
       setUserAvatar(googleUser.photoURL);
@@ -226,20 +234,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
     } catch (err: any) {
       setIsGoogleLoading(false);
-      console.error('[AuthModal] Google Sign-In error:', err);
+      console.warn('[AuthModal] Google Sign-In notice:', err);
 
       if (err?.code === 'auth/unauthorized-domain' || err?.domain) {
         const domain = err.domain || window.location.hostname;
         setUnauthorizedDomain(domain);
         setErrorMsg(`❌ Domain Authorization Required: Please add "${domain}" in Firebase Console > Authentication > Settings > Authorized Domains.`);
-      } else if (err?.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('❌ Google Sign-In was cancelled.');
+      } else if (err?.code === 'auth/popup-closed-by-user' || err?.message?.toLowerCase().includes('cancelled')) {
+        setErrorMsg('ℹ️ Google Sign-In বাতিল করা হয়েছে। আবার চেষ্টা করতে বাটনে ক্লিক করুন।');
       } else if (err?.code === 'auth/popup-blocked') {
-        setErrorMsg('❌ Pop-up was blocked by browser. Please allow pop-ups for this site and try again.');
+        setErrorMsg('⚠️ ব্রাউজারে পপ-আপ ব্লক করা হয়েছিল। গুগল সাইন-ইন পেজে রিডাইরেক্ট করা হচ্ছে...');
+      } else if (err?.code === 'auth/network-request-failed' || err?.code === 'auth/timeout' || err?.message?.includes('timed out')) {
+        setErrorMsg('⚠️ কানেকশন টাইমআউট হয়েছে। আপনার ইন্টারনেট কানেকশন চেক করে আবার চেষ্টা করুন।');
       } else if (err?.code === 'auth/operation-not-allowed') {
         setErrorMsg('❌ Google Sign-In is disabled in Firebase Console > Authentication > Sign-in method.');
       } else {
-        setErrorMsg(`❌ Google Sign-In Error: ${err.message || 'Authentication failed. Please try again.'}`);
+        setErrorMsg(`❌ ${err.message || 'সাইন-ইন সম্পন্ন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।'}`);
       }
     }
   };

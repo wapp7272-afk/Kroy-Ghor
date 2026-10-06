@@ -676,10 +676,12 @@ export default function App() {
               googleUser.displayName,
               googleUser.email,
               '',
-              false,
+              true,
               'google',
-              googleUser.photoURL
+              googleUser.photoURL,
+              googleUser.uid
             );
+            showToast(`স্বাগতম, ${googleUser.displayName}!`);
           }
         })
         .catch((err) => {

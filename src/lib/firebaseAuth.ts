@@ -26,12 +26,29 @@ import {
 import appletConfig from '../../firebase-applet-config.json';
 
 // Read Firebase configuration from environment variables with import.meta.env, with appletConfig as reliable fallback
-const getAuthDomain = () => {
-  const envDomain = (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN;
-  if (envDomain) return envDomain;
-  const envProjectId = (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID;
-  if (envProjectId) return `${envProjectId}.firebaseapp.com`;
-  return appletConfig.authDomain || `${appletConfig.projectId}.firebaseapp.com`;
+export const getAuthDomain = (): string => {
+  const envDomain = ((import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || '').trim();
+  const envProjectId = ((import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '').trim();
+  const defaultDomain =
+    appletConfig.authDomain ||
+    (appletConfig.projectId ? `${appletConfig.projectId}.firebaseapp.com` : 'gen-lang-client-0150585131.firebaseapp.com');
+
+  if (envDomain) {
+    if (envDomain.includes('zeropic') || envDomain.includes('undefined')) {
+      return defaultDomain;
+    }
+    return envDomain;
+  }
+
+  if (typeof window !== 'undefined' && window.location?.hostname === 'kroyghor.vercel.app') {
+    return 'kroyghor.vercel.app';
+  }
+
+  if (envProjectId) {
+    return `${envProjectId}.firebaseapp.com`;
+  }
+
+  return defaultDomain;
 };
 
 const firebaseConfig = {
@@ -291,11 +308,25 @@ export interface GoogleAuthResult {
   email: string;
   photoURL?: string;
   idToken?: string;
+  redirecting?: boolean;
 }
 
 /**
+ * Accurately detects whether the client is a mobile device/browser
+ */
+export const isMobileBrowser = (): boolean => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(ua);
+  const isNarrowScreen = window.innerWidth <= 768;
+  return isMobileUA || (isTouchDevice && isNarrowScreen);
+};
+
+/**
  * Initiates real Google OAuth Sign-In using Firebase Auth
- * Supports signInWithPopup on desktop and falls back to signInWithRedirect on mobile / popup blocked
+ * Automatically uses signInWithRedirect for mobile devices (preventing popup freeze/timeouts)
+ * Uses signInWithPopup for desktop, gracefully falling back to signInWithRedirect if blocked or timed out
  */
 export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
   if (!isFirebaseConfigured() || !auth || !googleProvider) {
@@ -304,31 +335,74 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
     );
   }
 
-  // Safety 10-second timeout promise so Google OAuth never hangs UI permanently
+  const isMobile = isMobileBrowser();
+
+  // 1. Mobile devices: Mobile browsers (iOS Safari, Android Chrome) block or lose popup context.
+  // Direct redirect ensures instant, reliable Google OAuth without hanging or timing out.
+  if (isMobile) {
+    try {
+      console.log('[FirebaseAuth] Mobile browser detected. Initiating signInWithRedirect...');
+      await signInWithRedirect(auth, googleProvider);
+      return {
+        uid: '',
+        displayName: '',
+        email: '',
+        redirecting: true,
+      };
+    } catch (redirectErr: any) {
+      console.error('[FirebaseAuth] Mobile signInWithRedirect failed:', redirectErr);
+      throw redirectErr;
+    }
+  }
+
+  // 2. Desktop flow: Use popup with 45-second safety threshold, falling back to redirect if popup fails/times out
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
-      reject(new Error('Google Sign-In connection timed out. Please try clicking again.'));
-    }, 10000);
+      const timeoutErr: any = new Error('Google Sign-In connection timed out. Please try clicking again.');
+      timeoutErr.code = 'auth/timeout';
+      reject(timeoutErr);
+    }, 45000);
   });
-
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
 
   try {
     let result;
-    if (isMobile) {
-      try {
-        result = await Promise.race([signInWithPopup(auth, googleProvider), timeoutPromise]);
-      } catch (popupErr: any) {
-        if (popupErr?.code === 'auth/popup-blocked' || popupErr?.code === 'auth/popup-closed-by-user') {
-          await signInWithRedirect(auth, googleProvider);
-          throw new Error('Redirecting to Google Sign-In...');
-        }
-        throw popupErr;
-      }
-    } else {
+    try {
       result = await Promise.race([signInWithPopup(auth, googleProvider), timeoutPromise]);
+    } catch (popupErr: any) {
+      const errCode = popupErr?.code || '';
+      const errMsg = popupErr?.message || '';
+
+      // User closed the popup window voluntarily - do NOT force redirect them
+      if (errCode === 'auth/popup-closed-by-user') {
+        const cancelErr: any = new Error('Google Sign-In was cancelled.');
+        cancelErr.code = 'auth/popup-closed-by-user';
+        throw cancelErr;
+      }
+
+      // If popup was blocked by browser or timed out, gracefully fallback to redirect
+      const isBlockedOrTimeout =
+        errCode === 'auth/popup-blocked' ||
+        errCode === 'auth/cancelled-popup-request' ||
+        errCode === 'auth/timeout' ||
+        errMsg.includes('timed out');
+
+      if (isBlockedOrTimeout) {
+        console.warn('[FirebaseAuth] Desktop popup blocked or timed out. Falling back to signInWithRedirect...', popupErr);
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return {
+            uid: '',
+            displayName: '',
+            email: '',
+            redirecting: true,
+          };
+        } catch (redirErr: any) {
+          console.error('[FirebaseAuth] Fallback redirect failed:', redirErr);
+          throw redirErr;
+        }
+      }
+
+      throw popupErr;
     }
 
     const user = result.user;
@@ -344,7 +418,7 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       console.warn('[FirebaseAuth] Non-fatal background Firestore sync error:', err);
     });
 
-    const displayName = user.displayName || user.email?.split('@')[0] || 'Kroyghor Member';
+    const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
 
     return {
       uid: user.uid,
@@ -366,13 +440,19 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
       throw customErr;
     }
     if (error?.code === 'auth/popup-closed-by-user') {
-      throw new Error('Google Sign-In was cancelled.');
+      const cancelErr: any = new Error('Google Sign-In was cancelled.');
+      cancelErr.code = 'auth/popup-closed-by-user';
+      throw cancelErr;
     }
     if (error?.code === 'auth/popup-blocked') {
-      throw new Error('Pop-up was blocked by your browser. Please allow pop-ups for this site.');
+      const blockErr: any = new Error('Pop-up was blocked by your browser. Please allow pop-ups for this site.');
+      blockErr.code = 'auth/popup-blocked';
+      throw blockErr;
     }
     if (error?.code === 'auth/network-request-failed') {
-      throw new Error('Network connection failed. Please check your internet connection.');
+      const netErr: any = new Error('Network connection failed. Please check your internet connection.');
+      netErr.code = 'auth/network-request-failed';
+      throw netErr;
     }
 
     throw new Error(error.message || 'Google Sign-In failed. Please try again.');
@@ -390,15 +470,27 @@ export const checkGoogleRedirectResult = async (): Promise<GoogleAuthResult | nu
     if (result && result.user) {
       const user = result.user;
       const idToken = await user.getIdToken().catch(() => undefined);
+      const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
+
+      // Ensure Firestore customer profile is created/updated
+      await syncUserDocumentInFirestore({
+        uid: user.uid,
+        email: user.email,
+        displayName,
+        photoURL: user.photoURL,
+      }).catch((err) => {
+        console.warn('[FirebaseAuth] Firestore sync on redirect result error:', err);
+      });
+
       return {
         uid: user.uid,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Zeropicbd Member',
+        displayName,
         email: user.email || '',
         photoURL: user.photoURL || undefined,
         idToken,
       };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[FirebaseAuth] Redirect result check error:', error);
   }
   return null;
