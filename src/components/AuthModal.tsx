@@ -127,6 +127,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   useEffect(() => {
     if (user.isLoggedIn) {
+      if (isOpen && (tab === 'login' || tab === 'signup')) {
+        setIsGoogleLoading(false);
+        onClose();
+        return;
+      }
       setTab('profile');
       setName(user.name);
       setEmail(user.email);
@@ -140,7 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setTab('login');
       }
     }
-  }, [user]);
+  }, [user.isLoggedIn, isOpen, tab, onClose]);
 
   if (!isOpen) return null;
 

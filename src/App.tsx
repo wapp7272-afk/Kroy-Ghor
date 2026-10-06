@@ -517,6 +517,13 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Automatically close auth modal whenever user session becomes authenticated
+  useEffect(() => {
+    if (user.isLoggedIn && isAuthOpen) {
+      setIsAuthOpen(false);
+    }
+  }, [user.isLoggedIn, isAuthOpen]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isReturnPolicyOpen, setIsReturnPolicyOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(false);

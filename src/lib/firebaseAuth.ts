@@ -1,6 +1,8 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
+  setPersistence,
+  browserLocalPersistence,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -25,39 +27,35 @@ import {
 } from 'firebase/firestore';
 import appletConfig from '../../firebase-applet-config.json';
 
-// Read Firebase configuration from environment variables with import.meta.env, with appletConfig as reliable fallback
+// Read Firebase configuration from active Vercel environment variables
+const envApiKey = ((import.meta as any).env?.VITE_FIREBASE_API_KEY || '').trim();
+const envProjectId = ((import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '').trim();
+const envAuthDomain = ((import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || '').trim();
+const envStorageBucket = ((import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || '').trim();
+const envMessagingSenderId = ((import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || '').trim();
+const envAppId = ((import.meta as any).env?.VITE_FIREBASE_APP_ID || '').trim();
+
 export const getAuthDomain = (): string => {
-  const envDomain = ((import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || '').trim();
-  const envProjectId = ((import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || '').trim();
-  const defaultDomain =
-    appletConfig.authDomain ||
-    (appletConfig.projectId ? `${appletConfig.projectId}.firebaseapp.com` : 'gen-lang-client-0150585131.firebaseapp.com');
-
-  if (envDomain) {
-    if (envDomain.includes('zeropic') || envDomain.includes('undefined')) {
-      return defaultDomain;
+  if (envAuthDomain && !envAuthDomain.includes('zeropic') && !envAuthDomain.includes('undefined')) {
+    // If set to naked kroyghor.vercel.app, route to official firebaseapp domain where auth handler lives
+    if (envAuthDomain === 'kroyghor.vercel.app') {
+      return envProjectId ? `${envProjectId}.firebaseapp.com` : (appletConfig.authDomain || 'gen-lang-client-0150585131.firebaseapp.com');
     }
-    // Prevent broken custom domain conflict on naked Vercel app domain (which has no Firebase Auth handler)
-    if (envDomain === 'kroyghor.vercel.app') {
-      return defaultDomain;
-    }
-    return envDomain;
+    return envAuthDomain;
   }
-
   if (envProjectId) {
     return `${envProjectId}.firebaseapp.com`;
   }
-
-  return defaultDomain;
+  return appletConfig.authDomain || 'gen-lang-client-0150585131.firebaseapp.com';
 };
 
-const firebaseConfig = {
-  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || appletConfig.apiKey || '',
+export const firebaseConfig = {
+  apiKey: envApiKey || appletConfig.apiKey || '',
   authDomain: getAuthDomain(),
-  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || appletConfig.projectId || '',
-  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket || '',
-  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId || '',
-  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || appletConfig.appId || '',
+  projectId: envProjectId || appletConfig.projectId || '',
+  storageBucket: envStorageBucket || (envProjectId ? `${envProjectId}.firebasestorage.app` : appletConfig.storageBucket || ''),
+  messagingSenderId: envMessagingSenderId || appletConfig.messagingSenderId || '',
+  appId: envAppId || appletConfig.appId || '',
 };
 
 /**
@@ -83,6 +81,11 @@ if (isFirebaseConfigured()) {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     
+    // Explicitly configure browserLocalPersistence to guarantee auth state persists across redirects and refreshes
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn('[FirebaseAuth] Persistence configuration notice:', err);
+    });
+
     try {
       setLogLevel('silent');
     } catch {}
@@ -335,6 +338,9 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
     );
   }
 
+  // Ensure local persistence is active
+  await setPersistence(auth, browserLocalPersistence).catch(() => {});
+
   const isMobile = isMobileBrowser();
 
   // 1. Mobile devices: Mobile browsers (iOS Safari, Android Chrome) block or lose popup context.
@@ -567,6 +573,7 @@ export const signUpWithEmailAndPassword = async (
     throw new Error('Firebase Auth is not configured.');
   }
 
+  await setPersistence(auth, browserLocalPersistence).catch(() => {});
   const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
   const user = userCredential.user;
   const name = displayName || email.split('@')[0] || 'Kroy Ghor Member';
@@ -595,6 +602,7 @@ export const signInUserWithEmailAndPassword = async (
     throw new Error('Firebase Auth is not configured.');
   }
 
+  await setPersistence(auth, browserLocalPersistence).catch(() => {});
   const userCredential = await signInWithEmailAndPassword(auth, email, pass);
   const user = userCredential.user;
   const displayName = user.displayName || email.split('@')[0] || 'Kroy Ghor Member';

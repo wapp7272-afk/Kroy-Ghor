@@ -159,53 +159,77 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
     const unsubscribe = subscribeToFirebaseAuthState(async (fUser) => {
       if (!isMounted) return;
       setFirebaseUser(fUser);
+      setIsLoading(false);
+      setIsRedirectResolving(false);
 
       if (fUser) {
         console.log('[AuthContext] onAuthStateChanged user detected:', fUser.email, fUser.uid);
-        try {
-          const synced = await syncUserDocumentInFirestore({
-            uid: fUser.uid,
-            email: fUser.email,
-            displayName: fUser.displayName,
-            photoURL: fUser.photoURL,
-          });
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+          sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+        }
 
-          const isOwner = (fUser.email || '').toLowerCase() === 'wapp7272@gmail.com';
-          const resolvedRole: UserRole = isOwner ? 'super_admin' : (synced.role || 'customer');
-          const session = userStateRef.current.session || createSession(fUser.email || '', '', resolvedRole);
-          setStoredSession(session);
+        const isOwner = (fUser.email || '').toLowerCase() === 'wapp7272@gmail.com';
+        const defaultRole: UserRole = isOwner ? 'super_admin' : 'customer';
+        const session = userStateRef.current.session || createSession(fUser.email || '', '', defaultRole);
+        setStoredSession(session);
 
-          const updated: UserProfile = {
+        // Immediate state update so UI and login state update without any delay
+        const immediateUser: UserProfile = {
+          ...userStateRef.current,
+          uid: fUser.uid,
+          isLoggedIn: true,
+          name: fUser.displayName || userStateRef.current.name || 'Kroy Ghor Member',
+          email: fUser.email || userStateRef.current.email,
+          role: defaultRole,
+          session,
+          walletBalance: userStateRef.current.walletBalance ?? 0,
+          hasClaimedYouTubeBonus: userStateRef.current.hasClaimedYouTubeBonus ?? false,
+          isPhoneVerified: true,
+          authProvider: 'google',
+          avatar: fUser.photoURL || userStateRef.current.avatar,
+        };
+
+        onUpdateUserRef.current(immediateUser);
+        localStorage.setItem('zeropicbd_user', JSON.stringify(immediateUser));
+        localStorage.setItem('primevault_user', JSON.stringify(immediateUser));
+
+        // Background non-blocking sync with Firestore
+        syncUserDocumentInFirestore({
+          uid: fUser.uid,
+          email: fUser.email,
+          displayName: fUser.displayName,
+          photoURL: fUser.photoURL,
+        }).then((synced) => {
+          if (!isMounted) return;
+          const finalRole: UserRole = isOwner ? 'super_admin' : (synced.role || 'customer');
+          const finalUser: UserProfile = {
             ...userStateRef.current,
             uid: fUser.uid,
             isLoggedIn: true,
-            name: synced.displayName || fUser.displayName || userStateRef.current.name || 'Kroy Ghor Member',
-            email: synced.email || fUser.email || userStateRef.current.email,
-            role: resolvedRole,
-            session,
+            name: synced.displayName || fUser.displayName || 'Kroy Ghor Member',
+            email: synced.email || fUser.email || '',
+            role: finalRole,
             walletBalance: synced.walletBalance ?? 0,
             hasClaimedYouTubeBonus: synced.hasClaimedYouTubeBonus ?? false,
             avatar: synced.photoURL || fUser.photoURL || userStateRef.current.avatar,
           };
-
-          onUpdateUserRef.current(updated);
-          localStorage.setItem('zeropicbd_user', JSON.stringify(updated));
-          localStorage.setItem('primevault_user', JSON.stringify(updated));
-        } catch (e) {
-          console.warn('[AuthContext] Background firestore sync error:', e);
-        }
+          onUpdateUserRef.current(finalUser);
+          localStorage.setItem('zeropicbd_user', JSON.stringify(finalUser));
+          localStorage.setItem('primevault_user', JSON.stringify(finalUser));
+        }).catch((e) => {
+          console.warn('[AuthContext] Background firestore sync notice:', e);
+        });
       }
-
-      setIsLoading(false);
     });
 
-    // Safety timeout: ensure loading screen resolves even on spotty networks
+    // Fast failsafe to ensure loading states never hang
     const safetyTimer = setTimeout(() => {
       if (isMounted) {
         setIsLoading(false);
         setIsRedirectResolving(false);
       }
-    }, 6000);
+    }, 2000);
 
     return () => {
       isMounted = false;
@@ -238,30 +262,6 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
     userState.isLoggedIn && (userState.role === 'admin' || userState.role === 'super_admin')
   );
 
-  // If redirect from Google accounts is currently resolving, render dedicated loading overlay
-  if (isRedirectResolving) {
-    return (
-      <AuthContext.Provider
-        value={{
-          user: userState,
-          firebaseUser,
-          role: userState.role,
-          isLoading: true,
-          isAdmin,
-          refreshRoleFromFirestore,
-          logout,
-          updateUser,
-        }}
-      >
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/95 backdrop-blur-md">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
-          <p className="text-slate-800 font-bold text-base">গুগল অ্যাকাউন্টে লগইন যাচাই করা হচ্ছে...</p>
-          <p className="text-slate-500 text-sm mt-1">Completing your Google sign-in. Please wait a moment.</p>
-        </div>
-      </AuthContext.Provider>
-    );
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -275,6 +275,9 @@ export const AuthProvider: React.FC<{ children: ReactNode; userState: UserProfil
         updateUser,
       }}
     >
+      {isRedirectResolving && !userState.isLoggedIn && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-600 z-[9999] animate-pulse" />
+      )}
       {children}
     </AuthContext.Provider>
   );
