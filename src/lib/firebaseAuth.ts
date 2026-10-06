@@ -528,14 +528,27 @@ export const checkGoogleRedirectResult = async (): Promise<GoogleAuthResult | nu
 };
 
 /**
- * Signs out from Firebase Auth
+ * Signs out from Firebase Auth and resets provider configuration
  */
 export const firebaseSignOut = async (): Promise<void> => {
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+    sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+  }
+
+  // Refresh Google provider to always prompt account selector on next login
+  if (googleProvider) {
+    googleProvider.setCustomParameters({
+      prompt: 'select_account',
+    });
+  }
+
   if (!auth) return;
   try {
     await signOut(auth);
+    console.log('[FirebaseAuth] Successfully signed out of Firebase Auth.');
   } catch (e) {
-    console.warn('[FirebaseAuth] Sign-out error:', e);
+    console.warn('[FirebaseAuth] Sign-out notice:', e);
   }
 };
 

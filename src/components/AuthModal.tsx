@@ -145,9 +145,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setFullAddress(user.address.fullAddress || '');
       }
     } else {
-      if (tab === 'profile') {
-        setTab('login');
-      }
+      setTab('login');
+      setName('');
+      setEmail('');
+      setPhone('');
+      setUserAvatar(undefined);
+      setIsGoogleLoading(false);
+      setErrorMsg(null);
     }
   }, [user.isLoggedIn]);
 
@@ -1126,12 +1130,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={onLogout}
+                    onClick={() => {
+                      onLogout();
+                      setTab('login');
+                    }}
                     className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                    title="Logout"
+                    title="Logout / সাইন আউট"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Logout</span>
+                    <span>লগআউট / Logout</span>
                   </button>
                 </div>
               </form>

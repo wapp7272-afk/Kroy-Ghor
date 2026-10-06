@@ -103,7 +103,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
         }
       }}
       onClick={() => onQuickView(product)}
-      className="group relative flex flex-col justify-between h-full rounded-xl overflow-hidden bg-white border border-slate-200/90 hover:border-[#4F46E5]/40 transition-[border-color,box-shadow] duration-200 hover:shadow-md cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none"
+      className="group relative flex flex-col justify-between h-full rounded-2xl overflow-hidden bg-white border border-slate-200/90 hover:border-indigo-500/40 transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 hover:shadow-xl hover:shadow-indigo-500/10 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none transform-gpu"
     >
       {/* ================= Top: Product Image Container with Zero-CLS Skeleton ================= */}
       <div className="relative w-full aspect-square overflow-hidden bg-slate-100">
@@ -257,12 +257,12 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
               onClick={handleAdd}
               disabled={product.inStock === false}
               aria-label={`Add ${product.title} to cart`}
-              className={`w-full min-h-[44px] py-2 px-2 rounded-lg text-xs font-semibold transition-colors duration-150 flex items-center justify-center gap-1 cursor-pointer active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
+              className={`w-full min-h-[44px] py-2 px-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-95 focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
                 product.inStock === false
                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                   : isAdded
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200/80 text-slate-800 border border-slate-200/80 hover:border-slate-300'
+                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500'
+                  : 'bg-slate-100 hover:bg-slate-200/90 text-slate-800 border border-slate-200/80 hover:border-slate-300 shadow-2xs hover:shadow-xs'
               }`}
               title="Add to Shopping Cart"
             >
@@ -273,7 +273,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
                 </div>
               ) : (
                 <>
-                  <ShoppingCart className="w-3.5 h-3.5 text-slate-600" />
+                  <ShoppingCart className="w-3.5 h-3.5 text-slate-600 transition-transform group-hover/btn:scale-110" />
                   <span className="truncate">Cart</span>
                 </>
               )}
@@ -284,14 +284,14 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
               onClick={handleBuyNow}
               disabled={product.inStock === false}
               aria-label={`Instant buy now for ${product.title}`}
-              className={`w-full min-h-[44px] py-2 px-2 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-xs focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
+              className={`w-full min-h-[44px] py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer hover:scale-[1.03] active:scale-95 shadow-sm hover:shadow-md hover:shadow-indigo-500/25 focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:outline-none ${
                 product.inStock === false
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'bg-[#4F46E5] hover:bg-[#4338CA] text-white hover:shadow-indigo-500/20'
+                  : 'bg-[#4F46E5] hover:bg-[#4338CA] text-white'
               }`}
               title="Instant Buy Now"
             >
-              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 transition-transform hover:scale-110" />
               <span className="truncate">Buy Now</span>
             </button>
           </div>

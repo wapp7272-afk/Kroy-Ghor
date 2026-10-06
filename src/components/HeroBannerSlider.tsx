@@ -169,9 +169,9 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Slides Container with Smooth Slide Transition */}
+        {/* Slides Container with Smooth Slide & Cross-Fade Transition */}
         <div 
-          className="w-full h-full flex transition-transform duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu"
+          className="w-full h-full flex transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] transform-gpu"
           style={{ 
             transform: `translateX(-${currentIndex * 100}%) translateZ(0)`,
             willChange: 'transform',
@@ -182,17 +182,21 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
             return (
               <div
                 key={banner.id || index}
-                className="w-full h-full shrink-0 relative flex items-center"
+                className={`w-full h-full shrink-0 relative flex items-center transition-opacity duration-500 ease-out ${
+                  isSlideActive ? 'opacity-100' : 'opacity-40'
+                }`}
                 role="group"
                 aria-roledescription="slide"
                 aria-label={`${index + 1} of ${totalSlides}: ${banner.title || 'Slide'}`}
                 aria-hidden={!isSlideActive}
               >
-                {/* Responsive Background Image with Priority LCP Loading */}
+                {/* Responsive Background Image with Priority LCP Loading & Smooth Scale on Active */}
                 <img
                   src={banner.imageUrl}
                   alt={banner.title || 'Promotional Banner'}
-                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out ${
+                    isSlideActive ? 'scale-100' : 'scale-105'
+                  }`}
                   loading={index === 0 ? 'eager' : 'lazy'}
                   // @ts-ignore - React 19 / Modern DOM fetchPriority support
                   fetchPriority={index === 0 ? 'high' : 'low'}
@@ -206,14 +210,14 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
 
                 {/* Banner Content Card Overlay with Subtle Coordinated Entrance */}
                 <div 
-                  className={`relative z-10 p-5 px-6 sm:p-10 md:p-12 md:px-12 max-w-xl sm:max-w-2xl text-white space-y-2 sm:space-y-3.5 transition-all duration-300 ease-out ${
-                    isSlideActive ? 'opacity-100 translate-y-0' : 'opacity-85 translate-y-1'
+                  className={`relative z-10 p-5 px-6 sm:p-10 md:p-12 md:px-12 max-w-xl sm:max-w-2xl text-white space-y-2 sm:space-y-3.5 transition-all duration-500 ease-out ${
+                    isSlideActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'
                   }`}
                 >
                   {/* Badge */}
                   {banner.badge && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-xs text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/95 backdrop-blur-xs text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm transition-transform duration-300 hover:scale-105">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-pulse" />
                       <span>{banner.badge}</span>
                     </div>
                   )}
@@ -237,13 +241,13 @@ export const HeroBannerSlider: React.FC<HeroBannerSliderProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => handleBannerClick(banner)}
-                      className="px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-orange-500/20 transition-all duration-150 cursor-pointer inline-flex items-center gap-2 active:scale-[0.98] group/btn"
+                      className="px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-orange-500/30 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer inline-flex items-center gap-2 group/btn"
                     >
                       <span>{banner.linkType === 'external' ? 'Visit Channel' : 'Explore Offer'}</span>
                       {banner.linkType === 'external' ? (
-                        <ExternalLink className="w-4 h-4 text-white group-hover/btn:translate-x-0.5 transition-transform duration-150" />
+                        <ExternalLink className="w-4 h-4 text-white group-hover/btn:translate-x-1 transition-transform duration-200" />
                       ) : (
-                        <ArrowRight className="w-4 h-4 text-white group-hover/btn:translate-x-0.5 transition-transform duration-150" />
+                        <ArrowRight className="w-4 h-4 text-white group-hover/btn:translate-x-1 transition-transform duration-200" />
                       )}
                     </button>
                   </div>

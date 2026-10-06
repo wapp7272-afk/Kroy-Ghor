@@ -28,7 +28,8 @@ import {
   TrendingUp,
   Filter,
   Check,
-  Truck
+  Truck,
+  LogOut
 } from 'lucide-react';
 import { UserProfile, SystemBannerSettings, Product } from '../types';
 import { Logo } from './Logo';
@@ -69,6 +70,7 @@ interface HeaderProps {
   onOpenUserProfile?: () => void;
   onOpenTrackOrder?: () => void;
   onOpenYouTubeBonusModal?: () => void;
+  onLogout?: () => void;
 }
 
 export const CATEGORY_DROPDOWN_ITEMS = [
@@ -147,10 +149,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onOpenUserProfile,
   onOpenTrackOrder,
   onOpenYouTubeBonusModal,
+  onLogout,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   
   const isUserAdmin = checkIsAdmin(user);
   const isUserSuperAdmin = checkIsSuperAdmin(user);
@@ -243,6 +248,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       }
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsSearchFocused(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -842,25 +850,143 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               </button>
             )}
 
-            {/* User Account Button (Desktop) */}
-            <button
-              id="header-profile-btn"
-              onClick={user.isLoggedIn && onOpenUserProfile ? onOpenUserProfile : onOpenAuth}
-              className="hidden sm:flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[#0A1B3D] hover:bg-[#F3F7FF] border border-slate-200 text-xs font-medium transition-colors cursor-pointer shrink-0"
-              title="Account & Profile Settings"
-            >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#007BFF] text-white flex items-center justify-center text-xs font-bold">
-                {user.isLoggedIn ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5 text-white" />}
-              </div>
-              <div className="hidden lg:flex flex-col text-left">
-                <span className="text-[10px] text-slate-400 leading-none">
-                  {user.isLoggedIn ? 'Hello,' : 'Sign in'}
-                </span>
-                <span className="font-semibold text-xs text-[#0A1B3D] truncate max-w-[85px] leading-tight">
-                  {user.isLoggedIn ? user.name : 'Account'}
-                </span>
-              </div>
-            </button>
+            {/* User Account Button with Dropdown (Desktop) */}
+            <div className="relative hidden sm:block" ref={profileMenuRef}>
+              <button
+                id="header-profile-btn"
+                onClick={user.isLoggedIn ? () => setIsProfileMenuOpen((prev) => !prev) : onOpenAuth}
+                className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl text-[#0A1B3D] hover:bg-[#F3F7FF] border border-slate-200 text-xs font-medium transition-colors cursor-pointer shrink-0"
+                title={user.isLoggedIn ? "Account Profile & Menu" : "Sign in / Register"}
+                aria-expanded={isProfileMenuOpen}
+              >
+                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#007BFF] text-white flex items-center justify-center text-xs font-bold overflow-hidden shadow-xs">
+                  {user.isLoggedIn ? (
+                    user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      user.name.charAt(0).toUpperCase()
+                    )
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-white" />
+                  )}
+                </div>
+                <div className="hidden lg:flex flex-col text-left">
+                  <span className="text-[10px] text-slate-400 leading-none">
+                    {user.isLoggedIn ? 'Hello,' : 'Sign in'}
+                  </span>
+                  <span className="font-semibold text-xs text-[#0A1B3D] truncate max-w-[85px] leading-tight">
+                    {user.isLoggedIn ? user.name : 'Account'}
+                  </span>
+                </div>
+                {user.isLoggedIn && (
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                )}
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {user.isLoggedIn && isProfileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 p-2 animate-fadeIn text-[#0A1B3D]">
+                  {/* User Info Header */}
+                  <div className="p-3 bg-slate-50 rounded-xl mb-1 border border-slate-100 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#007BFF] text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden shadow-xs">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-xs text-slate-900 truncate">{user.name}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{user.email || user.phone || 'Member'}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] px-1.5 py-0.2 bg-blue-100 text-blue-700 font-bold rounded">
+                          {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Seller' : 'Customer'}
+                        </span>
+                        {typeof user.walletBalance === 'number' && user.walletBalance > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-700 font-bold rounded">
+                            ৳{user.walletBalance}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Options */}
+                  <div className="space-y-0.5 py-1">
+                    {onOpenUserProfile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onOpenUserProfile();
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:text-[#007BFF] hover:bg-slate-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+                      >
+                        <User className="w-4 h-4 text-slate-500" />
+                        <span>আমার প্রোফাইল (My Profile)</span>
+                      </button>
+                    )}
+
+                    {onOpenOrders && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onOpenOrders();
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:text-[#007BFF] hover:bg-slate-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+                      >
+                        <Package className="w-4 h-4 text-slate-500" />
+                        <span>আমার অর্ডারসমূহ (My Orders)</span>
+                      </button>
+                    )}
+
+                    {(user.role === 'admin' || user.role === 'super_admin' || isUserAdmin) && onOpenAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onOpenAdmin();
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                        <span>অ্যাডমিন ড্যাশবোর্ড (Admin Panel)</span>
+                      </button>
+                    )}
+
+                    {(user.role === 'seller' || user.role === 'admin' || user.role === 'super_admin') && onOpenSellerCenter && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          onOpenSellerCenter();
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+                      >
+                        <Store className="w-4 h-4 text-emerald-600" />
+                        <span>মার্চেন্ট সেন্টার (Seller Center)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 my-1 pt-1">
+                    <button
+                      type="button"
+                      id="header-logout-btn"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        if (onLogout) onLogout();
+                      }}
+                      className="w-full px-3 py-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-600" />
+                      <span>লগআউট / Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Shopping Cart Button with Live Badge (Matches HEADER PREVIEW) */}
             <button

@@ -40,6 +40,7 @@ import {
 import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { ProductCard } from './components/ProductCard';
+import { ProductCardSkeleton } from './components/ProductCardSkeleton';
 import { HeroSection } from './components/HeroSection';
 import { CategoryNavGrid } from './components/CategoryNavGrid';
 import { INITIAL_PROMO_BANNERS } from './data/banners';
@@ -1335,6 +1336,13 @@ export default function App() {
     firebaseSignOut().catch(() => {});
     api.auth.logout().catch(() => {});
     clearStoredSession();
+    localStorage.removeItem('primevault_auth_session');
+    localStorage.removeItem('zeropicbd_user');
+    localStorage.removeItem('primevault_user');
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+      sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+    }
     setUser({
       isLoggedIn: false,
       name: '',
@@ -1353,8 +1361,16 @@ export default function App() {
         fullAddress: '',
       }
     });
+
+    if (activePage === 'Admin' || activePage === 'UserProfile' || activePage === 'SellerCenter') {
+      setActivePage('Home');
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '/');
+      }
+    }
+
     setIsAuthOpen(false);
-    showToast('You have been logged out.');
+    showToast('👋 You have been logged out / সফলভাবে সাইন আউট হয়েছেন।');
   };
 
   const handleCreateOrder = async (order: Order) => {
@@ -1829,6 +1845,7 @@ export default function App() {
         onOpenSellerCenter={handleOpenSellerCenter}
         onOpenSellerStore={handleOpenSellerStore}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onLogout={handleLogout}
         onDownloadHtml={handleDownloadStandaloneHtml}
         onOpenAdmin={handleOpenAdmin}
         onGoHome={handleGoHome}
@@ -1848,8 +1865,9 @@ export default function App() {
         onOpenYouTubeBonusModal={handleOpenBonusClaim}
       />
 
-      {/* Active Page Routing Router */}
+      {/* Active Page Routing Router with Smooth Page Fade Transitions */}
       <Suspense fallback={<ModalSuspenseFallback />}>
+        <div key={activePage} className="animate-fadeIn w-full">
         {activePage === 'Checkout' ? (
           <CheckoutPage
             items={cart}
@@ -2118,7 +2136,10 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
+                    <div 
+                      key={`${selectedCategory}-${catalogFilters.sortBy}`} 
+                      className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4 animate-fadeIn"
+                    >
                       {filteredProducts.map((product) => (
                         <ProductCard
                           key={product.id}
@@ -2154,6 +2175,7 @@ export default function App() {
           </Suspense>
         </>
       )}
+        </div>
       </Suspense>
 
       {/* Multi-Column Localized Footer */}
@@ -2279,6 +2301,10 @@ export default function App() {
         onOpenSearch={() => setIsMobileSearchActive(true)}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAccount={user.isLoggedIn ? handleOpenUserProfile : () => setIsAuthOpen(true)}
+        onLogout={handleLogout}
+        onOpenOrders={handleOpenOrders}
+        onOpenAdmin={handleOpenAdmin}
+        onOpenSellerCenter={handleOpenSellerCenter}
         isSearchOpen={isMobileSearchActive}
         isCategoriesDrawerOpen={false}
       />

@@ -280,13 +280,22 @@ export const AuthProvider: React.FC<{
   };
 
   const logout = async () => {
-    await firebaseSignOut();
-    onUpdateUserRef.current({
-      ...defaultUser,
-    });
+    try {
+      await firebaseSignOut();
+    } catch (e) {
+      console.warn('[AuthContext] Sign-out notice:', e);
+    }
     localStorage.removeItem('primevault_auth_session');
     localStorage.removeItem('zeropicbd_user');
     localStorage.removeItem('primevault_user');
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      sessionStorage.removeItem('kroyghor_google_redirect_in_progress');
+      sessionStorage.removeItem('kroyghor_google_redirect_timestamp');
+    }
+    setFirebaseUser(null);
+    onUpdateUserRef.current({
+      ...defaultUser,
+    });
   };
 
   const updateUser = (updated: Partial<UserProfile>) => {
