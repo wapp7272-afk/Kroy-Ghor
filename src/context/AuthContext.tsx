@@ -216,7 +216,7 @@ export const AuthProvider: React.FC<{
           onCloseAuthModalRef.current();
         }
 
-        // Background non-blocking sync with Firestore
+        // Auto-sync Firestore User Document immediately upon auth state change
         syncUserDocumentInFirestore({
           uid: fUser.uid,
           email: fUser.email,
@@ -224,6 +224,7 @@ export const AuthProvider: React.FC<{
           photoURL: fUser.photoURL,
         }).then((synced) => {
           if (!isMounted) return;
+          console.log('[AuthContext] onAuthStateChanged Firestore document sync completed for:', synced.email, synced.role);
           const finalRole: UserRole = isOwner ? 'super_admin' : (synced.role || 'customer');
           const finalUser: UserProfile = {
             ...userStateRef.current,
@@ -239,8 +240,8 @@ export const AuthProvider: React.FC<{
           onUpdateUserRef.current(finalUser);
           localStorage.setItem('zeropicbd_user', JSON.stringify(finalUser));
           localStorage.setItem('primevault_user', JSON.stringify(finalUser));
-        }).catch((e) => {
-          console.warn('[AuthContext] Background firestore sync notice:', e);
+        }).catch((e: any) => {
+          console.error('[AuthContext] onAuthStateChanged Firestore sync error (check rules):', e?.code, e?.message, e);
         });
       } else {
         setFirebaseUser(null);

@@ -122,6 +122,10 @@ export { app, auth, db };
  * Creates permanent doc with default fields if new user, or updates lastLoginAt if existing user
  * Non-blocking: Uses a 2-second timeout fallback so network latency never blocks UI
  */
+/**
+ * Auto-creates or updates customer/user document in Firestore (`users/{uid}` and `customers/{uid}`)
+ * Runs immediately upon Google sign-in (popup/redirect) and onAuthStateChanged
+ */
 export const syncUserDocumentInFirestore = async (
   fUser: { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }
 ): Promise<{
@@ -152,68 +156,112 @@ export const syncUserDocumentInFirestore = async (
   };
 
   if (!db || !uid) {
+    console.warn('[FirestoreSync] Firestore db or user UID is not available:', { dbAvailable: Boolean(db), uid });
     return defaultResult;
   }
 
   try {
     const userDocRef = doc(db, 'users', uid);
+    const userDocSnap = await getDoc(userDocRef);
 
-    // Fast 2-second timeout fallback so slow Firestore queries never stall authentication
-    const getDocPromise = getDoc(userDocRef);
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
-
-    const userDocSnap = await Promise.race([getDocPromise, timeoutPromise]);
-
-    if (userDocSnap && userDocSnap.exists()) {
+    if (userDocSnap.exists()) {
       const data = userDocSnap.data();
+      console.log('[FirestoreSync] Existing user document found in users/' + uid, 'Role:', data?.role);
 
-      // Update lastLoginAt in non-blocking background
-      updateDoc(userDocRef, {
+      const updateData: any = {
         lastLoginAt: serverTimestamp(),
-        ...(displayName && !data.displayName ? { displayName } : {}),
-        ...(photoURL && !data.photoURL ? { photoURL } : {}),
-      }).catch(() => {
-        setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true }).catch(() => {});
-      });
+      };
+      if (displayName && !data.displayName) {
+        updateData.displayName = displayName;
+      }
+      if (photoURL && !data.photoURL) {
+        updateData.photoURL = photoURL;
+      }
+      if (email && !data.email) {
+        updateData.email = email;
+      }
 
-      const role = (data.role || defaultRole) as 'customer' | 'seller' | 'admin' | 'super_admin';
-      const walletBalance = typeof data.walletBalance === 'number' ? data.walletBalance : 0;
-      const hasClaimedYouTubeBonus = Boolean(data.hasClaimedYouTubeBonus || data.hasReceivedBonus);
+      // Update existing document in users/{uid}
+      try {
+        await updateDoc(userDocRef, updateData);
+        console.log('[FirestoreSync] Updated lastLoginAt for users/' + uid);
+      } catch (upErr: any) {
+        console.warn('[FirestoreSync] updateDoc notice, using setDoc with merge:', upErr?.message);
+        await setDoc(userDocRef, updateData, { merge: true });
+      }
+
+      // Mirror update in customers/{uid}
+      try {
+        await setDoc(doc(db, 'customers', uid), {
+          uid,
+          email: data.email || email,
+          displayName: data.displayName || displayName,
+          photoURL: data.photoURL || photoURL,
+          role: data.role || defaultRole,
+          lastLoginAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (custMirrorErr: any) {
+        console.warn('[FirestoreSync] Notice mirroring to customers/' + uid + ':', custMirrorErr?.message);
+      }
+
+      const rawRole = (data.role || defaultRole).toString().toLowerCase();
+      const resolvedRole: 'customer' | 'seller' | 'admin' | 'super_admin' =
+        rawRole === 'super_admin' ? 'super_admin' : rawRole === 'admin' ? 'admin' : rawRole === 'seller' ? 'seller' : 'customer';
 
       return {
         uid,
         email: data.email || email,
         displayName: data.displayName || displayName,
         photoURL: data.photoURL || photoURL,
-        role,
-        walletBalance,
-        hasClaimedYouTubeBonus,
+        role: resolvedRole,
+        walletBalance: typeof data.walletBalance === 'number' ? data.walletBalance : 0,
+        hasClaimedYouTubeBonus: Boolean(data.hasClaimedYouTubeBonus || data.hasReceivedBonus),
       };
     } else {
-      // New user doc payload created and confirmed in Firestore
+      console.log('[FirestoreSync] Document does not exist. Creating new user document in users/' + uid);
       const newDocPayload = {
         uid,
         email,
         displayName,
         photoURL,
-        role: defaultRole,
+        role: defaultRole, // 'customer' or 'super_admin'
         walletBalance: 0,
         hasClaimedYouTubeBonus: false,
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
+        status: 'active',
       };
 
       try {
         await setDoc(userDocRef, newDocPayload);
-        console.log('[FirestoreSync] Successfully written new customer profile to Firestore users/', uid);
-      } catch (err) {
-        console.warn('[FirestoreSync] Error writing customer profile to Firestore:', err);
+        console.log('[FirestoreSync] Successfully created new user document in users/' + uid);
+      } catch (createErr: any) {
+        console.error('[FirestoreSync] Error creating user document in users/' + uid + ' (Check Firestore Rules):', {
+          code: createErr?.code,
+          message: createErr?.message,
+          error: createErr,
+        });
+        throw createErr;
+      }
+
+      // Mirror creation in customers/{uid}
+      try {
+        await setDoc(doc(db, 'customers', uid), newDocPayload);
+        console.log('[FirestoreSync] Successfully created mirror customer document in customers/' + uid);
+      } catch (custCreateErr: any) {
+        console.warn('[FirestoreSync] Notice mirroring to customers/' + uid + ':', custCreateErr?.message);
       }
 
       return defaultResult;
     }
-  } catch (error) {
-    console.error('[FirestoreSync] Error syncing user document in users/{uid}:', error);
+  } catch (error: any) {
+    console.error('[FirestoreSync] Firestore document sync error for UID ' + uid + ' (Check Firestore Rules):', {
+      code: error?.code,
+      message: error?.message,
+      uid,
+      email,
+      error,
+    });
     return defaultResult;
   }
 };
@@ -355,15 +403,19 @@ export const signInWithGoogle = async (): Promise<GoogleAuthResult> => {
     const user = result.user;
     const idToken = await user.getIdToken().catch(() => undefined);
 
-    // Non-blocking background sync with Firestore
-    syncUserDocumentInFirestore({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-    }).catch((err) => {
-      console.warn('[FirebaseAuth] Non-fatal background Firestore sync notice:', err);
-    });
+    // Auto-create/sync Firestore User Document immediately so user appears in real-time in Admin Panel
+    try {
+      console.log('[FirebaseAuth] Triggering immediate Firestore auto-sync for UID:', user.uid);
+      await syncUserDocumentInFirestore({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      });
+      console.log('[FirebaseAuth] Immediate Firestore auto-sync finished successfully for:', user.email);
+    } catch (err: any) {
+      console.error('[FirebaseAuth] Error during immediate Firestore sync (check rules):', err?.code, err?.message);
+    }
 
     const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
 
@@ -440,14 +492,17 @@ export const checkGoogleRedirectResult = async (): Promise<GoogleAuthResult | nu
         const displayName = user.displayName || user.email?.split('@')[0] || 'Kroy Ghor Member';
 
         // Ensure Firestore customer profile is created/updated in /users/{uid}
-        await syncUserDocumentInFirestore({
-          uid: user.uid,
-          email: user.email,
-          displayName,
-          photoURL: user.photoURL,
-        }).catch((err) => {
-          console.warn('[FirebaseAuth] Firestore sync on redirect result error:', err);
-        });
+        try {
+          await syncUserDocumentInFirestore({
+            uid: user.uid,
+            email: user.email,
+            displayName,
+            photoURL: user.photoURL,
+          });
+          console.log('[FirebaseAuth] Redirect result Firestore auto-sync completed for UID:', user.uid);
+        } catch (err: any) {
+          console.error('[FirebaseAuth] Firestore sync on redirect result error (check rules):', err?.code, err?.message);
+        }
 
         return {
           uid: user.uid,

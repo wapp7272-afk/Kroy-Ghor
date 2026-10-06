@@ -37,12 +37,17 @@ service cloud.firestore {
       allow create: if isOwner(uid) && (
         !('role' in request.resource.data) || 
         request.resource.data.role == 'customer' || 
+        request.resource.data.role == 'CUSTOMER' || 
         isSuperAdmin()
       );
 
-      // Update: Users can update profile. Role/bonus flags cannot be modified. Wallet balance can only be debited (decreased) unless Admin.
+      // Update: Users can update profile. Role cannot be escalated by customer. Bonus flags cannot be forged. Wallet balance cannot be inflated.
       allow update: if (isOwner(uid) && (
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'hasClaimedYouTubeBonus', 'hasReceivedBonus']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+         request.resource.data.role == resource.data.role ||
+         request.resource.data.role == 'customer' ||
+         request.resource.data.role == 'CUSTOMER') &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['hasClaimedYouTubeBonus', 'hasReceivedBonus']) &&
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['walletBalance']) ||
           request.resource.data.walletBalance <= resource.data.walletBalance
@@ -58,6 +63,13 @@ service cloud.firestore {
         allow create: if isOwner(uid) || isAdmin();
         allow update, delete: if isAdmin();
       }
+    }
+
+    // Mirror Customers collection: /customers/{uid}
+    match /customers/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) || isAdmin();
+      allow delete: if isSuperAdmin();
     }
 
     // 2. Orders collection (Global Root Orders: /orders/{orderId})
